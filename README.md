@@ -43,10 +43,8 @@ This book describes the mathematical background of solving synthesis problems of
 The targetted functionality parallels the functionality of the MATLAB collection of tools [FDITOOLS](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
 
 
-<!-- ## Implementation plan
-
-Future developments will address support for several new classes of generalized LTI systems types (e.g., for polynomial system models). -->
+<!-- ## Implementation plan -->
 
 ## Supplementary information
 
-Supplementary information on the targetted functionality is also available on [arXiv](https://arxiv.org/abs/1703.08480) in the documentation of the companion Matlab [`FDITOOLS`](https://github.com/andreasvarga/FDITools) collection.
+Supplementary information on the targetted functionality is also available on [arXiv](https://arxiv.org/abs/1703.08480) in the documentation of the companion MATLAB [`FDITOOLS`](https://github.com/andreasvarga/FDITools) collection.
