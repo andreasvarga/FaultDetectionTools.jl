@@ -86,12 +86,12 @@ The resulting `Q` contains the partitioned system
 to the measured outputs and control inputs are contained in the associated 
 integer vectors `Q.outputs` and `Q.controls`. 
 """
-function FDFilter(sys::DescriptorStateSpace{T}, p::Int, mu::Int) where T 
+function FDFilter(sys::DescriptorStateSpace, p::Int, mu::Int)
     m = size(sys,2) 
     p < 0 && error("number of measured outputs must be non-negative")
     mu < 0 && error("number of control inputs must be non-negative")
     p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-    return FDFilter{T}(sys[:,1:p+mu], Vector(1:p), Vector(p+1:p+mu))          
+    return FDFilter{eltype(sys)}(sys[:,1:p+mu], Vector(1:p), Vector(p+1:p+mu))          
 end
 function FDFilter(sys::DescriptorStateSpace{T}; outputs::VRS = Int[], controls::VRS = Int[]) where T 
     return FDFilter{T}(sys, vec([outputs; Int[]]), vec([controls; Int[]]))          

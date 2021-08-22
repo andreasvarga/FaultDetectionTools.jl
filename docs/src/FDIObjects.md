@@ -9,7 +9,7 @@
 FDIModel
 fdimodset
 FDFilter
-FDFilter(::DescriptorStateSpace, ::Int, ::Int)
+FDFilter(::DescriptorSystems.DescriptorStateSpace, ::Int, ::Int)
 FDFilterIF
-FDFilterIF(::DescriptorStateSpace, ::Int, ::Int, ::Int)
+FDFilterIF(::DescriptorSystems.DescriptorStateSpace, ::Int, ::Int, ::Int)
 ```

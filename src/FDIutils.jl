@@ -178,3 +178,41 @@ function fdhinfmax(sys::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Re
    end
    return γ, ind, f
 end
+function chess(a, e, b, c, d)
+   # reduce the descriptor system (A-λE,B,C,D) to an equivalent complex descriptor system 
+   # (Ac-λEc,Bc,Cc,Dc) such that Ac-λEc is in an upper Hessenberg form 
+   # Note: This function is used in the context of efficient frequence response computations. 
+   T = eltype(a)
+   desc = !(e == I)
+   if desc
+       # Reduce (A,E) to (generalized) upper-Hessenberg form for
+       # fast frequency response computation 
+       at = copy(a)
+       et = copy(e)
+       bt = copy(b)
+       # first reduce E to upper triangular form 
+       _, tau = LinearAlgebra.LAPACK.geqrf!(et)
+       T <: Complex ? tran = 'C' : tran = 'T'
+       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
+       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
+       # reduce A to Hessenberg form and keep E upper triangular
+       _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, size(at,1), at, et, similar(at),similar(et))
+       if T <: Complex 
+          bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+       else
+          bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+       end
+   else
+       # Reduce A to upper Hessenberg form for
+       # fast frequency response computation 
+       Ha = hessenberg(a)
+       ac = Ha.H
+       if T <: Complex 
+          bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+       else
+          bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+       end
+       ec = e
+   end
+   return ac, ec, bc, cc, dc
+end

@@ -1,4 +1,4 @@
-using Documenter, FaultDetectionTools, DescriptorSystems
+using Documenter, DescriptorSystems, FaultDetectionTools
 DocMeta.setdocmeta!(FaultDetectionTools, :DocTestSetup, :(using FaultDetectionTools); recursive=true)
 
 makedocs(
