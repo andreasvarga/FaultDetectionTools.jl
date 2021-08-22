@@ -1,3 +1,4 @@
+import Pkg; Pkg.add("DescriptorSystems")
 using Documenter, DescriptorSystems, FaultDetectionTools
 DocMeta.setdocmeta!(FaultDetectionTools, :DocTestSetup, :(using FaultDetectionTools); recursive=true)
 
