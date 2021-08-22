@@ -7,8 +7,10 @@ using DescriptorSystems
 using Polynomials
 using Random
 
+abstract type AbstractDescriptorStateSpace end
+
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
-import DescriptorSystems: DescriptorStateSpace, AbstractDescriptorStateSpace, rcond
+import DescriptorSystems: DescriptorStateSpace, rcond
 import Combinatorics: combinations
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF
