@@ -24,5 +24,5 @@ makedocs(
 deploydocs(
   repo = "github.com/andreasvarga/FaultDetectionTools.jl.git",
   target = "build",
-  devbranch = "main"
+  devbranch = "master"
 )
