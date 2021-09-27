@@ -951,7 +951,6 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
          degs1[i] = infoi.degs
          HDesign1[i] = infoi.HDesign
       end
-      println(Qt)
       Q = FDIFilter(Qt, p, mu)
       R = FDIFilterIF(Rt,0,0,mf,mw,maux)
   else     
