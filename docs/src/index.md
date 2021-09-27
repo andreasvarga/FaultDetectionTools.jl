@@ -22,7 +22,7 @@ Andreas Varga, "[Solving Fault Diagnosis Problems, Linear Synthesis Techniques](
 
 This book describes the mathematical background of solving synthesis problems of fault detection and model detection filters and gives detailed descriptions of the underlying synthesis procedures. 
 
-The targetted functionality parallels the functionality of the MATLAB collection of tools [FDITOOLS](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
+The targetted functionality parallels the functionality of the MATLAB collection of tools [`FDITOOLS`](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
 Supplementary information on the targetted functionality is also available on [arXiv](https://arxiv.org/abs/1703.08480) in the documentation of the companion MATLAB [`FDITOOLS`](https://github.com/andreasvarga/FDITools) collection.
 
 The available functions in the current version of the `FaultDetectionTools.jl` package are:
@@ -30,10 +30,13 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 
 **Building fault detection and isolation related objects**
 
-* **[`FDIModel`](@ref)**  Falt detection and isolation synthesis model.
+* **[`FDIModel`](@ref)**  Fault detection and isolation synthesis model.
 * **[`FDFilter`](@ref)**  Fault detection filter object.
+* **[`FDIFilter`](@ref)**  Fault detection and isolation filter object.
 * **[`FDFilterIF`](@ref)**  Fault detection filter internal form object.
+* **[`FDIFilterIF`](@ref)**  Fault detection and isolation filter internal form object.
 * **[`fdimodset`](@ref)**  Setup of synthesis models for solving fault detection and isolation problems.
+* **[`fdIFeval`](@ref)**  Evaluation of the internal forms of fault detection and isolation filters. 
 
 **Performance evaluation of FDI filters**
 
@@ -44,13 +47,15 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 **Solving fault detection and isolation problems**
 
 * **[`efdsyn`](@ref)**  Exact synthesis of fault detection filters.
+* **[`efdisyn`](@ref)**  Exact synthesis of fault detection and isolation filters.
 
+**FDI related computational utilities**
 
-**FDI related utilities**
-
-* **[`fdIFeval`](@ref)**  Evaluation of the internal form of a fault detection filter. 
-* **[`fdhinfminus`](@ref)**  Evaluation of the `H∞-` index.  
-* **[`fdhinfmax`](@ref)**  Evaluation of the maximum of column norm.  
+* **[`fdhinfminus`](@ref)**  Evaluation of the `H∞-` index of the transfer function matrix of a descriptor system model.  
+* **[`fdhinfmax`](@ref)**  Evaluation of the maximum of column norm of the transfer function matrix of a descriptor system model.  
+* **[`fditspec_`](@ref)**  Computation of the weak or strong structure matrix of a descriptor system model.
+* **[`fdisspec_`](@ref)**  Computation of the strong structure matrix of a descriptor system model.
+* **[`fdscond_`](@ref)**  Computation of the column-gains sensitivity condition of the transfer function matrix of a descriptor system model.
 
 ## [Release Notes](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/ReleaseNotes.md)
 

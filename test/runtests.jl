@@ -5,8 +5,11 @@ using Test, FaultDetectionTools
 @testset "Test FaultDetectionTools" begin
 # test FDI tools
 include("test_fdiutils.jl")
+# test FDI analysis tools
+include("test_fdigenspec.jl")
 # test FDI synthesis functions
 include("test_efdsyn.jl")
+include("test_efdisyn.jl")
 end
 
 end

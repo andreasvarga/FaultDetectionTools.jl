@@ -1,11 +1,15 @@
 # FDI related utilities
 
-* **[`fdIFeval`](@ref)**  Evaluation of the internal form of a fault detection filter. 
-* **[`fdhinfminus`](@ref)**  Evaluation of the `H∞-` index.  
-* **[`fdhinfmax`](@ref)**  Evaluation of the maximum of column norm.  
+* **[`fdhinfminus`](@ref)**  Evaluation of the `H∞-` index of the transfer function matrix of a descriptor system model.  
+* **[`fdhinfmax`](@ref)**  Evaluation of the maximum of column norm of the transfer function matrix of a descriptor system model.  
+* **[`fditspec_`](@ref)**  Computation of the weak or strong structure matrix of a descriptor system model.
+* **[`fdisspec_`](@ref)**  Computation of the strong structure matrix of a descriptor system model.
+* **[`fdscond_`](@ref)**  Computation of the column-gains sensitivity condition of the transfer function matrix of a descriptor system model.
 
 ```@docs
-fdIFeval
 fdhinfminus
 fdhinfmax
+fditspec_
+fdisspec_
+fdscond_
 ```

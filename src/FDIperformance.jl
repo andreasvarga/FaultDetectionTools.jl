@@ -1,14 +1,13 @@
 """
-    S = fditspec(sysrf; FDfreq = missing, block = false, FDtol, FDStol, 
-                        atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
+    S = fditspec(sysr::FDFilterIF; FDfreq = missing, block = false, poleshift = false, 
+                 FDtol, FDStol, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
 
-Compute the weak or strong binary structure matrix `S` of the transfer function matrix of a 
-linear time-invariant system `sysrf` 
-(typically representing the transfer channel from the fault inputs to residuals).
-`sysrf` is either a descriptor system representation `sysrf = (Af-lambda*Ef,Bf,Cf,Df)` 
-with a  `q x mf` transfer function matrix `Rf(λ)` or
-can be a fault detection filter internal form object `sysrf::FDFilterIF`, in which case 
-only the fault inputs channel `sysrf.sys[:,sysrf.faults] := (Af-lambda*Ef,Bf,Cf,Df)` is selected. 
+Compute the weak or strong binary structure matrix `S` of the transfer function matrix `Rf(λ)` of 
+the transfer channel from the fault inputs to residuals of 
+a fault detection filter internal form object `sysr::FDFilterIF`.  
+For a filter `sysr` with `q` residual outputs and `mf` fault inputs, 
+`Rf(λ)` is the `q x mf` transfer function matrix of the fault inputs channel with the descriptor system representation
+`sysr.sys[:,sysr.faults] := (Af-lambda*Ef,Bf,Cf,Df)`. 
 
 If `FDfreq = missing` (default), then `S` contains the weak structure matrix of `Rf(λ)`. 
 For `block = false`, `S` is determined as a `q x mf` 
@@ -18,21 +17,12 @@ For `block = true`, `S` is determined as a `1 x mf` binary matrix, whose `(1,j)`
 if the `j`-th column of `Rf(λ)` is nonzero, and otherwise, `S[1,j] = 0`. 
 
 If `FDfreq = freq` specifies a vector `freq` of `nf` real frequencies 
-which characterize the classes of persistent fault signals, then `S` contains the strong 
-structure matrix of `Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
+which characterize the classes of persistent fault signals, then 
+for a suitable proper and invertible `M(λ)` (see below),  
+`S` contains the strong structure matrix of `M(λ)*Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
 if `f` is a real frequency in `freq`, then the corresponding complex frequency in `Ω` 
-is `λ := im*f`, for a continuous-time system `sysrf`,
-or `λ := exp(im*f*abs(Ts))`, for a discrete-time system `sysfr` with sampling-time `Ts`.  
-For `block = false`, `S` is determined as a `q x mf x nf` 
-binary matrix, whose `(i,j,k)`-th element is `S[i,j,k] = 1`, if the `(i,j)`-th element of `Rf(λ)` is 
-nonzero for the `k`-th frequency in `freq`, and otherwise, `S[i,j,k] = 0`. 
-For `block = true`, `S` is determined as a `1 x mf x nf` binary matrix, whose `(1,j,k)`-th element is `S[1,j,k] = 1`, 
-if the `j`-th column of `Rf(λ)` is nonzero for the `k`-th frequency in `FDfreq`, and otherwise, `S[1,j,k] = 0`. 
-
-The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
-nonzero elements of matrices `Af`, `Bf`, `Cf`, `Df`, the absolute tolerance for the nonzero elements of `Ef`,  
-and the relative tolerance for the nonzero elements of `Af`, `Bf`, `Cf`, `Df` and `Ef`. 
-The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+is `λ := im*f`, for a continuous-time system,
+or `λ := exp(im*f*abs(Ts))`, for a discrete-time system with sampling-time `Ts`. 
 
 `FDtol = tol1` specifies an absolute threshold `tol1` for the magnitudes of nonzero elements in the system matrices 
 `Bf` and `Df` and is used to determine the weak structure matrix. 
@@ -44,14 +34,34 @@ Its default value is
 `tol2 = epsm*max(1, norm(Ef,1), norm(Af,1), norm(Bf,1), norm(Cf,Inf), norm(Df,1)))`, 
 where `epsm` is the working machine precision.
 
+For `block = false`, then, if `poleshift = true`, `M(λ)` is chosen diagonal such that `M(λ)*Rf(λ)`
+has no poles in `Ω` and if `poleshift = false` (default), `M(λ) = I` is used and 
+an error is issued if `Rf(λ)` has poles in `Ω`. 
+`S` is determined as a `q x mf` binary matrix, whose `(i,j)`-th element is `S[i,j] = 1`, 
+if the `(i,j)`-th element of `M(λ)*Rf(λ)` 
+evaluated for all frequencies in `Ω` is nonzero, and otherwise, `S[i,j] = 0`.  
+
+For `block = true`, then, if `poleshift = true`, `M(λ)` is chosen such that `M(λ)*Rf(λ)` 
+as no poles in `Ω` and if `poleshift = false` (default), `M(λ) = I` is used and 
+an error is issued if `Rf(λ)` has poles in `Ω`. 
+`S` is determined as an `1 x mf` binary matrix, whose `(1,j)`-th element is `S[1,j] = 1`, 
+if the `j`-th column of `M(λ)*Rf(λ)` evaluated for all frequencies in `Ω`
+is nonzero and otherwise `S[1,j] = 0`. 
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `Af`, `Bf`, `Cf`, `Df`, the absolute tolerance for the nonzero elements of `Ef`,  
+and the relative tolerance for the nonzero elements of `Af`, `Bf`, `Cf`, `Df` and `Ef`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+
 _Method:_ For the definition of the structure matrix, see [1]. For the
 determination of the weak structure matrix, minimal realizations
 are determined for each column of `Rf(λ)` if `block = true` or for 
 each element of `Rf(λ)` if `block = false` and the nonzero columns or 
 elements in each column are identified  (see Corollary 7.1 of [1]).
 For the determination of the strong structure matrix, minimal realizations
-are determined for each column of `Rf(λ)` if `block = true` or for 
-each element of `Rf(λ)` if `block = false` and  the full rank of the
+are determined for each column of `M(λ)*Rf(λ)` if `block = true` or for 
+each element of `M(λ)*Rf(λ)` if `block = false` and  the full rank of the
 corresponding system matrix is checked for all frequencies in `FDfreq`
 (see Corollary 7.2 in [1]) (i.e., the lack of zeros in all frequencies).
 
@@ -59,126 +69,154 @@ _References:_
 
 [1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec.3.4.
 """
-function fditspec(sysrf::DescriptorStateSpace{T}; FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
-                  block::Bool = false, FDtol::Real = 0., FDStol::Real = 0., 
-                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
-                  rtol::Real =  (size(sysrf.A,1)+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
-   p, mf = size(sysrf) 
-   n = order(sysrf)
-   q = block ? 1 : p  # number of rows of S
-   Sstrong = !ismissing(FDfreq)
-   if Sstrong
-      isa(FDfreq,Vector) || (FDfreq = [FDfreq]) 
-      lfreq = length(FDfreq);
-      w = im*FDfreq;                   # w = j*freq
-      Ts = abs(sysrf.Ts);
-      Ts > 0 && ( w = exp(Ts*w))     # w = exp(j*Ts*freq)
-      S = falses(q,mf,lfreq)
-   else
-      S = falses(q,mf)
-   end   
-   a, e, b, c, d = dssdata(sysrf)
-   standard = isequal(e,I)
-   if n == 0
-      S1 =  abs.(d) .> FDtol 
-      S = block ? maximum(S1, dims=1) : S1
-      return Sstrong ? repeat(S,1,1,lfreq) : S
-   end
-   if Sstrong
-      #FDStol <= 0. && (FDStol = 0.0001*max(1., norm(a,1), norm(b,1), norm(c,Inf), norm(d,1), standard ? 0 : norm(e,1))) 
-      FDStol <= 0. && (FDStol = eps(max(1., norm(a,1), norm(b,1), norm(c,Inf), norm(d,1), standard ? 0 : norm(e,1)))) 
-      S = trues(q, mf, lfreq)
-      # employ structural analysis to compute weak/strong structure matrix  
-      for j = 1:mf 
-         # elliminate uncontrollable eigenvalues for the i-th column of B
-         a1, e1, b1, c1, d1 = lsminreal(a, e, view(b,:,j), c, view(d,:,j); obs = false, noseig = false, atol1, atol2, rtol, fast)
-         if block
-            for k = 1:lfreq
-                # check if freq(k) is a zero of the j-th column 
-                s = isinf(FDfreq[k]) ? svdvals!([e1 b1; c1 d1]) : svdvals!([a1-w[k]*e1 b1; c1 d1])
-                S[1, j, k] = (s[end] > FDStol)
-            end
-         else
-            for i = 1:p 
-                # elliminate unobservable and non-dynamic eigenvalues for the i-th row of C
-                a2, e2, b2, c2, d2 = lsminreal(a1, e1, b1, view(c1,i:i,:),view(d1,i:i,:); contr = false, noseig = true, atol1, atol2, rtol, fast)
-                for k = 1:lfreq
-                    # check if freq(k) is a zero of the (i,j)-th element 
-                    s = isinf(FDfreq[k]) ? svdvals!([e2 b2; c2 d2]) : svdvals!([a2-w[k]*e2 b2; c2 d2])
-                    S[i,j,k] = s[end] > FDStol
-                end
-            end
-         end
-      end
-   else
-      FDtol <= 0. && (FDtol = 0.0001*max(1., norm(sysrf.B,1), norm(sysrf.D,1)))
-      standard && all(abs.(d) .> FDtol) && (return trues(q,mf))
-      S = falses(q, mf)
-      if block
-         for j = 1:mf
-             # compute minimal realization of the j-th column of Rf
-             _, _, b1, _, d1 = lsminreal(a, e, view(b,:,j:j), c, view(d,:,j:j); atol1, atol2, rtol, fast)
-             S[1,j] |=  (any(abs.(view(d1,:,1)) .> FDtol) || any(abs.(view(b1,:,1)) .> FDtol))
-         end
-      else
-         for j = 1:mf 
-             # elliminate uncontrollable eigenvalues for the j-th column of B
-             a1, e1, b1, c1, d1 = lsminreal(a, e, view(b,:,j), c, view(d,:,j); obs = false, noseig = false, atol1, atol2, rtol, fast)
-             for i = 1:p 
-                # elliminate unobservable and non-dynamic eigenvalues for the (i,j)-th element
-                _, _, b2, _, d2 = lsminreal(a1, e1, b1, view(c1,i:i,:),view(d1,i:i,:); contr = false, noseig = true, atol1, atol2, rtol, fast)
-                S[i,j] |=  (abs(d2[1,1]) > FDtol || any(abs.(view(b2,:,1)) .> FDtol))
-             end
-         end
-      end
-   end
-   return S
-end
-fditspec(sysr::FDFilterIF{T}; kwargs...) where T = fditspec(sysr.sys[:,sysr.faults]; kwargs...) 
-"""
-     fdisspec(sysrf, freq; block = false, FDGainTol = 0.01, 
-                     atol = 0, atol1 = 0, atol2 = 0, rtol = 0, fast = true) -> (S, gains)
+function fditspec(sysr::FDFilterIF{T}; FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+    poleshift::Bool = false, FDtol::Real = 0., FDStol::Real = 0., 
+    atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = 0, fast::Bool = true) where T
 
-Compute for the linear time-invariant system `sysrf` and 
-a given set of real frequencies `freq`,  
-the strong binary structure matrix `S` of the transfer function matrix of `sysrf` 
-and the corresponding frequency response gains `gains`. 
-`sysrf` typically represents the transfer channel from the fault inputs to residuals
-and is either a descriptor system representation `sysrf = (Af-lambda*Ef,Bf,Cf,Df)` 
-with a  `q x mf` transfer function matrix `Rf(λ)` or
-is a fault detection filter internal form object `sysrf::FDFilterIF`, in which case 
-only the fault inputs channel `sysrf.sys[:,sysrf.faults] := (Af-lambda*Ef,Bf,Cf,Df)` is selected. 
+    S = fditspec_(sysr.sys[:,sysr.faults]; FDfreq, poleshift, FDtol, FDStol, 
+                  atol1, atol2, rtol, fast)
+    ismissing(FDfreq) && (return S)
+    for j = 1:size(S,2)
+        for i = 1:size(S,1)
+            S[i,j,1] = all(view(S,i,j,:))
+        end
+    end
+    return S[:,:,1]
+end
+"""
+    S = fditspec(sysr::FDIFilterIF; FDfreq = missing, block = false, poleshift = false, 
+                 FDtol, FDStol, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
+
+Compute the weak or strong binary structure matrix `S` of the global transfer function matrix `Rf(λ)` of 
+the transfer channel from the fault inputs to residuals of 
+a fault detection and isolation filter internal form object `sysr::FDIFilterIF`.  
+The filter `sysr` consists of `N` individual FDI filters `sysr.sys[i]`, for `i = 1, ..., N`, where
+the fault to residual channel of the `i`-th filter `sysr.sys[i][:,sysr.faults]` 
+has `qi` residual outputs and `mf` fault inputs, has the descriptor system representation
+`sysr.sys[i][:,sysr.faults] := (Afi-lambda*Efi,Bfi,Cfi,Dfi)` and 
+`Rfi(λ)` is the corresponding `qi x mf` transfer function matrix. 
+The global transfer function matrix `Rf(λ)` is formed by row concatenation of the 
+transfer function matrices of the `N` individual filters, i.e.,  `Rf(λ) := [ Rf1(λ); Rf2(λ); ...; RfN(λ)]`. 
+For the evaluation of the strong structure matrix, the structure matrix of the stable 
+transfer function matrix `M(λ)*Rf(λ)` is determined, with a `M(λ)` block-diagonal
+`M(λ) = block-diag(M1(λ), M2(λ), ..., MN(λ))`, where `Mi(λ)` is a suitable square and invertible 
+transfer function matrix (see below). 
+
+`FDtol = tol1` specifies an absolute threshold `tol1` for the magnitudes of nonzero elements in the system matrices 
+`Bf` and `Df` and is used to determine the weak structure matrix. 
+Its default value is `tol1 = 0.0001*max(1, norm(Bf,1), norm(Df,1))`. 
+
+`FDStol = tol2` specifies an absolute  threshold `tol2` for the magnitudes of nonzero elements in the system matrices 
+`Af`, `Ef`, `Bf`, `Cf` and `Df` and is used to determine the strong structure matrix. 
+Its default value is 
+`tol2 = epsm*max(1, norm(Ef,1), norm(Af,1), norm(Bf,1), norm(Cf,Inf), norm(Df,1)))`, 
+where `epsm` is the working machine precision.
+
+If `FDfreq = missing` (default), then `S` contains the weak structure matrix of `Rf(λ)`. 
+`S` is determined as a `N x mf` binary matrix, whose `(i,j)`-th element is `S[i,j] = 1`, 
+if the `j`-th column of `Rfi(λ)` is nonzero, and otherwise, `S[i,j] = 0`. 
+
+If `FDfreq = freq` specifies a vector `freq` of `nf` real frequencies 
+which characterize the classes of persistent fault signals, then 
+for a suitable proper and invertible `M(λ)` (see below),  
+`S` contains the strong structure matrix of `M(λ)*Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
+if `f` is a real frequency in `freq`, then the corresponding complex frequency in `Ω` 
+is `λ := im*f`, for a continuous-time system,
+or `λ := exp(im*f*abs(Ts))`, for a discrete-time system with sampling-time `Ts`. 
+
+`S` is determined as a `N x mf` binary matrix, whose `(i,j)`-th element is `S[i,j] = 1`, 
+if the `j`-th column of `Mi(λ)*Rfi(λ)` is nonzero for all frequencies in `Ω`, and otherwise, `S[i,j] = 0`. 
+If `poleshift = true`, `Mi(λ)` is chosen such that `Mi(λ)*Rfi(λ)` has no poles in `Ω` and
+if `poleshift = false` (default), `Mi(λ) = I` is used and an error is issued if any `Rfi(λ)` has poles in `Ω`. 
+   
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `Af`, `Bf`, `Cf`, `Df`, the absolute tolerance for the nonzero elements of `Ef`,  
+and the relative tolerance for the nonzero elements of `Af`, `Bf`, `Cf`, `Df` and `Ef`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+
+_Method:_ For the definition of the structure matrix, see [1]. For the
+determination of the weak structure matrix, minimal realizations
+are determined for each column of `Rfi(λ)` and the nonzero columns are identified  (see Corollary 7.1 of [1]).
+For the determination of the strong structure matrix, minimal realizations
+are determined for each column of `Mi(λ)*Rfi(λ)` and  the full rank of the
+corresponding system matrix is checked for all frequencies in `Ω`
+(see Corollary 7.2 in [1]) (i.e., the lack of zeros in all frequencies in `Ω`).
+
+_References:_
+
+[1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec.3.4.
+"""
+function fditspec(sysr::FDIFilterIF{T}; FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+                  poleshift::Bool = false, FDtol::Real = 0., FDStol::Real = 0., 
+                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+                  rtol::Real = 0, fast::Bool = true) where T
+    N = length(sysr.sys)
+    mf = length(sysr.faults)
+    S = trues(N,mf)
+    if ismissing(FDfreq)
+       for i = 1:N
+           S[i,:] = fditspec_(sysr.sys[i][:,sysr.faults]; block = true, FDtol, atol1, atol2, fast, 
+                                         rtol = (size(sysr.sys[i].A,1)+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2,rtol)))
+       end
+    else
+       isa(FDfreq,Vector) || (FDfreq = [FDfreq]) 
+       lfreq = length(FDfreq);
+       for i = 1:N
+           Sc  = fditspec_(sysr.sys[i][:,sysr.faults]; block = true, FDfreq, poleshift, FDtol, FDStol, atol1, atol2, fast, 
+                                         rtol = (size(sysr.sys[i].A,1)+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2,rtol)))
+           lfreq == 1 ? (S[i,:] = Sc[1,:,1]) : ([S[i,j] = all(view(Sc,1,j,:)) for j = 1:mf])           
+       end
+    end
+    return S
+end
+"""
+     S = fdisspec(sysr::FDFilterIF, freq; block = false, stabilize = false, FDGainTol = 0.01, 
+                     atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
+
+Compute, for a given set of real frequencies `freq`,  
+the strong binary structure matrix `S` of the stable transfer function matrix `M(λ)*Rf(λ)`, 
+where `Rf(λ)` is the transfer function matrix of the
+transfer channel from the fault inputs to residuals of the
+fault detection filter internal form object `sysr::FDFilterIF` and  
+`M(λ)` is a suitable proper and invertible stabilizing transfer function matrix (see below).  
+For a filter `sysr` with `q` residual outputs and `mf` fault inputs, 
+`Rf(λ)` is the `q x mf` transfer function matrix of the fault inputs channel with the descriptor system representation
+`sysr.sys[:,sysr.faults] := (Af-lambda*Ef,Bf,Cf,Df)`. 
 
 `freq` must contain a real frequency value or a vector of `nf` real frequencies 
 which characterize the classes of persistent fault signals 
 (default: `freq = 0`, i.e., characterizing constant faults).
 `S` contains the strong 
-structure matrix of `Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
+structure matrix of `M(λ)*Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
 if `f` is a real frequency in `freq`, then the corresponding complex frequency in `Ω` 
-is `λ := im*f`, for a continuous-time system `sysrf`,
-or `λ := exp(im*f*abs(Ts))`, for a discrete-time system `sysfr` with sampling-time `Ts`.  
-If any of the frequency values in `freq` is a pole of `sysf`, then `sysf` is replaced by the stable numerator 
-of a left coprime factorization of `sysf`. 
+is `λ := im*f`, for a continuous-time system,
+or `λ := exp(im*f*abs(Ts))`, for a discrete-time system with sampling-time `Ts`.  
 
 `FDGainTol = tol` specifies an absolute  threshold `tol` for the nonzero magnitudes of 
 the frequency response gains (default: `tol = 0.01`). 
 
+For `block = false`, then, if `stabilize = true`, `M(λ)` is chosen diagonal such that `M(λ)*Rf(λ)`
+has only stable poles and if `stabilize = false` (default), `M(λ) = I` is used and 
+an error is issued if `Rf(λ)` has poles in `Ω`. 
+`S` is determined as a `q x mf` binary matrix, whose `(i,j)`-th element is `S[i,j] = 1`, 
+if the `(i,j)`-th element of `M(λ)*Rf(λ)` 
+evaluated for all frequencies in `freq` is larger than or equal to `tol`, and otherwise, `S[i,j] = 0`.  
 
-For `block = false`, `gains` is a `p x mf x nf` matrix, whose `(i,j,k)`-th element is the magnitude of the 
-`(i,j)`-th element of `Rf(λ)` evaluated for the `k`-th frequency in `freq`. 
-`S` is determined as a `q x mf x nf` 
-binary matrix, whose `(i,j,k)`-th element is `S[i,j,k] = 1`, if the `(i,j,k)`-th element of `gains` is 
-is larger then or equal to `tol`, and otherwise, `S[i,j,k] = 0`. 
-For `block = true`, `gains` is an `1 x mf x nf` matrix, whose `(1,j,k)`-th element is the norm of the 
-`j`-th column of `Rf(λ)` evaluated for the `k`-th frequency in `freq`.
-`S` is determined as an `1 x mf x nf` binary matrix, whose `(1,j,k)`-th element is `S[1,j,k] = 1`, 
-if the `(1,j,k)`-th element of `gains` is larger then or equal to `tol` 
-and otherwise, `S[1,j,k] = 0`. 
 
-The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
-nonzero elements of matrices `Af`, `Bf`, `Cf`, `Df`, the absolute tolerance for the nonzero elements of `Ef`,  
+For `block = true`, then, if `stabilize = true`, `M(λ)` is chosen such that `M(λ)*Rf(λ)` 
+has only stable poles and if `stabilize = false` (default), `M(λ) = I` is used and 
+an error is issued if `Rf(λ)` has poles in `Ω`. 
+`S` is determined as an `1 x mf` binary matrix, whose `(1,j)`-th element is `S[1,j] = 1`, 
+if the `j`-th column of `M(λ)*Rf(λ)` evaluated for all frequencies in `Ω`
+is larger than or equal to `tol` and otherwise, `S[1,j] = 0`. 
+
+The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `Af`, `Bf`, `Cf`, `Df`, the absolute tolerance for the nonzero elements of `Ef`, 
+the absolute tolerance for the nonzero elements of `Cf`,   
 and the relative tolerance for the nonzero elements of `Af`, `Bf`, `Cf`, `Df` and `Ef`. 
-The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
 
 The computation of minimal realizations of individual input-output channels relies on pencil manipulation algorithms,
 which employ rank determinations based on either the use of 
@@ -192,128 +230,138 @@ _References:_
 [1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec. 3.4.
 
 """
-function fdisspec(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real} = 0; FDGainTol::Real = 0.01, block::Bool = false, 
-                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
-                  rtol::Real =  ((max(size(sysrf.A)...))+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
-   p, mf = size(sysrf) 
-   isa(freq,Vector) || (freq = [freq]) 
-   lfreq = length(freq);
-   w = im*freq;                   # w = j*freq
-   Ts = abs(sysrf.Ts);
-   Ts > 0 && ( w = exp(Ts*w))     # w = exp(j*Ts*freq)
-
-   try
-      if block
-         gs = evalfr(sysrf, w[1]; atol1, atol2, rtol, fast) 
-         any(isinf.(gs)) && error("fdisspec:pole - the frequency $(w[1]) is a system pole")
-         smat = falses(1, mf, lfreq)
-         gains = zeros(T, 1, mf, lfreq)
-         for j = 1:mf 
-             gsj = norm(view(gs,:,j))
-             gains[1,j,1] = gsj
-             smat[1,j,1] = (gsj .> FDGainTol)
-         end
-         for i = 2:lfreq
-             gs = evalfr(sysrf, w[i]; atol1, atol2, rtol, fast) 
-             any(isinf.(gs)) && error("fdisspec:pole - the frequency $(w[i]) is a system pole")
-             for j = 1:mf 
-                 gsj = norm(view(gs,:,j))
-                 gains[1,j,i] = gsj
-                 smat[1,j,i] = (gsj .> FDGainTol)
-             end
-         end
-      else
-         gs = abs.(evalfr(sysrf, w[1]; atol1, atol2, rtol, fast)) 
-         any(isinf.(gs)) && error("fdisspec:pole - the frequency $(w[1]) is a system pole")   
-         smat = falses(p, mf, lfreq)
-         gains = zeros(T, p, mf, lfreq)
-         gains[:,:,1] = gs
-         smat[:,:,1] = (gs .> FDGainTol)
-         for i = 2:lfreq
-            gs = abs.(evalfr(sysrf,w[i]; atol1, atol2, rtol, fast))
-            any(isinf.(gs)) && error("fdisspec:pole - the frequency $(w[i]) is a system pole")
-            gains[:,:,i] = gs
-            smat[:,:,i] = (gs .> FDGainTol)
-         end
-      end
-      return smat, gains
-   catch err   
-      findfirst("fdisspec:pole", string(err)) === nothing && rethrow() 
-      return fdisspec(glcf(sysrf; atol1, atol2, rtol)[1], freq; FDGainTol, block, atol1, atol2, rtol, fast)
-   end
-end
-fdisspec(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} = 0; kwargs...) where T = fdisspec(sysr.sys[:,sysr.faults], freq; kwargs...) 
+function fdisspec(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} = 0; kwargs...) where T
+    S = fdisspec_(sysr.sys[:,sysr.faults], freq; kwargs...)[1] 
+    length(freq) == 1 && (return S[:,:,1])
+    for j = 1:size(S,2)
+        for i = 1:size(S,1)
+            S[i,j,1] = all(view(S,i,j,:))
+        end
+    end
+    return S[:,:,1]
+end  
 """
-     fdscond(sysf,freq) -> (scond, β, γ)
+     S = fdisspec(sysr::FDIFilterIF, freq; block = false, stabilize = false, FDGainTol = 0.01, 
+                     atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
 
-Compute for a stable descriptor system `sysf = (A-λE,B,C,D)` with the transfer function matrix `Rf(λ)`, 
+Compute, for a given set of real frequencies `freq`,  
+the strong binary structure matrix `S` 
+of the stable transfer function matrix `M(λ)*Rf(λ)`, where `Rf(λ)` is the global 
+transfer function matrix of the transfer channel from the fault inputs to residuals of the
+fault detection and isolation filter internal form object `sysr::FDIFilterIF` and  
+`M(λ)` is a suitable block-diagonal proper and invertible stabilizing transfer function matrix (see below).  
+The filter `sysr` consists of `N` individual FDI filters `sysr.sys[i]`, for `i = 1, ..., N`, where
+the fault to residual channel of the `i`-th filter `sysr.sys[i][:,sysr.faults]` 
+has `qi` residual outputs and `mf` fault inputs, has the descriptor system representation
+`sysr.sys[i][:,sysr.faults] := (Afi-lambda*Efi,Bfi,Cfi,Dfi)` and 
+`Rfi(λ)` is the corresponding `qi x mf` transfer function matrix. 
+The global transfer function matrix `Rf(λ)` is formed by row concatenation of the 
+transfer function matrices of the `N` individual filters, i.e.,  `Rf(λ) := [ Rf1(λ); Rf2(λ); ...; RfN(λ)]`. 
+`M(λ) = block-diag(M1(λ), M2(λ), ..., MN(λ))`, where `Mi(λ)` is square and invertible 
+and chosen such that `Mi(λ)Rfi(λ)` is stable (see below). 
+
+`freq` must contain a real frequency value or a vector of `nf` real frequencies 
+which characterize the classes of persistent fault signals 
+(default: `freq = 0`, i.e., characterizing constant faults).
+`S` contains the strong 
+structure matrix of `M(λ)*Rf(λ)` with respect to a set of `nf` complex frequencies `Ω`, defined as follows: 
+if `f` is a real frequency in `freq`, then the corresponding complex frequency in `Ω` 
+is `λ := im*f`, for a continuous-time system,
+or `λ := exp(im*f*abs(Ts))`, for a discrete-time system with sampling-time `Ts`.  
+
+`FDGainTol = tol` specifies an absolute  threshold `tol` for the nonzero magnitudes of 
+the frequency response gains (default: `tol = 0.01`). 
+
+If `stabilize = true`, `Mi(λ)` is chosen such that `Mi(λ)*Rfi(λ)` has only stable poles and
+if `stabilize = false` (default), `Mi(λ) = I` is used and an error is issued 
+if any `Rfi(λ)` has poles in `Ω`. 
+
+`S` is determined as a `N x mf` 
+binary matrix, whose `(i,j)`-th element is `S[i,j] = 1`, if the norm of the 
+`j`-th column of `Mi(λ)*Rfi(λ)` evaluated for all frequencies in `Ω` 
+is larger than or equal to `tol`, and otherwise, `S[i,j] = 0`. 
+
+The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `Afi`, `Bfi`, `Cfi`, `Dfi`, the absolute tolerance for the nonzero elements of `Efi`, 
+the absolute tolerance for the nonzero elements of `Cfi`,   
+and the relative tolerance for the nonzero elements of `Afi`, `Bfi`, `Cfi`, `Dfi` and `Efi`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
+
+The computation of minimal realizations of individual input-output channels relies on pencil manipulation algorithms,
+which employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
+The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
+
+_Method:_ `S` is evaluated using the definition of the strong structure matrix in [1]. 
+
+_References:_
+
+[1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec. 3.4.
+
+"""
+function fdisspec(sysr::FDIFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} = 0; stabilize::Bool = false, 
+                  FDGainTol::Real = 0.01, atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+                  rtol::Real = 0, fast::Bool = true) where T
+    isa(freq,Vector) || (freq = [freq]) 
+    lfreq = length(freq);
+    N = length(sysr.sys)
+    mf = length(sysr.faults)
+    S = trues(N,mf)
+    for i = 1:N
+        Sc = fdisspec_(sysr.sys[i][:,sysr.faults], freq; block = true, stabilize, FDGainTol, 
+                       atol1, atol2, fast, rtol = (size(sysr.sys[i].A,1)+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2,rtol)))[1]
+        lfreq == 1 ? (S[i,:] = Sc[1,:,1]) : ([S[i,j] = all(view(Sc,1,j,:)) for j = 1:mf])           
+    end
+    return S
+end
+"""
+     fdscond(sysr::FDFilterIF,freq) -> (scond, β, γ)
+
+Compute for the stable transfer function matrix `Rf(λ)` of the
+transfer channel from the fault inputs to residuals of the
+fault detection filter internal form object `sysr::FDFilterIF` the quantities: 
 `β` - the H∞- index of `Rf(λ)`, `γ` - the maximum of the columns norms of `Rf(λ)` and 
 the fault detection sensitivity condition `scond` evaluated as `scond := β/γ`. 
 If `freq` is a vector of real frequency values, then `β` and `γ`
 are evaluated over the frequencies contained in `freq`. 
-If `sysf` is a fault detection filter internal form object `sysf::FDFilterIF` then `scond`, `β` and `γ`
-are evaluated only for the fault inputs channel `sysf.sys[:,sysf.faults]`. 
 """
-function fdscond(sysf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
-   p, m = size(sysf)
-
-   m == 0 && (return T[], T[], T[])
-
-   isstable(sysf) || error("the system is unstable")
-
-   β = Inf
-   γ = 0 
-   if ismissing(freq) 
-      # evaluate β and γ as the minimum and maximum of H-infinity norms of the columns of G
-      for j = 1:m
-         temp = ghinfnorm(sysf[:,j])[1]
-         γ >= temp || (γ = temp)
-         β <= temp || (β = temp)
-      end
-   else
-      # evaluateβ and γ as the minimum and maximum of the norms of columns of the frequency 
-      # responses of G evaluated over all frequencies contained in FREQ 
-      if !isa(freq, Vector) 
-         # use evalfr if only one frequency is present
-         H = evalfr(sysf; fval = freq) 
-         for j = 1:m
-             temp = norm(view(H,:,j))
-             γ >= temp || (γ = temp)
-             β <= temp || (β = temp)
-         end
-      else
-         T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
-         ONE = one(T1)
-         a, e, b, c, d = dssdata(T1,sysf)
-         Ts = abs(sysf.Ts)
-         disc = !iszero(Ts)
-         sw = disc ? im*Ts : im
-         desc = !(e == I)
-         # Determine the complex Hessenberg-form system to be used for efficient
-         # frequency response computation.
-         ac, ec, bc, cc, dc = chess(a, e, b, c, d)
-         H = similar(dc, eltype(dc), p, m)
-         bct = similar(bc) 
-         for i = 1:length(freq)
-             if isinf(freq[i])
-                # exceptional call to evalfr
-                H = evalfr(sys, fval=Inf)
-             else
-                copyto!(H, dc)
-                copyto!(bct, bc)
-                w = disc ? -exp(sw*freq[i]) : -sw*freq[i]
-                desc ? ldiv!(UpperHessenberg(ac+w*ec),bct) : ldiv!(ac,bct,shift = w)
-                mul!(H, cc, bct, -ONE, ONE)
-             end
-             for j = 1:m
-                 temp = norm(view(H,:,j))
-                 γ >= temp || (γ = temp)
-                 β <= temp || (β = temp)
-             end
-         end
-      end
-   end
-   return β/γ, β, γ
+function fdscond(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+    fdscond_(sysr.sys[:,sysr.faults], freq)
 end
-fdscond(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T = fdscond(sysr.sys[:,sysr.faults], freq) 
+"""
+     fdscond(sysr::FDIFilterIF, SFDI, freq) -> (scond, β, γ)
 
+Compute the detection and isolation sensitivity condition
+`scond` (and related quatities `β` and `γ`) for the `N × mf` structure matrix `SFDI` associated to
+the stable global transfer function matrix `Rf(λ)` of the
+transfer channel from the fault inputs to residuals of the
+fault detection and isolation filter internal form object `sysr::FDIFilterIF`. 
+The filter `sysr` consists of `N` individual FDI filters `sysr.sys[i]`, for `i = 1, ..., N`, where
+`sysr.sys[i][:,sysr.faults]` is the fault to residual channel of the `i`-th filter and 
+`Rfi(λ)` is the corresponding transfer function matrix. 
+The global transfer function matrix `Rf(λ)` is formed by row concatenation of the 
+transfer function matrices of the `N` individual filters, i.e.,  `Rf(λ) := [ Rf1(λ); Rf2(λ); ...; RfN(λ)]`.
+It is assumed that for each `j` such that `SFDI[i,j] = true`, the `j`-th column of `Rfi(λ)` is nonzero  and 
+for each `j` such that `SFDI[i,j] = false`, the `j`-th column of `Rfi(λ)` is zero. 
+The i-th element of the vectors `scond`, `β` and `γ` contain the quantities: 
+`β[i]` - the H∞- index of the nonzero columns of `Rfi(λ)`, `γ` - the maximum of the nonzero columns norms of `Rf(λ)` and 
+the fault detection sensitivity condition `scond` evaluated as `scond[i] := β[i]/γ[i]`. 
+If `freq` is a vector of real frequency values, then `β[i]` and `γ[i]`
+are evaluated over the frequencies contained in `freq`. 
+"""
+function fdscond(sysr::FDIFilterIF{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2},Array{Bool,1}}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+    N = length(sysr.sys)
+    isa(SFDI,Union{BitVector,Array{Bool,1}}) ? (nb = 1; mf = length(SFDI); SFDI = reshape(SFDI,nb,mf) ) :
+                                               (nb = size(SFDI,1); mf = size(SFDI,2))
+    nb == N || error("missmatch between number of filters $N and number of specifications $nb")
+    inpf = sysr.faults
+    mf == length(inpf) || error("missmatch between number of faults and column dimension/length of SFDI")
+    scond = similar(Array{T,1},N)
+    β = similar(Array{T,1},N)
+    γ = similar(Array{T,1},N)
+    for i = 1:N
+        scond[i], β[i], γ[i] = fdscond_(sysr.sys[i][:,inpf[view(SFDI,i,:)]], freq)
+    end
+    return scond, β, γ
+end
+fdscond(sysr::FDIFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T = fdscond(sysr,trues(1,length(sysr.faults)),freq)

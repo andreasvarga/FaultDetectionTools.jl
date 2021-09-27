@@ -7,20 +7,22 @@ using DescriptorSystems
 using Polynomials
 using Random
 
-abstract type AbstractDescriptorStateSpace end
+abstract type AbstractFDDObject end
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
-import DescriptorSystems: DescriptorStateSpace, rcond
+import DescriptorSystems: DescriptorStateSpace, chess, rcond
 import Combinatorics: combinations
 
-export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF
+export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval
 export fditspec, fdisspec, fdscond
-export efdsyn, efdbasesel
-export fdIFeval, fdhinfminus, fdhinfmax
+export fdigenspec, fdichkspec
+export efdsyn, efdisyn, efdbasesel
+export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdscond_
 
 const VRS = Union{Vector{Int}, UnitRange{Int}, Int}
 
 include("types/FDIObjects.jl")
+include("FDIanalysis.jl")
 include("FDIperformance.jl")
 include("FDIsynthesis.jl")
 include("FDIutils.jl")

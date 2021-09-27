@@ -11,6 +11,7 @@ makedocs(
      "Home"   => "index.md",
      "Library" => [ 
         "FDIObjects.md",
+        "FDIanalysis.md",
         "FDIperformance.md",
         "FDIsynthesis.md"
         ],

@@ -1,49 +1,4 @@
 """
-    fdIFeval(sysQ::FDFilter, sysf::FDIModel; minimal = false, atol, atol1 = atol, atol2 = atol, rtol, fast = true) -> sysR::FDFilterIF
-
-Compute the internal form `sysR` of the fault detection filter `sysQ` applied to the synthesis model `sysf`. 
-If `sysf` has the partitioned transfer function matrix `G(λ) = [ Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) ]` in accordance with
-the partitioned system inputs as `controls`, `disturbances`, `faults`, `noise` and `auxiliary` inputs, respectively,
-and `Q(λ) = [ Qy(λ) Qu(λ) ]` is the partitioned transfer function matrix of the fault detection filter `sysQ` 
-in accordance with the partitioned filter inputs as `outputs` and `controls`, then 
-the transfer function matrix `R(λ)` of the resulting internal form `sysR` is given by
-     
-     R(λ) = | Qy(λ)  Qu(λ) | * | Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) |
-                               |  I       0     0     0     0   |
-
-A minimal descriptor realization is computed if `minimal = true` and a possibly non-minimal 
-realization is determined if `minimal = false` (default). 
-
-The minimal realization computation relies on pencil manipulation algorithms which 
-employ rank determinations based on either the use of 
-rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
-The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
-
-If `(Ar-λEr,Br,Cr,Dr)` is the full order descriptor realization of `sysR.sys`, then 
-the keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
-nonzero elements of matrices `Ar`, `Br`, `Cr`, `Dr`, the absolute tolerance for the nonzero elements of `Er`,  
-and the relative tolerance for the nonzero elements of `Ar`, `Br`, `Cr`, `Dr` and `Er`.
-The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
-and `n` is the order of the system `sysR`.  
-The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
-
-"""
-function fdIFeval(Q::FDFilter, sysf::FDIModel; minimal::Bool = false, 
-                  atol::Real = 0., atol1::Real = atol, atol2::Real = atol, rtol::Real = 0., fast::Bool = true)
-   # compute the internal form as
-   #   R = Q * [ Gu Gd Gf Gw Gaux]
-   #           [ I  0  0  0  0   ]
-   p, m = size(sysf.sys)
-   mu = length(sysf.controls)
-   (length(Q.outputs) == p && length(Q.controls) == mu) || error("filter Q is incompatible with the given system")
-   # return fdRset(gminreal(Q.sys*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]; atol1, atol2, rtol); 
-   #               sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
-   Rsys = Q.sys*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]
-   return FDFilterIF(minimal ? gminreal(Rsys; atol1, atol2, rtol) : Rsys, 
-                 sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
-   
-end
-"""
      fdhinfminus(sys,freq) -> (β, ind, fr)
 
 Compute for a stable descriptor system `sys = (A-λE,B,C,D)` the `H∞-` index `β` of its
@@ -178,41 +133,259 @@ function fdhinfmax(sys::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Re
    end
    return γ, ind, f
 end
-function chess(a, e, b, c, d)
-   # reduce the descriptor system (A-λE,B,C,D) to an equivalent complex descriptor system 
-   # (Ac-λEc,Bc,Cc,Dc) such that Ac-λEc is in an upper Hessenberg form 
-   # Note: This function is used in the context of efficient frequence response computations. 
-   T = eltype(a)
-   desc = !(e == I)
-   if desc
-       # Reduce (A,E) to (generalized) upper-Hessenberg form for
-       # fast frequency response computation 
-       at = copy(a)
-       et = copy(e)
-       bt = copy(b)
-       # first reduce E to upper triangular form 
-       _, tau = LinearAlgebra.LAPACK.geqrf!(et)
-       T <: Complex ? tran = 'C' : tran = 'T'
-       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
-       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
-       # reduce A to Hessenberg form and keep E upper triangular
-       _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, size(at,1), at, et, similar(at),similar(et))
-       if T <: Complex 
-          bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
-       else
-          bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
-       end
-   else
-       # Reduce A to upper Hessenberg form for
-       # fast frequency response computation 
-       Ha = hessenberg(a)
-       ac = Ha.H
-       if T <: Complex 
-          bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
-       else
-          bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
-       end
-       ec = e
+function binmat2dec(S::Union{BitArray,VecOrMat{<:Number}})
+# Convert a binary matrix with zero/non-zero elements to an equivalent decimal number integer vector
+   len = size(S,2)
+   n = Int.(S[:,1] .!= 0)
+   for i = 2:len
+       n .= 2*n .+ Int.(S[:,i] .!= 0)
    end
-   return ac, ec, bc, cc, dc
+   return n
+end
+function dec2binmat(n::Union{Int,Vector{Int}}, numbits::Int = 1)
+# Convert a decimal non-negative integer or integer vector with decimal non-negative values 
+# to their binary matrix representation with `numbits` bits.
+   minimum(n) < 0 && error("only non-negative values allowed")
+   maxn = maximum(n)
+   len = maxn == 0 ? max(1,numbits) : max(Int(floor(log2(maxn)+1)),numbits) 
+   ns = size(n,1)
+   v = isa(n,Int) ? string.([n], base = 2, pad = len) : string.(n, base = 2, pad = len) 
+   S = falses(ns,len)  
+   for i = 1:ns
+       for j = 1:len
+           S[i,j] = parse(Int,v[i][j]) == 1
+       end
+   end
+   return S
+end
+"""
+    S = fditspec_(sysrf::DescriptorStateSpace; FDfreq = missing, block = false, poleshift = false, 
+                 FDtol, FDStol, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
+
+Compute the weak or strong binary structure matrix `S` of the transfer function matrix of a 
+linear time-invariant system `sysrf` 
+(typically representing the transfer channel from the fault inputs to residuals).
+`sysrf` has a descriptor system realization of the form `sysrf = (Af-lambda*Ef,Bf,Cf,Df)` 
+with a  `q x mf` transfer function matrix `Rf(λ)`. 
+For the description of keyword parameters see the documentation of [`fditspec`](@ref). 
+"""
+function fditspec_(sysrf::DescriptorStateSpace{T}; FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+                  block::Bool = false, poleshift::Bool = false, FDtol::Real = 0., FDStol::Real = 0., 
+                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+                  rtol::Real =  (size(sysrf.A,1)+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
+   p, mf = size(sysrf) 
+   n = order(sysrf)
+   q = block ? 1 : p  # number of rows of S
+   Sstrong = !ismissing(FDfreq)
+   if Sstrong
+      isa(FDfreq,Vector) || (FDfreq = [FDfreq]) 
+      lfreq = length(FDfreq);
+      w = im*FDfreq;                   # w = j*freq
+      Ts = abs(sysrf.Ts);
+      Ts > 0 && ( w = exp(Ts*w))     # w = exp(j*Ts*freq)
+      S = falses(q,mf,lfreq)
+   else
+      S = falses(q,mf)
+   end   
+   a, e, b, c, d = dssdata(sysrf)
+   standard = isequal(e,I)
+   if n == 0
+      S1 =  abs.(d) .> (FDtol <= 0 ? 0.0001*max(1., norm(d,1)) : FDtol) 
+      S = block ? maximum(S1, dims=1) : S1
+      return Sstrong ? repeat(S,1,1,lfreq) : S
+   end
+   if Sstrong
+      #FDStol <= 0. && (FDStol = 0.0001*max(1., norm(a,1), norm(b,1), norm(c,Inf), norm(d,1), standard ? 0 : norm(e,1))) 
+      FDStol <= 0. && (FDStol = eps(max(1., norm(a,1), norm(b,1), norm(c,Inf), norm(d,1), standard ? 0 : norm(e,1)))) 
+      S = trues(q, mf, lfreq)
+      p1, n1 = size(c,1), size(c,2)
+      # employ structural analysis to compute weak/strong structure matrix  
+      ispole = false
+      for k = 1:lfreq
+         # check if freq(k) is a pole 
+         ispole = isinf(FDfreq[k]) ? (e == I ? false : rank(e) < n1) : rank(a-w[k]*e) < n1 
+         ispole || break
+      end
+      ispole && !poleshift && error("sysf has poles in Ω")
+      if block
+         ispole && (f = rand(T,n1,p1); mul!(a,f,c,1,1); mul!(b,f,d,1,1) ) 
+         for j = 1:mf 
+             # elliminate uncontrollable and unobservable eigenvalues for the j-th column of B
+             a1, e1, b1, c1, d1 = lsminreal(a, e, view(b,:,j), c, view(d,:,j); noseig = false, atol1, atol2, rtol, fast)
+             for k = 1:lfreq
+                # check if freq(k) is a zero of the j-th column 
+                s = isinf(FDfreq[k]) ? svdvals!([e1 b1; c1 d1]) : svdvals!([a1-w[k]*e1 b1; c1 d1])
+                S[1, j, k] = (s[end] > FDStol)
+            end
+         end
+      else
+         for i = 1:p 
+             # elliminate unobservable eigenvalues for the i-th row of C
+             a1, e1, b1, c1, d1 = lsminreal(a, e, b, view(c,i:i,:), view(d,i:i,:); contr = false, noseig = false, atol1, atol2, rtol, fast)
+             n1 = size(a1,1)
+             ispole && (f1 = rand(T,n1,1); mul!(a1,f1,c1,1,1); mul!(b1,f1,d1,1,1) ) 
+             for j = 1:mf 
+                 # elliminate uncontrollable and non-dynamic eigenvalues for the j-th column of B
+                 a2, e2, b2, c2, d2 = lsminreal(a1, e1, view(b1,:,j:j), c1, view(d1,:,j:j); obs = false, noseig = true, atol1, atol2, rtol, fast)
+                 for k = 1:lfreq
+                    # check if freq(k) is a zero of the (i,j)-th element 
+                    s = isinf(FDfreq[k]) ? svdvals!([e2 b2; c2 d2]) : svdvals!([a2-w[k]*e2 b2; c2 d2])
+                    S[i,j,k] = s[end] > FDStol
+                 end
+             end
+         end
+      end
+   else
+      FDtol <= 0. && (FDtol = 0.0001*max(1., norm(b,1), norm(d,1)))
+      standard && all(abs.(d) .> FDtol) && (return trues(q,mf))
+      S = falses(q, mf)
+      if block
+         for j = 1:mf
+             # compute minimal realization of the j-th column of Rf
+             _, _, b1, _, d1 = lsminreal(a, e, view(b,:,j:j), c, view(d,:,j:j); atol1, atol2, rtol, fast)
+             S[1,j] |=  (any(abs.(view(d1,:,1)) .> FDtol) || any(abs.(view(b1,:,1)) .> FDtol))
+         end
+      else
+         for j = 1:mf 
+             # elliminate uncontrollable eigenvalues for the j-th column of B
+             a1, e1, b1, c1, d1 = lsminreal(a, e, view(b,:,j), c, view(d,:,j); obs = false, noseig = false, atol1, atol2, rtol, fast)
+             for i = 1:p 
+                # elliminate unobservable and non-dynamic eigenvalues for the (i,j)-th element
+                _, _, b2, _, d2 = lsminreal(a1, e1, b1, view(c1,i:i,:),view(d1,i:i,:); contr = false, noseig = true, atol1, atol2, rtol, fast)
+                S[i,j] |=  (abs(d2[1,1]) > FDtol || any(abs.(view(b2,:,1)) .> FDtol))
+             end
+         end
+      end
+   end
+   return S
+end
+"""
+     fdisspec_(sysrf::DescriptorStateSpace, freq; block = false, FDGainTol = 0.01, 
+                     atol, atol1, atol2, atol3, rtol, fast = true) -> (S, gains)
+
+Compute the strong binary structure matrix `S` of the transfer function matrix of a 
+linear time-invariant system `sysrf` 
+(typically representing the transfer channel from the fault inputs to residuals).
+`sysrf` has a descriptor system realization of the form `sysrf = (Af-lambda*Ef,Bf,Cf,Df)` 
+with a  `q x mf` transfer function matrix `Rf(λ)`. 
+For the description of keyword parameters see the documentation of [`fdisspec`](@ref). 
+"""
+function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real} = 0; stabilize::Bool = false, FDGainTol::Real = 0.01, block::Bool = false, 
+                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+                   rtol::Real =  ((max(size(sysrf.A)...))+1)*eps(float(one(real(T))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
+   p, mf = size(sysrf) 
+   isa(freq,Vector) || (freq = [freq]) 
+   lfreq = length(freq);
+   w = im*freq;                   # w = j*freq
+   Ts = abs(sysrf.Ts);
+   Ts > 0 && ( w = exp(Ts*w))     # w = exp(j*Ts*freq)
+
+   ispole = false
+   n = size(sysrf.A,1)
+   for k = 1:lfreq
+      # check if freq(k) is a pole 
+      ispole = isinf(freq[k]) ? (sysrf.e == I ? false : rank(sysrf.E) < n) : rank(sysrf.A-w[k]*sysrf.E) < n 
+      ispole || break
+   end
+   ispole && !stabilize && error("sysf has poles in Ω")
+   if block
+      stabilize && (sysrf = glcf(sysrf; atol1, atol2, atol3, rtol)[1])
+      # gs = evalfr(sysrf, w[1]; atol1, atol2, rtol, fast) 
+      # any(isinf.(gs)) && error("fdisspec:pole - the frequency $(w[1]) is a system pole")
+      smat = falses(1, mf, lfreq)
+      gains = zeros(T, 1, mf, lfreq)
+      for i = 1:lfreq
+          gs = evalfr(sysrf, w[i]; atol1, atol2, rtol, fast) 
+          any(isinf.(gs)) && error("fdisspec_:pole - the frequency $(w[i]) is a system pole")
+          for j = 1:mf 
+              gsj = norm(view(gs,:,j))
+              gains[1,j,i] = gsj
+              smat[1,j,i] = (gsj .> FDGainTol)
+          end
+      end
+   else
+      smat = falses(p, mf, lfreq)
+      gains = zeros(T, p, mf, lfreq)
+      for k = 1:p
+         t = gir(sysrf[k,:]; contr = false, atol1, atol2, rtol)
+         for i = 1:lfreq
+             gs = stabilize ? abs.(evalfr(glcf(t; atol1, atol2, atol3, rtol)[1], w[i]; atol1, atol2, rtol, fast)) :
+                              abs.(evalfr(t, w[i]; atol1, atol2, rtol, fast))
+             any(isinf.(gs)) && error("fdisspec_:pole - the frequency $(w[i]) is a system pole")
+             gains[k,:,i] = gs
+             smat[k,:,i] = (gs .> FDGainTol)
+         end
+      end
+   end
+   return smat, gains
+end
+"""
+     fdscond_(sysrf::DescriptorStateSpace, freq) -> (scond, β, γ)
+
+Compute for a stable descriptor system `sysrf = (A-λE,B,C,D)` with the transfer function matrix `Rf(λ)`, 
+`β` - the H∞- index of `Rf(λ)`, `γ` - the maximum of the columns norms of `Rf(λ)` and 
+`scond` - the column-gains sensitivity condition evaluated as `scond := β/γ`. 
+If `freq` is a vector of real frequency values, then `β` and `γ`
+are evaluated over the frequencies contained in `freq`. 
+"""
+function fdscond_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+   p, m = size(sysrf)
+
+   m == 0 && (return T[], T[], T[])
+
+   isstable(sysrf) || error("the system is unstable")
+
+   β = Inf
+   γ = 0 
+   if ismissing(freq) 
+      # evaluate β and γ as the minimum and maximum of H-infinity norms of the columns of G
+      for j = 1:m
+         temp = ghinfnorm(sysrf[:,j])[1]
+         γ >= temp || (γ = temp)
+         β <= temp || (β = temp)
+      end
+   else
+      # evaluate β and γ as the minimum and maximum of the norms of columns of the frequency 
+      # responses of G evaluated over all frequencies contained in FREQ 
+      if !isa(freq, Vector) 
+         # use evalfr if only one frequency is present
+         H = evalfr(sysrf; fval = freq) 
+         for j = 1:m
+             temp = norm(view(H,:,j))
+             γ >= temp || (γ = temp)
+             β <= temp || (β = temp)
+         end
+      else
+         T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+         ONE = one(T1)
+         a, e, b, c, d = dssdata(T1,sysrf)
+         Ts = abs(sysrf.Ts)
+         disc = !iszero(Ts)
+         sw = disc ? im*Ts : im
+         desc = !(e == I)
+         # Determine the complex Hessenberg-form system to be used for efficient
+         # frequency response computation.
+         ac, ec, bc, cc, dc = chess(a, e, b, c, d)
+         H = similar(dc, eltype(dc), p, m)
+         bct = similar(bc) 
+         for i = 1:length(freq)
+             if isinf(freq[i])
+                # exceptional call to evalfr
+                H = evalfr(sys, fval=Inf)
+             else
+                copyto!(H, dc)
+                copyto!(bct, bc)
+                w = disc ? -exp(sw*freq[i]) : -sw*freq[i]
+                desc ? ldiv!(UpperHessenberg(ac+w*ec),bct) : ldiv!(ac,bct,shift = w)
+                mul!(H, cc, bct, -ONE, ONE)
+             end
+             for j = 1:m
+                 temp = norm(view(H,:,j))
+                 γ >= temp || (γ = temp)
+                 β <= temp || (β = temp)
+             end
+         end
+      end
+   end
+   return β/γ, β, γ
 end
