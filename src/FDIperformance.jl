@@ -394,9 +394,9 @@ function fdif2ngap(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,
 
    mf+mw == 0 && (return T[], T[], T[])
 
-   isstable(sysr) || error("the system is unstable")
+   isstable(sysr.sys) || error("the system is unstable")
    
-   β = mf == 0 ? 0 : fdhinfminus(sysr.sys[:,sysr.faults],freq)
+   β = mf == 0 ? 0 : fdhinfminus(sysr.sys[:,sysr.faults],freq)[1]
    γ = mw == 0 ? 0 : ghinfnorm(sysr.sys[:,sysr.noise])[1]
    return β/γ, β, γ
 end

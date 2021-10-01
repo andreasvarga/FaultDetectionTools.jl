@@ -566,8 +566,8 @@ function fdIFeval(Q::FDIFilter, sysf::FDIModel; minimal::Bool = false,
    end
    return FDIFilterIF{eltype(Q.sys[1])}(sysR, sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
 end
-gbalmr(Q::FDFilter; kwargs...) = FDFilter(gbalmr(Q.sys; kwargs...)[1], Q.outputs, Q.controls)
-function gbalmr(Q::FDIFilter; kwargs...)
+gbalmr(Q::FDFilter{T}; kwargs...) where T = FDFilter(gbalmr(Q.sys; kwargs...)[1], Q.outputs, Q.controls)
+function gbalmr(Q::FDIFilter{T}; kwargs...) where T 
     for i = 1:length(Q.sys)
         Q.sys[i] = gbalmr(Q.sys[i]; kwargs...)[1]
     end

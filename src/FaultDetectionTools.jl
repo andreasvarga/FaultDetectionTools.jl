@@ -10,10 +10,10 @@ using Random
 abstract type AbstractFDDObject end
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
-import DescriptorSystems: DescriptorStateSpace, chess, rcond
+import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr
 import Combinatorics: combinations
 
-export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval
+export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval, gbalmr
 export fditspec, fdisspec, fdscond, fdif2ngap
 export fdigenspec, fdichkspec
 export efdsyn, efdisyn, efdbasesel, afdredsyn, afdbasesel

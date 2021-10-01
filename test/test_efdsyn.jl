@@ -254,7 +254,7 @@ R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
       fdisspec(Rf, [0]) == Bool[1 1] 
 
 
-# Example 5.4m - Solution of an EFDP using EFDSYN
+# Example 5.4c - Solution of an EFDP using EFDSYN
 
 # define s as an improper transfer function
 s = rtf('s');
@@ -281,6 +281,8 @@ R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
       iszero(R.sys[:,R.faults]-Rf.sys) && 
       fdisspec(Rf, [0]) == Bool[1 1] 
+
+@test iszero(gbalmr(Q; balance = true).sys-Q.sys, atol=1.e-7) 
 
 
 ## Test covering design matrices

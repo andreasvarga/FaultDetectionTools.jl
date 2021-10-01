@@ -312,17 +312,18 @@ sysf = fdimodset(sys, c = 1:mu, d = mu .+ (1:md) , f = (mu+md) .+ (1:mf));
 SFDI = fdigenspec(sysf; atol = 1.e-7) # determine achievable weak structure matrix
 nb = size(SFDI,1)
 
-@time Q, Rf = efdisyn(sysf, SFDI; sdeg =-5, smarg = -5, poles = [-5, -6], atol = 1.e-7, rdim = 1);
+@time Q, Rf = efdisyn(sysf, SFDI; smarg = -5, poles = [-5, -5], atol = 1.e-7, rdim = 1);
 
 # check synthesis conditions: Q*[Gu Gd;I 0] = 0 and Q*[Gf; 0] = Rf
 R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
 @test iszero(vcat(R.sys...)[:,[R.controls;R.disturbances]],atol=1.e-7) &&
       iszero(vcat(R.sys...)[:,R.faults]-vcat(Rf.sys...),atol=1.e-7) &&
       order.(Q.sys) == [2, 2, 1, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] &&
-      order(vcat(Q.sys...)) == 32 && order(gbalmr(vcat(Q.sys...))[1]) == 6 &&
+      order(vcat(Q.sys...)) == 32 && order(gbalmr(vcat(Q.sys...),atol=1.e-7)[1]) == 6 &&
       count(ghanorm(vcat(Q.sys...))[2] .> 1.e-7) == 6 &&
       fditspec(Rf) == SFDI
 
+@test all(iszero.(gbalmr(Q; balance = true).sys - Q.sys, atol=1.e-7) )
 
 ## Example with solvable strong synthesis  
 #

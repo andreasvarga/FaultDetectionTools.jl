@@ -166,8 +166,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    # set default stability degree
    sdegdefault = disc ? 0.95 : -0.05
    
-   ismissing(sdeg) && (sdeg = sdegdefault)  # set desired stability degree to default value
-   
+  
    # stability margin
    ismissing(smarg) && (smarg = disc ? 1-offset : -offset)  # set default stability margin
    
@@ -184,8 +183,10 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
       # check that all eigenvalues are inside of the stability region
       ( ((disc && any(abs.(poles) .> 1-offset) )  || (!disc && any(real.(poles) .> -offset)))  &&
             error("The elements of poles must lie in the stability region of interest") )
-   end     
-     
+   end   
+   
+   ismissing(sdeg) && ismissing(poles) && (sdeg = sdegdefault)  # set desired stability degree to default value
+  
    # imposed design option to form linear combinations of basis vectors
    emptyHD = ismissing(HDesign)
    if !emptyHD
@@ -865,7 +866,6 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       sdegdefault = -0.05;
    end
    
-   ismissing(sdeg) && (sdeg = sdegdefault)  # set desired stability degree to default value
    
    # stability margin
    ismissing(smarg) && (smarg = disc ? 1-offset : -offset)  # set default stability margin
@@ -883,7 +883,9 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       # check that all eigenvalues are inside of the stability region
       ( ((disc && any(abs.(poles) .> 1-offset) )  || (!disc && any(real.(poles) .> -offset)))  &&
             error("The elements of poles must lie in the stability region of interest") )
-   end     
+   end  
+
+   ismissing(sdeg) && ismissing(poles) && (sdeg = sdegdefault)  # set desired stability degree to default value
    
    if isa(SFDI,Vector)
       nb = 1; mf2 = length(SFDI)
@@ -933,7 +935,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
                           f = (mu+md) .+ indf, aux = (mu+md) .+ (1:mf+mw+maux));
          # solve the corresponding EFDP           
          Qti, Rti, infoi = try 
-            efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, minimal,
+            efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
                                       FDtol, FDfreq, FDGainTol, simple, tcond, offset); 
          catch err
             isnothing(findfirst("empty",string(err))) ? rethrow() : error("empty nullspace basis: the $i-th EFDIP is not solvable")
@@ -989,7 +991,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, aux = Vector(1:p+mu+mf+mw+maux))
           # determine [Q1i*Rff2 [Q1i*Q1 Q1i*Rf1 Q1i*Rw1 Q1i*Raux1]]
           _, QRauxi, infoi = try 
-             efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, minimal,
+             efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
                                        FDtol, FDfreq, FDGainTol, simple, tcond, offset); 
           catch err
              isnothing(findfirst("empty",string(err))) ? rethrow() : error("empty nullspace basis: the $i-th reduced EFDP is not solvable")
@@ -1181,7 +1183,7 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    tcond::Real = 1.e4, HDesign::Union{AbstractMatrix,Missing} = missing,
    offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
    rtol::Real = ((size(sysfred.sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
-   fast::Bool = true, exact::Bool = true, S::Union{BitMatrix,BitVector,Array{Bool,2},Array{Bool,1},Missing} = missing, 
+   fast::Bool = true, exact::Bool = false, S::Union{BitMatrix,BitVector,Array{Bool,2},Array{Bool,1},Missing} = missing, 
    degs::Union{Vector{Int},Missing} = missing, gamma::Real = 1, epsreg::Real = 0.1, 
    sdegzer::Union{Real,Missing} = missing, nonstd::Int = 1, freq::Real = rand()) where T
    #
@@ -1652,7 +1654,7 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
          beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
          gap = beta/ghinfnorm(sysfredupd[:,inpw])[1]
       else
-         gap = inf;
+         gap = Inf
       end
    
       info = (tcond = tcond1, HDesign = convert(Matrix{Float64},Htemp), gap = gap)
@@ -1712,6 +1714,7 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
       end
    end
   
+   println("rw= $rw Rwosize=$(size(Rwo,1))")
    if rw == size(Rwo,1)
       # Q3 = inv(Rwo)
       # extract descriptor state-space data
@@ -1724,12 +1727,12 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
          sysfredupd = gminreal(Rwouz\sysfredupd; atol1, atol2, rtol)
       end
    else
-      # regularization for non-invertible Rwo (this case should never occur)
+     # regularization for non-invertible Rwo (this case should never occur)
       # Q3 = Rwoinv, where Rwoinv is a left inverse of Rwo
       # with stable spurious poles
       Rwoinv = glsol([Rwo;eye(rw)], rw; atol1, atol2, rtol, sdeg)[1]
       # form QR = Rwoinv*[Rf Rw Raux Q] 
-      sysfredupd = gir(Rwoinv*sysfredupdatol1; atol1, atol2, rtol, infinite = false)
+      sysfredupd = gir(Rwoinv*sysfredupd; atol1, atol2, rtol, infinite = false)
       if nonstandard && (nonstd == 4 || nonstd == 5)
          sysfredupd = gminreal(Rwouz\sysfredupd; atol1, atol2, rtol)
       end
@@ -1749,6 +1752,7 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
    info = (tcond = tcond1, HDesign = convert(Matrix{Float64},Htemp), gap = beta/gamma)
    
+   return Qred, Rred, info
    # end AFDREDSYN
    end
    
