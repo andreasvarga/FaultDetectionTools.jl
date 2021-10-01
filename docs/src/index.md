@@ -43,6 +43,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`fditspec`](@ref)**  Computation of the weak or strong structure matrix.
 * **[`fdisspec`](@ref)**  Computation of the strong structure matrix.
 * **[`fdscond`](@ref)**  Computation of the fault detection sensitivity condition.
+* **[`fdif2ngap`](@ref)**  Computation of the fault-to-noise gap.
 
 **Solving fault detection and isolation problems**
 

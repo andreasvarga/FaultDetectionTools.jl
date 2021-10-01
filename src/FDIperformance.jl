@@ -365,3 +365,38 @@ function fdscond(sysr::FDIFilterIF{T}, SFDI::Union{BitMatrix,BitVector,Array{Boo
     return scond, β, γ
 end
 fdscond(sysr::FDIFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T = fdscond(sysr,trues(1,length(sysr.faults)),freq)
+
+"""
+     fdif2ngap(sysr::FDFilterIF, freq) -> (gap, β, γ)
+
+Compute for the stable transfer function matrices `Rf(λ)` and `Rw(λ)` of the
+transfer channels from the fault inputs and noise inputs to residuals, respectively, of the
+fault detection filter internal form object `sysr::FDFilterIF` the quantities:      
+`β` - the H∞- index of `Rf(λ)`, `γ` - the H∞-norm of `Rw(λ)` and 
+`gap` - the fault-to-noise gap evaluated as `gap := β/γ`. 
+If `freq` is a vector of real frequency values, then `β` and `γ`
+are evaluated over the frequencies contained in `freq`. 
+`gap = ∞` if there are no noise inputs and `gap = 0` if there are no fault inputs.
+
+If `R(λ)` is the input-output form of the fault detection filter internal form `sysr.sys`,
+then
+
+       r = Rf(λ)*f + Rw(λ)*w + Rv(λ)*v ,                           
+
+with the Laplace- or Z-transformed residual outputs `r`, fault inputs `f`, 
+noise inputs `w`, and auxiliary inputs `v`, and with `Rf(λ)`, `Rw(λ)` and `Rv(λ)` the  
+corresponding transfer function matrices. The inputs `f` and `w` of `sysr.sys` 
+correspond to the input groups named 'sysr.faults' and 'sysr.noise', respectively.
+"""
+function fdif2ngap(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+   mf = length(sysr.faults)
+   mw = length(sysr.noise)
+
+   mf+mw == 0 && (return T[], T[], T[])
+
+   isstable(sysr) || error("the system is unstable")
+   
+   β = mf == 0 ? 0 : fdhinfminus(sysr.sys[:,sysr.faults],freq)
+   γ = mw == 0 ? 0 : ghinfnorm(sysr.sys[:,sysr.noise])[1]
+   return β/γ, β, γ
+end

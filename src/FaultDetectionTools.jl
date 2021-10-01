@@ -14,9 +14,9 @@ import DescriptorSystems: DescriptorStateSpace, chess, rcond
 import Combinatorics: combinations
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval
-export fditspec, fdisspec, fdscond
+export fditspec, fdisspec, fdscond, fdif2ngap
 export fdigenspec, fdichkspec
-export efdsyn, efdisyn, efdbasesel
+export efdsyn, efdisyn, efdbasesel, afdredsyn, afdbasesel
 export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdscond_
 
 const VRS = Union{Vector{Int}, UnitRange{Int}, Int}

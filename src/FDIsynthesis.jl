@@ -6,7 +6,7 @@ fault detection filter, representing the solution of the EFDP, and its internal 
 The returned named tuple `info`, with the components `info.tcond`, `info.degs`, `info.S`, and `info.HDesign`, 
 contains additional synthesis related information (see below). 
 
-The continuous- or discrete-time system `sysf.sys` is in a standard
+The continuous- or discete-time system `sysf.sys` is in a standard
 or descriptor state-space form `sysf.sys = (A-λE,B,C,D)`, which corresponds to the input-output form  
 
        y = Gu(λ)*u + Gd(λ)*d + Gf(λ)*f + Gw(λ)*w + Ga(λ)*aux,
@@ -37,7 +37,7 @@ input-output form
 
 where 
 
-       | Ru(λ) Rd(λ) Rf(λ) Rw(λ) Ra(λ) | = |Qy(λ) Qu(λ)]*| Gu(λ) Gd(λ) Gf(λ) Gw(λ) Ga(λ) |. 
+       | Ru(λ) Rd(λ) Rf(λ) Rw(λ) Ra(λ) | = |Qy(λ) Qu(λ)|*| Gu(λ) Gd(λ) Gf(λ) Gw(λ) Ga(λ) |. 
                                                          |  I     0     0     0     0    |
 
 The solution of the EFDP ensures that `Ru(λ) = 0`, `Rd(λ) = 0`, and `Rf(λ)` has all its columns nonzero. 
@@ -76,24 +76,24 @@ If `simple = false` (default), then no simple basis is computed.
 
 To assess the stability of poles, a boundary offset  `β` can be specified via the keyword argument `offset = β`. 
 Accordingly, for the stability of a continuous-time system all real parts of poles must be at most `-β`, 
-while for the stability of a discrete-time system all moduli of poles must be at most `1-β`. 
+while for the stability of a discete-time system all moduli of poles must be at most `1-β`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 The stability domain `Cs` of poles is defined by 
 the keyword argument for the stability margin `smarg = α`, as follows: 
 for a continuous-time system, `Cs` is the set of complex numbers 
 with real parts at most `α`, 
-while for a discrete-time system, `Cs` is the set of complex numbers with 
+while for a discete-time system, `Cs` is the set of complex numbers with 
 moduli at most `α < 1` (i.e., the interior of a disc of radius `α` centered in the origin). 
 If `smarg` is missing, then the employed default values are `α = -β` 
-for a continuous-time system and `α = 1-β` for a discrete-time system, 
+for a continuous-time system and `α = 1-β` for a discete-time system, 
 where `β` is the boundary offset specified by the keyword argument `offset = β`. 
 
 The poles of the filters `Q` and `R` can be specified using the keyword arguments `poles` and `sdeg`,
 where `poles = v` specifies a complex vector `v` containing a complex conjugate set  
 of desired poles within the stability domain `Cs` (default: `poles = missing`)
 and `sdeg = γ` is the prescribed stability degree for the poles (default: `γ = -0.05` for the real parts of poles for a continuous-time system and
-`γ = 0.95` for the magnitudes of poles for a discrete-time system). 
+`γ = 0.95` for the magnitudes of poles for a discete-time system). 
 
 The maximum alowed condition number `tcmax` of the employed non-orthogonal transformations 
 can be specified as `tcond = tcmax` (Default: `tcmax = 1.e4`).
@@ -158,22 +158,13 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    disc = (Ts != 0);  # system type (continuous- or discete-time)
    
    # decode options
-   
-   # tolerance for rank tests
-   
-   tolmin = atol3 # tolerance for observability tests
-   
-   
+      
    strongFD = !ismissing(FDfreq)
    strongFD && !isa(FDfreq,Vector) && (FDfreq = [FDfreq]) 
    strongFD && (lfreq = length(FDfreq))
 
    # set default stability degree
-   if disc
-      sdegdefault = 0.95;
-   else
-      sdegdefault = -0.05;
-   end
+   sdegdefault = disc ? 0.95 : -0.05
    
    ismissing(sdeg) && (sdeg = sdegdefault)  # set desired stability degree to default value
    
@@ -445,7 +436,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
                     Stest = fditspec_(QRfwtest[:,indf]; block = true, atol1, atol2, rtol, FDtol)
                  end
                  if all(Stest) 
-                     if !simple && minimal
+                    if !simple && minimal
                        # adjust condition number of employed transformations
                        tcond1 = max(tcond1, info2.fnorm, info2.tcond)
                        tcond1 > tcond && 
@@ -464,14 +455,14 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
                  break
               end
           end
-          nout = nout+1
+          nout += 1
           if nout > nvec
              if itry > 5
                 finish = true
                 @warn "fault detectability not achieved with the chosen number of residuals"
              else
-                itry = itry+1
-                nout = nout-1
+                itry += 1
+                nout -= 1
              end
           end
       end
@@ -512,7 +503,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
               k += blkord
            end
        end
-       QR = dss(al, el, bl, cl, dl; Ts)[1]
+       QR = dss(al, el, bl, cl, dl; Ts)
    else
        QR = glcf(QR; atol1, atol2, atol3, sdeg, smarg, evals = poles)[1]
    end
@@ -575,34 +566,37 @@ function efdsyn(sysf::FDIModel{T}, SFDI::Union{BitVector,Vector{Bool}}; kwargs..
    return Q, FDFilterIF(Rft.sys[:,Rft.aux],0,0,mf,mw,maux), info
 end
 function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple::Bool)
-   #   efdbasesel(S, degs, rdim, nout, simple) -> seli, selord
+   #   efdbasesel(S, degs, rdim, nout, simple) -> (seli, selord)
    #
-   #   Select admissible basis vectors for solving the EFDP using the binary 
-   #   structure matrix S corresponding to nvec basis vectors. 
-   #   seli contains nout-touples of indices of basis vectors whose linear combination 
-   #   is admissible, i.e. , S(seli[i],:) has all columns nonzero. This ensures that
-   #   the exact fault detection problem (EFDP) is solvable by using 
-   #   fault detection filters with rdim <= nout outputs. 
-   #   If the associated nvec degrees contained in degs are provided, then
-   #   selord[i] is the corresponding tentatively achievable least filter order.
-   #   If simple = true, a simple basis is assumed, in which case, degs[i] is 
-   #   also the order of the i-th basis vector. If simple = false, a minimum 
-   #   rational basis is assumed. selord is empty if degs is empty. 
+   #   Select admissible basis vectors for solving the exact fault detection problem (EFDP) 
+   #   using the binary structure matrix `S` corresponding to `nvec` basis vectors. 
+   #   `S` is a `nvec x mf x n` binary 3-dimensional array or a `nvec x mf` 
+   #   binary 2-dimensional array (reshaped internally as an `nvec x mf x 1` 
+   #   binary 3-dimensional array).
+   #   `seli` contains `nout`-touples of indices of basis vectors whose linear combination 
+   #   is admissible, i.e. , `S[seli[i],:,k]` has all columns nonzero for all `k = 1:n`. 
+   #   This ensures that the EFDP is solvable by using 
+   #   fault detection filters with `rdim <= nout` outputs. 
+   #   If the associated `nvec` degrees contained in `degs` are provided, then
+   #   `selord[i]` is the corresponding tentatively achievable least filter order.
+   #   If `simple = true`, a simple basis is assumed, in which case, `degs[i]` is 
+   #   also the order of the `i`-th basis vector. If `simple = false`, a minimum 
+   #   rational basis is assumed. `selord` is empty if `degs` is empty. 
 
    #   Method: The selection approach is used in conjunction with the synthesis 
    #   Procedure EFD described in [1]. 
 
-   # References:
-   # [1] Varga A.
-   #     Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017.
+   #   References:
+   #   [1] Varga A.
+   #   Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017.
 
 
    ndim = ndims(S)
    if ndim == 3 
-      nvec = size(S,1)
-      n = size(S,3)
+      nvec = size(S,1)  # numbers of vectors
+      n = size(S,3)     # number of frequencies
    else
-      nvec, mf = size(S);   # numbers of vectors, number of faults  
+      nvec, mf = size(S)   # numbers of vectors, number of faults  
       n = 1
       S = reshape(S,nvec,mf,1)
    end
@@ -616,7 +610,6 @@ function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple
    
    nvec == 1 && (return [1], nodegs ? Int[] : degs )
    
-
    # find rdim combinations of nout vectors which solve the EFDP 
    seli = collect(combinations(Vector(1:nvec),nout))
    ni = length(seli)
@@ -628,21 +621,21 @@ function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple
        # check admissibility
        stest = true;
        for k = 1:n
-           stest = stest & all(maximum(S[indv,:,k],dims=1))
-       end
+         all(maximum(view(S,indv,:,k),dims=1)) || (stest = false; break)
+      end
        if stest
           if !nodegs
-            # estimate orders 
-            if simple || rdim == nout
-               # degree = the sums of degrees of selected vectors
-               selord[i] = sum(degs[indv])
-            else
-               # degree = rdim times the maximum degree of selected vectors
-               selord[i] = min(nqmax,rdim*maximum(degs[indv]))
-            end
+             # estimate orders 
+             if simple || rdim == nout
+                # degree = the sums of degrees of selected vectors
+                selord[i] = sum(degs[indv])
+             else
+                # degree = rdim times the maximum degree of selected vectors
+                selord[i] = min(nqmax,rdim*maximum(degs[indv]))
+             end
           end
        else
-         ii[i] = false
+          ii[i] = false
        end
    end
   
@@ -672,7 +665,7 @@ fault detection and isolation filter, representing the solution of the EFDIP, an
 The returned named tuple `info`, with the components `info.tcond`, `info.degs` and `info.HDesign`, 
 contains additional synthesis related information (see below). 
 
-The continuous- or discrete-time system `sysf.sys` is in a standard
+The continuous- or discete-time system `sysf.sys` is in a standard
 or descriptor state-space form `sysf.sys = (A-λE,B,C,D)`, which corresponds to the input-output form  
 
        y = Gu(λ)*u + Gd(λ)*d + Gf(λ)*f + Gw(λ)*w + Ga(λ)*aux,
@@ -756,24 +749,24 @@ appropriately formulated fault detection problems.
 
 To assess the stability of poles, a boundary offset  `β` can be specified via the keyword argument `offset = β`. 
 Accordingly, for the stability of a continuous-time system all real parts of poles must be at most `-β`, 
-while for the stability of a discrete-time system all moduli of poles must be at most `1-β`. 
+while for the stability of a discete-time system all moduli of poles must be at most `1-β`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 The stability domain `Cs` of poles is defined by 
 the keyword argument for the stability margin `smarg = α`, as follows: 
 for a continuous-time system, `Cs` is the set of complex numbers 
 with real parts at most `α`, 
-while for a discrete-time system, `Cs` is the set of complex numbers with 
+while for a discete-time system, `Cs` is the set of complex numbers with 
 moduli at most `α < 1` (i.e., the interior of a disc of radius `α` centered in the origin). 
 If `smarg` is missing, then the employed default values are `α = -β` 
-for a continuous-time system and `α = 1-β` for a discrete-time system, 
+for a continuous-time system and `α = 1-β` for a discete-time system, 
 where `β` is the boundary offset specified by the keyword argument `offset = β`. 
 
 The poles of the filters `Q` and `R` can be specified using the keyword arguments `poles` and `sdeg`,
 where `poles = v` specifies a complex vector `v` containing a complex conjugate set  
 of desired poles within the stability domain `Cs` (default: `poles = missing`)
 and `sdeg = γ` is the prescribed stability degree for the poles (default: `γ = -0.05` for the real parts of poles for a continuous-time system and
-`γ = 0.95` for the magnitudes of poles for a discrete-time system). 
+`γ = 0.95` for the magnitudes of poles for a discete-time system). 
 
 The maximum alowed condition number `tcmax` of the employed non-orthogonal transformations 
 can be specified as `tcond = tcmax` (Default: `tcmax = 1.e4`).
@@ -1025,3 +1018,739 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
 
    # end EFDISYN
 end
+function afdbasesel(S::BitArray, rwgain::Matrix, degs::Vector{Int}, rdim::Int, nout::Int, simple::Bool, atol::Real)
+   #   afdbasesel(S, rwgain, degs, rdim, nout, simple, tol) -> (seli, selord)
+   #
+   #   Select admissible basis vectors for solving the approximate fault detection problem (AFDP)
+   #   using the binary structure matrix `S`, corresponding to `nvec` basis vectors, and 
+   #   the frequency gain matrix `rwgain`. 
+   #   `S` is a `nvec x mf x n` binary 3-dimensional array or a `nvec x mf` 
+   #   binary 2-dimensional array (reshaped internally as an `nvec x mf x 1` 
+   #   binary 3-dimensional array).
+   #   `seli` contains `nout`-touples of indices of basis vectors whose linear combination 
+   #   is admissible, i.e. , `S[seli[i],:,k]` has all columns nonzero for all `k = 1:n` and,
+   #   if `rwgain` is nonzero, then  `rwgain[seli[i,:],:] has full row rank.   
+   #   This ensures that the AFDP is solvable by using fault detection filters with `rdim <= nout` outputs. 
+   #   If the associated `nvec` degrees contained in `degs` are provided, then
+   #   `selord[i]` is the corresponding tentatively achievable least filter order.
+   #   If `simple = true`, a simple basis is assumed, in which case, `degs[i]` is 
+   #   also the order of the `i`-th basis vector. If `simple = false`, a minimum 
+   #   rational basis is assumed. `selord` is empty if `degs` is empty. 
+
+   #   Method: The selection approach is used in conjunction with the synthesis 
+   #   Procedure AFD described in [1]. 
+
+   # References:
+   # [1] Varga A.
+   #     Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017.
+
+
+   ndim = ndims(S)
+   if ndim == 3 
+      nvec = size(S,1)  # numbers of vectors
+      n = size(S,3)     # number of frequencies
+   else
+      nvec, mf = size(S);   # numbers of vectors, number of faults  
+      n = 1
+      S = reshape(S,nvec,mf,1)
+   end
+   nd = length(degs)
+   nodegs = (nd == 0)
+
+   nodegs || length(degs) == nvec || error("the dimension of degs must be equal to the number of rows of S")
+   
+   (rdim >=1 && rdim <= nvec) || error("ndim must have a positive value not exceeding $nvec")
+   (nout >=rdim && nout <= nvec) || error("nout must have a value at least $rdim and at most $nvec")
+   
+   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   
+   # determine rank of rwgain
+   if size(rwgain,2) > 0 
+      rw = atol > 0 ? rank(rwgain; atol) : rank(rwgain)
+      rw > 0 && rdim > rw && error("rdim must not exceed the rank of rwgain")
+   else
+      rw = 0
+   end
+
+   # find rdim combinations of nout vectors which solve the AFDP 
+   seli = collect(combinations(Vector(1:nvec),nout))
+   ni = length(seli)
+   selord = nodegs ? Int[] : fill(-1,ni) 
+   nqmax = sum(degs)
+   ii = trues(ni)
+   for i = 1:ni
+       indv = seli[i];
+       # check admissibility
+       stest = true;
+       for k = 1:n
+           all(maximum(view(S,indv,:,k),dims=1)) || (stest = false; break)
+       end
+       if stest
+          if !nodegs
+            # estimate orders 
+            if simple || rdim == nout
+               # degree = the sums of degrees of selected vectors
+               selord[i] = sum(degs[indv])
+            else
+               # degree = rdim times the maximum degree of selected vectors
+               selord[i] = min(nqmax,rdim*maximum(degs[indv]))
+            end
+          end
+       else
+         ii[i] = false
+       end
+       # check full rank admissibility condition
+       rw > 0 && ii[i] &&
+          ((atol > 0 ? rank(view(rwgain,indv,:); atol) : rank(view(rwgain,indv,:))) < rdim) && (ii[i] = false)
+   end
+  
+   seli = seli[ii]
+
+   if !nodegs 
+      selord = selord[ii];
+      # sort row combinations to ensure increasing tentative orders  
+      ii = sortperm(selord)
+      seli = seli[ii]
+      selord = selord[ii];
+   end
+   return seli, selord      
+   # end AFDBASESEL
+end
+"""
+       afdredsyn(sysfred; kwargs...) -> (Qred, Rred, info) 
+
+Solve the approximate fault detection problem (AFDP) for a reduced synthesis model
+`sysfred`. The computed stable and proper filter objects `Qred` and `Rred` contain the 
+fault detection filter, representing the solution of the AFDP, and its internal form, respectively.
+
+The returned named tuple `info`, with the components `info.tcond`, `info.HDesign` and `info.gap`, 
+contains additional synthesis related information (see below). 
+
+The continuous- or discete-time system `sysfred.sys` is in a standard
+or descriptor state-space form `sysfred.sys = (A-λE,B,C,D)`, which corresponds to the input-output form  
+
+       y = Gf(λ)*f + Gw(λ)*w + Ga(λ)*aux,
+
+with the Laplace- or Z-transformed plant outputs `y`, fault inputs `f`, noise inputs `w` and auxiliary 
+inputs `aux`, and with `Gf(λ)`, `Gw(λ)`, and `Ga(λ)` the corresponding 
+transfer-function matrices. It is assumed that `Gf(λ)` has all columns nonzero and `Gw(λ)` has full-row rank, a
+The indices of fault, noise and auxiliary inputs are contained in the associated integer vectors 
+`sysf.faults`, `sysf.noise` and `sysf.aux`, respectively. 
+The indices `sysf.controls` and `sysf.disturbances` of control and disturbance inputs are assumed void. 
+
+The fault detection filter object `Qred`, contains in `Qred.sys` the resulting filter 
+in a standard state-space form, which generates the residual signal `r`. 
+The corresponding input-output (implementation) form is
+
+            r = Qy(λ)*y ,               
+
+where `Qy(λ)` isthe transfer function matrix from the outputs to the residual. 
+The indices of outputs are contained in the integer vector 
+`Qred.outputs` and `Qred.controls` is void.
+
+The fault detection filter in internal form object `Rred`, contains `Rred.sys`, the resulting 
+internal form of the filter 
+in a standard state-space form, which generates the residual signal `r`, and corresponds to the 
+input-output form
+
+       r = Rf(λ)*f + Rw(λ)*w + Ra(λ)*aux ,
+
+where 
+
+       | Rf(λ) Rw(λ) Ra(λ) | = Qy(λ)*| Gf(λ) Gw(λ) Ga(λ) |. 
+
+The solution of the AFDP ensures that `Rf(λ)` has all its columns nonzero
+and the H∞-norm of `Rw(λ)` satisfies `||Rw(λ)||∞ < γ`, where the bound `γ` is 
+specified via the keyword argument `gamma`.
+The indices of the inputs `f`, `w` and `aux` of the resulting filter `Rre.sys` are 
+contained in the integer vectors  
+`R.faults`, `R.noise` and `R.aux`, respectively, while the indices 
+of the inputs `u` and `d`, i.e., `R.controls` and `R.disturbances` are void.
+
+_Note:_ This function is intended to performs the second synthesis step of the
+AFD Procedure in [1] and `Ga(λ) = Q1(λ)`, where `Q1(λ)` is the transfer function of the 
+filter resulted from a nullspace basis computation 
+at the first synthesis step. The resulting `Ra(λ)` is the transfer function matrix of the 
+updated filter `Qy(λ)*Q1(λ)`. Information on `Q1(λ)`, which are relevant for a least 
+order synthesis are provided in the keyword arguments `simple`, `degs` and `S` 
+"""
+function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Union{AbstractVector,Missing} = missing, 
+   sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
+   minimal::Bool = true, simple::Bool = false,
+   FDtol::Real = 0.0001, FDGainTol::Real = 0.01, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+   tcond::Real = 1.e4, HDesign::Union{AbstractMatrix,Missing} = missing,
+   offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+   rtol::Real = ((size(sysfred.sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
+   fast::Bool = true, exact::Bool = true, S::Union{BitMatrix,BitVector,Array{Bool,2},Array{Bool,1},Missing} = missing, 
+   degs::Union{Vector{Int},Missing} = missing, gamma::Real = 1, epsreg::Real = 0.1, 
+   sdegzer::Union{Real,Missing} = missing, nonstd::Int = 1, freq::Real = rand()) where T
+   #
+   #  The OPTIONS structure allows to specify various user options, as
+   #  follows:
+   #  OPTIONS.tol       - relative tolerance for rank computations
+   #                      (Default: internally determined value)
+   #  OPTIONS.tolmin    - absolute tolerance for observability tests
+   #                      (Default: internally determined value)
+   #  OPTIONS.FDTol     - threshold for fault detectability checks
+   #                      (Default: 0.0001))
+   #  OPTIONS.FDGainTol - threshold for strong fault detectability checks
+   #                      (Default: 0.01)
+   #  OPTIONS.rdim      - desired number of residual outputs for Qred
+   #                      (Default: number of outputs of the reduced system)  
+   #  OPTIONS.FDFreq    - vector of real frequency values for strong  
+   #                      detectability checks (Default: [])
+   #  OPTIONS.smarg     - stability margin for the poles of filters Q and R
+   #                      (Default: -sqrt(eps) for a continuous-time system 
+   #                               and 1-sqrt(eps) for a discete-time system) 
+   #  OPTIONS.sdeg      - prescribed stability degree for the poles of the 
+   #                      filters Q and R
+   #                      (Default:  -0.05 for a continuous-time system and
+   #                                  0.95  for a discete-time system) 
+   #  OPTIONS.poles     - complex vector containing a complex conjugate set  
+   #                      of desired poles (within the stability domain) 
+   #                      to be assigned for the filters Q and R (Default: []) 
+   #  OPTIONS.simple    - option to employ a simple proper basis for synthesis 
+   #                      true  - use a simple basis; the orders of the  
+   #                              basis vectors are provided in INFO.deg
+   #                      false - no simple basis computed (default) 
+   #  OPTIONS.minimal   - option to perform a least order filter synthesis 
+   #                      true  - perform least order synthesis (default)
+   #                      false - perform full order synthesis   
+   #  OPTIONS.exact     - option to perform exact filter synthesis 
+   #                      true  - perform exact synthesis 
+   #                      false - perform approximate synthesis (default)  
+   #  OPTIONS.tcond     - maximum alowed condition number of the employed 
+   #                      non-orthogonal transformations (Default: 1.e4).
+   #  OPTIONS.HDesign   - full row rank design matrix H to build OPTIONS.rdim 
+   #                      linear combinations of the left nullspace basis 
+   #                      vectors (Default: [])
+   #  OPTIONS.gamma     - upper bound on ||Rw||_inf  (Default: 1).
+   #  OPTIONS.epsreg    - regularization parameter   (Default: 0.1).
+   #  OPTIONS.sdegzer   - prescribed stability degree for zros shifting  
+   #                      (Default:  -0.05 for a continuous-time system and
+   #                                  0.95  for a discete-time system) 
+   #  OPTIONS.nonstd    - option to handle nonstandard optimization problems
+   #                      1 - use the quasi-co-outer-co-inner factorization
+   #                          (Default: [])
+   #                      2 - use the modified co-outer-co-inner factorization
+   #                          with the regularization parameter OPTIONS.epsreg
+   #                      3 - use the Wiener-Hopf type co-outer-co-inner 
+   #                          factorization
+   #                      4 - use the Wiener-Hopf type co-outer-co-inner 
+   #                          factorization with zero shifting of the 
+   #                          non-minimum phase factor using the
+   #                          stabilization parameter OPTIONS.sdeg 
+   #                      5 - use the Wiener-Hopf type co-outer-co-inner 
+   #                          factorization with the regularization of the 
+   #                          non-minimum phase factor using the
+   #                          regularization parameter OPTIONS.epsreg
+   #  OPTIONS.degs      - increasingly ordered degrees of a left minimal   
+   #                      polynomial nullspace basis of G := [ Gu Gd; I 0] 
+   #                      (also the left Kronecker indices of G), if the 
+   #                      state-space realization of [Gu Gd ] is minimal                      
+   #  OPTIONS.S         - binary structure matrix corresponding to the  
+   #                      computed left nullspace basis.
+   #
+   #  INFO is a structure containing additional information, as follows: 
+   #  INFO.tcond        - maximum of the condition numbers of the employed 
+   #                      non-orthogonal transformation matrices; a warning is 
+   #                      issued if INFO.tcond >= OPTIONS.tcond.
+   #  INFO.HDesign      - the design matrix H employed for the synthesis of 
+   #                      the fault detection filter.
+   #  INFO.gap          - achieved gap min_j ||Rf_j||_inf/||Rw||_inf.
+   
+   #  Copyright 2018 A. Varga
+   #  Author:    A. Varga, 04-05-2018.
+   #  Revisions: A. Varga, 25-08-2018,11-06-2019.
+   #
+   #  Method: The Procedure AFD from [1] is implemented, which is based 
+   #  on the synthesis method proposed in [2]. For the regularization approach 
+   #  based on the modified co-outer-co-inner factorization see [3]. For the
+   #  exact synthesis, the Procedure EFD from [1] is performed. 
+   #
+   #  References:
+   #  [1] A. Varga
+   #      Solving Fault Diagnosis Problems - Linear Synthesis Techniques. 
+   #      Springer Verlag, 2017; sec. 5.3.
+   #  [2] A. Varga
+   #      General computational approach for optimal fault detection. 
+   #      Proc. IFAC Symposium SAFEPROCESS, Barcelona, Spain, pp. 107–112, 2009.
+   #  [3] K. Glover and A. Varga
+   #      On solving non-standard H-/H_2/inf fault detection problems. 
+   #      Proc. IEEE CDC, Orlando, FL, USA, pp. 891–896, 2011.
+
+   nvec, m = size(sysfred.sys)        
+   # nvec - number of reduced outputs
+   # m    - total number of inputs
+   
+   # decode input information 
+   inpf = sysfred.faults; mf = length(inpf)
+   inpw = sysfred.noise; mw = length(inpw)
+   inpaux = sysfred.aux;  maux = length(inpaux)  
+   indf = inpf  
+   Ts = sysfred.sys.Ts                  
+   disc = (Ts != 0);  # system type (continuous- or discete-time)
+
+   strongFD = !ismissing(FDfreq)
+   strongFD && !isa(FDfreq,Vector) && (FDfreq = [FDfreq]) 
+   strongFD && (lfreq = length(FDfreq))
+
+   # set default stability degree
+   sdegdefault = disc ? 0.95 : -0.05
+   
+   ismissing(sdeg) && (sdeg = sdegdefault)  # set desired stability degree to default value
+   
+   # stability margin
+   ismissing(smarg) && (smarg = disc ? 1-offset : -offset)  # set default stability margin
+   
+   poles_nomissing = !ismissing(poles)
+
+   # sort desired poles
+   if poles_nomissing 
+      tempc = poles[imag.(poles) .> 0]
+      if !isempty(tempc)
+         tempc1 = conj(poles[imag.(poles) .< 0])
+         isequal(tempc[sortperm(real(tempc))],tempc1[sortperm(real(tempc1))]) ||
+                 error("poles must be a self-conjugated complex vector")
+      end
+      # check that all eigenvalues are inside of the stability region
+      ( ((disc && any(abs.(poles) .> 1-offset) )  || (!disc && any(real.(poles) .> -offset)))  &&
+            error("The elements of poles must lie in the stability region of interest") )
+   end     
+
+   # imposed design option to form linear combinations of basis vectors
+   emptyHD = ismissing(HDesign)
+   if !emptyHD
+      !ismissing(rdim) && size(HDesign,1) != rdim && error("row dimension of HDesign must be equal to rdim")
+      size(HDesign,1) == rank(HDesign) || error("HDesign must have full row rank")
+   end   
+      
+   # information on nullspace basis vector degrees
+   ismissing(degs) || length(degs) == nvec ||
+        error("dimension of degs must be equal to the number of reduced outputs")
+   ismissing(degs) && (degs = Int[])          
+   # structure matrix corresponding to employed basis
+   ismissing(S) || size(S,2) == mf ||
+         error("column dimension of S must be equal to the number of faults")
+          
+   # desired stability degree for zero shifting
+   ismissing(sdegzer) && (sdegzer = sdegdefault)
+     
+   
+   # # set options for LCF-based stabilization to be used for admisibility checks
+   # opts_glcf_default = struct('tol',tol,'tolmin',tolmin);
+   # # set options for LCF-based stabilization to be used for final synthesis
+   # opts_glcf = struct('tol',tol,'tolmin',tolmin, ...
+   #                    'sdeg',sdeg,'smarg',smarg,'poles',poles);
+   
+   tcond1 = 1                 # condition number of employed transformations
+   nq = order(sysfred.sys)     # order of sysfred
+   
+   # set H for checking the solvability condition
+   if emptyHD
+      Htemp = eye(nvec)
+   else
+      degs = Int[];
+      rdim = size(HDesign,1); nh = size(HDesign,2)
+      if nh < nvec
+         # pad with zeros: row rank is preserved
+         Htemp = [ HDesign zeros(T, rdim, nvec-nh) ]
+      else
+         # remove trailing columns if necessary: rank may drop
+         Htemp = HDesign[:,1:nvec];
+         if nh > nvec && rdim != rank(Htemp)
+            error("The leading part of HDesign must have full row rank")
+         end
+      end
+   end
+   
+   # # setup the number of filter outputs
+   # if isempty(rdim)
+   #    if emptyHD 
+   #       rdim = 1;   
+   #    else
+   #       rdim = size(HDesign,1);
+   #    end
+   # else
+   #    rdim = min(rdim,nvec); 
+   # end
+   # setup the number of filter outputs
+   if minimal
+      #  least order design
+      if ismissing(rdim)
+         if emptyHD 
+            rdim = 1   
+         else
+            rdim = size(HDesign,1)
+         end
+      else
+         rdim = min(rdim,nvec)
+      end
+   else
+      #  full order design
+      if ismissing(rdim) 
+         if emptyHD 
+            rdim = nvec
+         else
+            rdim = min(size(HDesign,1),nvec);
+         end
+      else
+         if mf == 0
+            if rdim < nvec && emptyHD
+               @warn "rdim reset to $nvec"
+               rdim = nvec
+            end
+         else
+            rdim = min(rdim,nvec); 
+         end
+      end
+   end
+
+   
+   # no check of the solvability condition needed
+   rw = (mw == 0) ? 0 : gnrank(Htemp*sysfred.sys[:,inpw]; atol, rtol) 
+   println("rw = $rw")
+          
+   # Compute admissible Q2 to reduce the order of Q2*Q;  
+   # update Q <- Q2*Q, Rf = Q2*Gf 
+   
+   sysfredupd = [sysfred.sys I]
+   #InpG = sysfredupd.InputGroup; 
+   
+   # reorder degs to correspond to the expected orders of basis vectors 
+   # corresponding to the actual order of outputs of QR 
+   ismissing(degs) || reverse!(degs) 
+   println("rdim = $rdim nvec = $nvec")
+   if rdim < nvec 
+      # determine possible low order syntheses using i >= rmin basis vectors
+      # and the corresponding expected orders    
+      
+      finish = false;    # set termination flag
+      nout = rdim;       # initialize number of selected basis vectors
+      if mw > 0 && !exact
+         rwgain = evalfr(Htemp*sysfredupd[:,inpw],freq);
+      else
+         rwgain = zeros(size(Htemp,1),0)  # set rwgain an empty matrix
+      end
+      itry = 1; 
+      while !finish     
+          # choose nout basis vectors, which potentially lead to a least order
+          # filter with rdim outputs:
+          # basesel(i,:) contains the indices of candidate basis vectors;
+          # ordsel(i)    contains the presumably achievable least orders
+          basesel, ordsel = afdbasesel(S,rwgain,degs,rdim,nout,simple,atol)
+          #
+          # update the synthesis using the selections of candidate vector(s),
+          # starting with the least (potentially) achievable order
+          for i = 1:size(basesel,1);
+              baseind = basesel[i] # indices of current basis selection
+              if rdim == nout
+                  hbase = eye(rdim)
+              else
+                  hbase = rand(rdim,nout) 
+              end
+              ip = [baseind; setdiff(1:nvec,baseind)][:]
+              if simple
+                 if minimal
+                    if emptyHD 
+                       # select vectors and elliminate unobservable dynamics  
+                       noelim = falses(nq) 
+                       #ell = sum(degs(1:basesel(i,1)-1)); 
+                       ell = sum(degs[1:basesel[i][1]-1]); 
+                       for jj = 1:nout 
+                           ellnext = sum(degs[1:baseind[jj]]);
+                           noelim[ell+1:ellnext] .= true;
+                           ell = ellnext
+                       end
+                    end
+                    if rdim == nout
+                       if emptyHD 
+                          #QRfwtest = modred(sysfredupd(baseind,:),~noelim,'truncate');
+                          #h = Htemp(ip(1:rdim),:);
+                          #QRfwtest = modred(QR[baseind,:],~noelim,'truncate');
+                          ir = noelim
+                          Ar, Er, Br, Cr, Dr = dssdata(sysfredupd[baseind,:])
+                          QRfwtest = dss(view(Ar,ir,ir), Er == I ? I : view(Er,ir,ir),view(Br,ir,:),view(Cr,:,ir), Dr; Ts)
+                          h = Htemp[ip[1:rdim],:]
+                       else
+                          QRfwtest = gir(Htemp*sysfredupd; atol1, atol2, rtol)
+                       end
+                    else
+                       # this case is possible only if HDesign is empty
+                       # build rdim linear combinations of the first nout vectors 
+                       ir = noelim
+                       Ar, Er, Br, Cr, Dr = dssdata(sysfredupd[baseind,:])
+                       QRfwtest = hbase*dss(view(Ar,ir,ir),Er == I ? I : view(Er,ir,ir),view(Br,ir,:),view(Cr,:,ir), Dr; Ts)
+                       h = [ hbase zeros(T, rdim, nvec-nout) ]
+                       h = h[:,ip]  # permute columns to match unpermuted QR 
+                    end
+                 else
+                    if rdim == nout
+                       if emptyHD 
+                          h = Htemp[ip[1:rdim],:]
+                          QRfwtest = gir(sysfredupd[baseind,:]; atol1, atol2, rtol, infinite = false)
+                       else
+                          QRfwtest = gir(Htemp*sysfredupd; atol1, atol2, rtol, infinite = false)
+                       end
+                    else
+                       QRfwtest = gir(hbase*sysfredupd[baseind,:]; atol1, atol2, rtol, infinite = false) 
+                       h = [ hbase zeros(T, rdim, nvec-nout) ] 
+                       h = h[:,ip]  # permute columns to match unpermuted QR 
+                     end
+                 end
+              else
+                 if minimal
+                    # build output permutation vector for glmcover1  
+                    if rdim == nout
+                       if emptyHD 
+                          QRfwtest, _, info2 = glmcover1(sysfredupd[ip,:], rdim; atol1, atol2, rtol)
+                          if !isempty(ordsel) && (order(QRfwtest) != ordsel[i])
+                             @warn "afdsyyn: expected reduced order not achieved"
+                          end
+                          h = Htemp[ip[1:rdim],:]
+                       else
+                          QRfwtest, _, info2 = glmcover1([Htemp; eye(nvec)]*sysfredupd[ip,:], rdim; atol1, atol2, rtol)
+                       end
+                    else  
+                       # this case is possible only if HDesign is empty
+                       # build rdim linear combinations of the first nout vectors 
+                       h = [ hbase zeros(T, rdim, nvec-nout) ]; 
+                       QRfwtest, _, info2 = glmcover1([h; eye(nvec)]*sysfredupd[ip,:], rdim; atol1, atol2, rtol)
+                       h = h[:,ip]  # permute columns to match unpermuted QR 
+                    end
+                 else
+                    if rdim == nout
+                       if emptyHD
+                          h = Htemp[ip[1:rdim],:]
+                          QRfwtest = gir(sysfredupd[baseind,:]; atol1, atol2, rtol, infinite = false) 
+                       else
+                          QRfwtest = gir(Htemp*QR; atol1, atol2, rtol, infinite = false) 
+                       end
+                    else
+                       QRfwtest = gir(hbase*sysfredupd[baseind,:]; atol1, atol2, rtol, infinite = false) 
+                       h = [ hbase zeros(T, rdim, nvec-nout) ]; 
+                       h = h[:,ip]  # permute columns to match unpermuted sysfredupd 
+                    end
+                 end
+              end
+              # check admissibility of the current design; 
+              if (rdim == nout && minimal) || rdim < nout
+                 # dismiss design if check fails
+                 if strongFD 
+                    Stest = fdisspec_(QRfwtest[:,indf], FDfreq; stabilize = true, block = true, 
+                                              FDGainTol, atol1, atol2, atol3, rtol = 0, fast)[1]
+                 else
+                    Stest = fditspec_(QRfwtest[:,indf]; block = true, atol1, atol2, rtol, FDtol)
+                 end
+                 rwtest = rw > 0 ? rank(evalfr(QRfwtest[:,inpw],freq; atol, rtol)) : rdim
+                 # check complete fault detectability of the current design 
+                 # and full row rank condition  
+                 if all(Stest) && rdim == rwtest
+                    if !simple && minimal
+                       # adjust condition number of employed transformations
+                       tcond1 = max(tcond1, info2.fnorm, info2.tcond)
+                       tcond1 > tcond && 
+                          @warn "efdsyn: possible loss of numerical stability due to ill-conditioned transformations"
+   #                     if ~emptyHD
+   #                        info.HDesign = Htemp;
+   #                     end
+                    end
+                    sysfredupd = QRfwtest
+                    finish = true
+                    break
+                 end
+              else
+                 sysfredupd = QRfwtest
+                 finish = true
+                 break
+              end
+          end
+          nout += 1
+          if nout > nvec
+             if itry > 5
+                finish = true
+                @warn "fault detectability not achieved with the chosen number of residuals"
+             else
+                itry += 1
+                nout -= 1
+             end
+          end
+      end
+      if emptyHD
+         Htemp = h
+      end
+   else
+      hbase = eye(rdim)
+      if simple
+         baseind = 1:rdim 
+      else
+         baseind = 1;
+      end
+      h = eye(rdim)
+      if !emptyHD
+         sysfredupd = Htemp*sysfredupd
+      else
+         # use full minimum basis 
+         Htemp = h
+      end
+   end
+   
+   # compute M such that M*Q has a desired stability degree;  
+   # update Q <- M*Q and R <- M*R 
+   # this operation is performed only if rank is null or for exact synthesis
+   println("rw2 = $rw")
+   if rw == 0 || exact
+      k = 1;
+      if simple && isequal(hbase,I) && emptyHD 
+         # exploit the block diagonal structure of basis matrices al and cl
+         # to compute block-diagonal M
+         al, el, bl, cl, dl, = dssdata(sysfredupd)
+         for i = 1:length(baseind)
+            blkord = degs[baseind[i]]
+            if blkord
+               i1 = k:k+blkord-1; 
+               QRfwi = glcf(dss(al[i1,i1],el[i1,i1],bl[i1,:],cl[i:i,i1],dl[i:i,:];Ts); 
+                            atol1, atol2, atol3, sdeg, smarg, evals = poles)[1]
+               al[i1,i1] = QRfwi.A; bl[i1,:] = QRfwi.B;  cl[i,i1] = QRfwi.C; dl[i,:] = QRfwi.D 
+               el[i1,i1] = (QRfwi.e == I) ? eye(blkord) : QRfwi.E  
+               k += blkord
+            end
+         end
+         sysfredupd = dss(al, el, bl, cl, dl; Ts)
+      else
+         sysfredupd = glcf(sysfredupd; atol1, atol2, atol3, sdeg, smarg, evals = poles)[1]
+      end
+   end
+       
+   # finish if no noise input or if all noise inputs are decoupled or
+   # exact synthesis is performed
+   if mw == 0 || rw == 0 || exact
+      # scale Rf to ensure unit minimum column gains
+      if mf > 0
+         if strongFD && minimum(FDfreq) == 0
+            # compute minimum DC gains  
+            dcg = dcgain(sysfredupd[:,indf]; atol1, atol2, rtol, fast) 
+            y = maximum(abs.(dcg),dims=1)
+            indj = sortperm(y[:])[1] 
+            scale = y[indj]
+            indi = sortperm(abs.(dcg[:,indj]))[end]
+            sc = sign(dcg[indi,indj])/scale
+         else
+            # compute the minimum of H-inf norms of columns
+            sc = 1/fdhinfminus(sysfredupd[:,indf])[1]
+         end
+         sysfredupd = sc*sysfredupd
+      end
+      
+      # transform to standard state-space
+      sysfredupd = gss2ss(sysfredupd; atol1, atol2, rtol)[1]
+      # set(sysfredupd,'InputGroup',InpG)
+
+      Qred = FDFilter(sysfredupd[:,end-nvec+1:end], nvec, 0)
+      Rred = FDFilterIF(sysfredupd,0,0,mf,mw,maux)
+      if rw > 0
+         beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
+         gap = beta/ghinfnorm(sysfredupd[:,inpw])[1]
+      else
+         gap = inf;
+      end
+   
+      info = (tcond = tcond1, HDesign = convert(Matrix{Float64},Htemp), gap = gap)
+
+      return Qred, Rred, info
+   end
+   
+   # determine the optimal factor Q3 to minimize the gap
+   # and update Q <- Q3*Q and R <- Q3*R 
+     
+   # compute the extended quasi-co-outer-co-inner factorization  
+   # Rw = [Rwoe 0]*Rwi = Rwoe*Rwi1
+   Rwi, Rwo, info1 = goifac(sysfredupd[:,inpw]; atol1, atol2, atol3, rtol)
+   rw = size(Rwo,2);  # rank of Rw
+   nonstandard = info1.nfuz+info1.niuz > 0; 
+   println("info1 = $info1")
+   
+   # handle different cases
+   if nonstandard
+      # non-standard case: zeros on the boundary of the stability domain 
+      if nonstd == 2
+         # use modified co-outer-co-inner factorization
+            _, Rwo = goifac([Rwo epsreg*eye(size(Rwo,1))]; atol1, atol2, atol3, rtol)
+      elseif nonstd == 3  
+         # use Wiener-Hopf type co-outer-co-inner factorization
+         # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz; 
+         Rwouz, Rwoe = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
+         Rwo = Rwoe*linfnorm(Rwouz*Rwi[1:rw,:])[1] 
+      elseif nonstd == 4  
+         # use modified Wiener-Hopf type co-outer-co-inner factorization
+         # with zero shifting of the non-minimum phase factor
+         # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz
+         # and update Rwo <- Rwoe
+         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
+         # set suitable bilinear transformation
+         if disc
+            sys1 = rtf('z')/sdegzer
+         else
+            s = rtf('s'); sys1 = rtf(1)
+            if info1.nfuz
+               sys1 = sys1*(s-sdegzer);
+            end
+            if info1.niuz
+               sys1 = sys1/(1-sdegzer*s);
+            end
+         end
+         # form shifted factor 
+         Rwouz = gbilin(Rwouz,sys1)[1] 
+      elseif nonstd == 5  
+         # use modified Wiener-Hopf type co-outer-co-inner factorization
+         # with regularization of the non-minimum phase factor
+         # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz 
+         # and update Rwo <- Rwoe
+         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
+         rw = size(Rwouz,1)
+         _, Rwouz = goifac([Rwouz epsreg*eye(rw)]; atol1, atol2, atol3, rtol)
+      end
+   end
+  
+   if rw == size(Rwo,1)
+      # Q3 = inv(Rwo)
+      # extract descriptor state-space data
+      aQR, eQR, bQR, cQR, dQR = dssdata(sysfredupd)
+      # form [Rwo Rf Rw Raux Q] 
+      RwoQR = dss(aQR, eQR, [Rwo.B bQR],cQR,[Rwo.D dQR];Ts)
+      # form QR = inv(Rwo)*[ Rf Rw Raux Q] 
+      sysfredupd = grsol(RwoQR, m+nvec; atol1, atol2, rtol)[1]
+      if nonstandard && (nonstd == 4 || nonstd == 5)
+         sysfredupd = gminreal(Rwouz\sysfredupd; atol1, atol2, rtol)
+      end
+   else
+      # regularization for non-invertible Rwo (this case should never occur)
+      # Q3 = Rwoinv, where Rwoinv is a left inverse of Rwo
+      # with stable spurious poles
+      Rwoinv = glsol([Rwo;eye(rw)], rw; atol1, atol2, rtol, sdeg)[1]
+      # form QR = Rwoinv*[Rf Rw Raux Q] 
+      sysfredupd = gir(Rwoinv*sysfredupdatol1; atol1, atol2, rtol, infinite = false)
+      if nonstandard && (nonstd == 4 || nonstd == 5)
+         sysfredupd = gminreal(Rwouz\sysfredupd; atol1, atol2, rtol)
+      end
+   end
+   if nonstandard && nonstd == 1
+      # perform stabilization 
+      # determine Q4 such that Q <- Q4*Q and R <- Q4*R are stable
+      sysfredupd = glcf(sysfredupd; atol1, atol2, atol3, rtol, sdeg, smarg, poles)[1]
+   end
+   
+   # scale to enforce ||Rw||_inf = gamma
+   scale = gamma/ghinfnorm(sysfredupd[:,inpw])[1]
+   sysfredupd = gss2ss(scale*sysfredupd)[1]
+  
+   Qred = FDFilter(sysfredupd[:,end-nvec+1:end], nvec, 0)
+   Rred = FDFilterIF(sysfredupd,0,0,mf,mw,maux)
+   beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
+   info = (tcond = tcond1, HDesign = convert(Matrix{Float64},Htemp), gap = beta/gamma)
+   
+   # end AFDREDSYN
+   end
+   
+   
+   

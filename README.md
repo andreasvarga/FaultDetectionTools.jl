@@ -4,6 +4,7 @@
 [![DocBuild](https://github.com/andreasvarga/FaultDetectionTools.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/FaultDetectionTools.jl/actions) 
 [![codecov.io](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl/coverage.svg?branch=master)](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl?branch=master)
 [![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/dev/)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/stable/)
 [![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/LICENSE.md)
 
 ## FDITools - Fault Detection and Isolation Tools in Julia

@@ -17,6 +17,7 @@ Gu = [(s+1)/(s+2); (s+2)/(s+3)] # enter Gu(s)
 Gd = [(s-1)/(s+2); 0]; # enter Gd(s)
 # build state space model of [Gu(s) Gd(s) Gf(s)] and set input groups
 sysf = fdimodset(dss([Gu Gd]),c =1,d = 2,f = 1,fs = 1:2)
+display(sysf)
 
 # tests FDFilter
 filter = rss(3,1,3)
@@ -27,6 +28,7 @@ Q2 = FDFilter(filter; outputs = [1],controls = [2,3])
 Q3 = FDFilter(filter,outputs = 1,controls = 2:3)
 @test iszero(Q.sys-Q3.sys,atol=1.e-7) && 
             Q.controls == Q3.controls && Q.outputs == Q3.outputs
+display(Q)
 
 # tests FDIFilter
 filter = [rss(3,1,3), rss(2,2,3)]
@@ -37,6 +39,7 @@ Q2 = FDIFilter(filter; outputs = [1],controls = [2,3])
 Q3 = FDIFilter(filter,outputs = 1,controls = 2:3)
 @test iszero(Q.sys[1]-Q3.sys[1],atol=1.e-7) &&  iszero(Q.sys[2]-Q3.sys[2],atol=1.e-7) &&
             Q.controls == Q3.controls && Q.outputs == Q3.outputs
+display(Q)
 
 # tests FDFilterIF
 filteri = rss(3,1,6)
@@ -68,6 +71,7 @@ R1 = FDIFilterIF(filteri,2,1,1,1,1)
        R.controls == R1.controls && R.disturbances == R1.disturbances &&
        R.faults == R1.faults && R.noise == R1.noise &&
        R.aux == R1.aux
+display(R)
             
 R = FDIFilterIF(filteri,aux=[6],noise=[5],faults=[4])
 R1 = FDIFilterIF(filteri,0,0,1,1,1;moff = 3)
