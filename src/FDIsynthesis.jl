@@ -1,4 +1,9 @@
 """
+    efdsyn(sysf::FDIModel; rdim, nullspace = true, simple = false, minimal = true, 
+                           sdeg, smarg, poles, HDesign, FDtol, FDGainTol, FDfreq, 
+                           tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
+                           -> (Q::FDFilter, R::FDFilterIF, info)
+
 Solve the exact fault detection problem (EFDP) for a given synthesis model
 `sysf` with additive faults. The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection filter, representing the solution of the EFDP, and its internal form, respectively.
@@ -118,7 +123,6 @@ The keyword argument `atol3` is an absolute tolerance for observability tests
 (default: internally determined value). 
 The keyword argument `atol` can be used 
 to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
-
 
 The resulting named tuple `info` contains `(tcond, degs, S, HDesign) `, where:
 
@@ -1176,7 +1180,7 @@ at the first synthesis step. The resulting `Ra(λ)` is the transfer function mat
 updated filter `Qy(λ)*Q1(λ)`. Information on `Q1(λ)`, which are relevant for a least 
 order synthesis are provided in the keyword arguments `simple`, `degs` and `S` 
 """
-function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Union{AbstractVector,Missing} = missing, 
+function afdredsyn(sysfred::Union{FDFilterIF{T},FDIModel{T}}; rdim::Union{Int,Missing} = missing, poles::Union{AbstractVector,Missing} = missing, 
    sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
    minimal::Bool = true, simple::Bool = false,
    FDtol::Real = 0.0001, FDGainTol::Real = 0.01, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
@@ -1286,6 +1290,8 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    # m    - total number of inputs
    
    # decode input information 
+   length(sysfred.controls) == 0 || error("the reduced system must not have control inputs")
+   length(sysfred.disturbances) == 0 || error("the reduced system must not have disturbance inputs")
    inpf = sysfred.faults; mf = length(inpf)
    inpw = sysfred.noise; mw = length(inpw)
    inpaux = sysfred.aux;  maux = length(inpaux)  
@@ -1295,7 +1301,10 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
 
    strongFD = !ismissing(FDfreq)
    strongFD && !isa(FDfreq,Vector) && (FDfreq = [FDfreq]) 
-   strongFD && (lfreq = length(FDfreq))
+   ismissing(S) && (S = strongFD ? 
+             fdisspec(sysfred, FDfreq; stabilize = true, FDGainTol, atol1, atol2, rtol, fast) :
+             fditspec(sysfred; block = false, FDtol, atol1, atol2, rtol, fast) )
+
 
    # set default stability degree
    sdegdefault = disc ? 0.95 : -0.05
@@ -1411,7 +1420,6 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    
    # no check of the solvability condition needed
    rw = (mw == 0) ? 0 : gnrank(Htemp*sysfred.sys[:,inpw]; atol, rtol) 
-   println("rw = $rw")
           
    # Compute admissible Q2 to reduce the order of Q2*Q;  
    # update Q <- Q2*Q, Rf = Q2*Gf 
@@ -1422,7 +1430,6 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    # reorder degs to correspond to the expected orders of basis vectors 
    # corresponding to the actual order of outputs of QR 
    ismissing(degs) || reverse!(degs) 
-   println("rdim = $rdim nvec = $nvec")
    if rdim < nvec 
       # determine possible low order syntheses using i >= rmin basis vectors
       # and the corresponding expected orders    
@@ -1600,7 +1607,6 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    # compute M such that M*Q has a desired stability degree;  
    # update Q <- M*Q and R <- M*R 
    # this operation is performed only if rank is null or for exact synthesis
-   println("rw2 = $rw")
    if rw == 0 || exact
       k = 1;
       if simple && isequal(hbase,I) && emptyHD 
@@ -1670,7 +1676,6 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    Rwi, Rwo, info1 = goifac(sysfredupd[:,inpw]; atol1, atol2, atol3, rtol)
    rw = size(Rwo,2);  # rank of Rw
    nonstandard = info1.nfuz+info1.niuz > 0; 
-   println("info1 = $info1")
    
    # handle different cases
    if nonstandard
@@ -1681,40 +1686,39 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
       elseif nonstd == 3  
          # use Wiener-Hopf type co-outer-co-inner factorization
          # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz; 
-         Rwouz, Rwoe = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
-         Rwo = Rwoe*linfnorm(Rwouz*Rwi[1:rw,:])[1] 
+         Rwouz, Rwoe = gcrange(Rwo; atol1, atol2, rtol, zeros = "s-unstable")
+         Rwo = Rwoe*glinfnorm(Rwouz*Rwi[1:rw,:])[1] 
       elseif nonstd == 4  
          # use modified Wiener-Hopf type co-outer-co-inner factorization
          # with zero shifting of the non-minimum phase factor
          # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz
          # and update Rwo <- Rwoe
-         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
+         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, rtol, zeros = "s-unstable")
          # set suitable bilinear transformation
          if disc
             sys1 = rtf('z')/sdegzer
          else
             s = rtf('s'); sys1 = rtf(1)
-            if info1.nfuz
+            if info1.nfuz > 0
                sys1 = sys1*(s-sdegzer);
             end
-            if info1.niuz
+            if info1.niuz > 0
                sys1 = sys1/(1-sdegzer*s);
             end
          end
          # form shifted factor 
-         Rwouz = gbilin(Rwouz,sys1)[1] 
+         Rwouz = gbilin(Rwouz,sys1; minimal = true, atol1, atol2, rtol)[1] 
       elseif nonstd == 5  
          # use modified Wiener-Hopf type co-outer-co-inner factorization
          # with regularization of the non-minimum phase factor
          # separate stable and strictly unstable zeros Rwo = Rwoe*Rwouz 
          # and update Rwo <- Rwoe
-         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, atol3, rtol, zeros = "s-unstable")
+         Rwouz, Rwo = gcrange(Rwo; atol1, atol2, rtol, zeros = "s-unstable")
          rw = size(Rwouz,1)
          _, Rwouz = goifac([Rwouz epsreg*eye(rw)]; atol1, atol2, atol3, rtol)
       end
    end
   
-   println("rw= $rw Rwosize=$(size(Rwo,1))")
    if rw == size(Rwo,1)
       # Q3 = inv(Rwo)
       # extract descriptor state-space data
@@ -1740,7 +1744,7 @@ function afdredsyn(sysfred::FDIModel{T}; rdim::Union{Int,Missing} = missing, pol
    if nonstandard && nonstd == 1
       # perform stabilization 
       # determine Q4 such that Q <- Q4*Q and R <- Q4*R are stable
-      sysfredupd = glcf(sysfredupd; atol1, atol2, atol3, rtol, sdeg, smarg, poles)[1]
+      sysfredupd = glcf(sysfredupd; atol1, atol2, atol3, rtol, sdeg, smarg, evals = poles)[1]
    end
    
    # scale to enforce ||Rw||_inf = gamma

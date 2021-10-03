@@ -96,6 +96,9 @@ end
 function FDFilter(sys::DescriptorStateSpace{T}; outputs::VRS = Int[], controls::VRS = Int[]) where T 
     return FDFilter{T}(sys, vec([outputs; Int[]]), vec([controls; Int[]]))          
 end
+function *(filter1::FDFilter{T1}, filter2::FDFilter{T2}) where {T1,T2}
+    return FDFilter(filter1.sys*filter2.sys, length(filter2.outputs), length(filter2.controls))
+end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDFilter)
     summary(io, filter); println(io)
     display(filter.sys)
@@ -567,9 +570,11 @@ function fdIFeval(Q::FDIFilter, sysf::FDIModel; minimal::Bool = false,
    return FDIFilterIF{eltype(Q.sys[1])}(sysR, sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
 end
 gbalmr(Q::FDFilter{T}; kwargs...) where T = FDFilter(gbalmr(Q.sys; kwargs...)[1], Q.outputs, Q.controls)
+gminreal(Q::FDFilter{T}; kwargs...) where T = FDFilter(gminreal(Q.sys; kwargs...), Q.outputs, Q.controls)
 function gbalmr(Q::FDIFilter{T}; kwargs...) where T 
     for i = 1:length(Q.sys)
         Q.sys[i] = gbalmr(Q.sys[i]; kwargs...)[1]
     end
     return Q
 end
+gpole(Q::FDFilter{T}; kwargs...) where T = gpole(Q.sys;  kwargs...)

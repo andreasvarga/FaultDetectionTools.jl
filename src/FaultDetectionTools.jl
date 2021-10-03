@@ -10,8 +10,9 @@ using Random
 abstract type AbstractFDDObject end
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
-import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr
+import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr, gminreal, gpole
 import Combinatorics: combinations
+import Base: +, -, *
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval, gbalmr
 export fditspec, fdisspec, fdscond, fdif2ngap

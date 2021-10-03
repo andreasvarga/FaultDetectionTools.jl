@@ -69,12 +69,13 @@ _References:_
 
 [1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec.3.4.
 """
-function fditspec(sysr::FDFilterIF{T}; FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+function fditspec(sysr::Union{FDFilterIF{T},FDIModel{T}}; 
+    block::Bool = false, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
     poleshift::Bool = false, FDtol::Real = 0., FDStol::Real = 0., 
     atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = 0, fast::Bool = true) where T
 
-    S = fditspec_(sysr.sys[:,sysr.faults]; FDfreq, poleshift, FDtol, FDStol, 
+    S = fditspec_(sysr.sys[:,sysr.faults]; block, FDfreq, poleshift, FDtol, FDStol, 
                   atol1, atol2, rtol, fast)
     ismissing(FDfreq) && (return S)
     for j = 1:size(S,2)
@@ -85,7 +86,7 @@ function fditspec(sysr::FDFilterIF{T}; FDfreq::Union{AbstractVector{<:Real},Real
     return S[:,:,1]
 end
 """
-    S = fditspec(sysr::FDIFilterIF; FDfreq = missing, block = false, poleshift = false, 
+    S = fditspec(sysr::FDIFilterIF; FDfreq = missing, poleshift = false, 
                  FDtol, FDStol, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
 
 Compute the weak or strong binary structure matrix `S` of the global transfer function matrix `Rf(λ)` of 
@@ -230,7 +231,7 @@ _References:_
 [1] Varga A. Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017; sec. 3.4.
 
 """
-function fdisspec(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} = 0; kwargs...) where T
+function fdisspec(sysr::Union{FDFilterIF{T},FDIModel{T}}, freq::Union{AbstractVector{<:Real},Real} = 0; kwargs...) where T
     S = fdisspec_(sysr.sys[:,sysr.faults], freq; kwargs...)[1] 
     length(freq) == 1 && (return S[:,:,1])
     for j = 1:size(S,2)
@@ -241,7 +242,7 @@ function fdisspec(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} 
     return S[:,:,1]
 end  
 """
-     S = fdisspec(sysr::FDIFilterIF, freq; block = false, stabilize = false, FDGainTol = 0.01, 
+     S = fdisspec(sysr::FDIFilterIF, freq; stabilize = false, FDGainTol = 0.01, 
                      atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
 
 Compute, for a given set of real frequencies `freq`,  
