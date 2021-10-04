@@ -803,10 +803,8 @@ syse = [sysf.sys; eye(mu,mu+md+mf)];
 @test orders == [1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
 #step(Rftilde,10)
 
-S = fditspec_(Rftilde;  atol = 1.e-7, FDtol = 0.0001)
+S = fditspec_(Rftilde;  atol = 1.e-5, FDtol = 0.0001)
 @test isequal(SFDI,S)  
-
-
 
 ## Yuan et al. IJC (1997)  weak synthesis with pole assignment and
 #  enforcing least global order of 6!
