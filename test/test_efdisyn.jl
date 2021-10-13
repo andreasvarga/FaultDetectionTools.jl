@@ -298,7 +298,7 @@ R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
       order(vcat(Q.sys...)) == 32
 
 # check weak  fault detectability
-@test fditspec(Rf) == SFDI 
+@test fditspec(Rf; atol = 1.e-6, FDtol = 0.0001) == SFDI 
 
 
 
