@@ -1,8 +1,8 @@
 # Release Notes
 
-## Version 0.3.0 (WIP)
+## Version 0.3.0 
 
-This minor release provides a new function for the approximate synthesis of fault detection filters and a function for the evaluation of the achieved fault-to-noise gap. The functions of the DescriptorSystems package  `gbalmr`, `gminreal` and `gpole` have been extended to cover FDFilter objects as well. 
+This minor release provides a new function for the approximate synthesis of fault detection filters and two new functions for the evaluation of the achieved fault-to-noise gap and model-matching performace. The functions of the DescriptorSystems package  `gbalmr`, `gminreal` and `gpole` have been extended to cover FDFilter objects as well. 
 
 ## Version 0.2.0 
 

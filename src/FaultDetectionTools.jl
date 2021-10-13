@@ -15,10 +15,10 @@ import Combinatorics: combinations
 import Base: +, -, *
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval, gbalmr
-export fditspec, fdisspec, fdscond, fdif2ngap
+export fditspec, fdisspec, fdiscond, fdif2ngap, fdimmperf
 export fdigenspec, fdichkspec
-export efdsyn, efdisyn, efdbasesel, afdredsyn, afdbasesel
-export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdscond_
+export efdsyn, efdisyn, efdbasesel, afdsyn, afdredsyn, afdbasesel
+export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdiscond_
 
 const VRS = Union{Vector{Int}, UnitRange{Int}, Int}
 

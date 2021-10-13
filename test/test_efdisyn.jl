@@ -55,10 +55,26 @@ R = fdIFeval(Q, sysf);
       info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
       fditspec(Rf, FDtol = 1.e-6) == SFDI  && fdisspec(Rf, FDGainTol = 1.e-3) == SFDI
 
+
 SFDI = fdigenspec(sysf, atol = 1.e-7)
 @time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [[0.03964565583901385 0.8670124660000067 -1.7144387091257782]]); info
 #@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [randn(1,3)]); info
-fdscond(Rf,SFDI[1:1,:])
+@test fdiscond(Rf,SFDI[1:1,:])[2] ≈ ones(1) && fdif2ngap(Rf,SFDI[1:1,:])[2] ≈ ones(1)
+
+# system with noise inputs
+p = 3; mf = 2; mu = 2; mw = 3;
+sysf = fdimodset(rss(1,p,mf+mu+mw),controls = 1:mu, faults = mu+1:mu+mf, noise = (mu+mf+1) .+ Vector(1:mf));
+SFDI = fdigenspec(sysf, atol = 1.e-7)
+@time Q, Rfw, info = efdisyn(sysf, SFDI; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,3)); info
+R = fdIFeval(Q, sysf);
+@test iszero(vcat(Rfw.sys...)[:,Rfw.faults]-vcat(R.sys...)[:,R.faults],atol=1.e-7) && 
+      iszero(vcat(Rfw.sys...)[:,Rfw.noise]-vcat(R.sys...)[:,R.noise],atol=1.e-7) && 
+      iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) &&
+      info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
+      fditspec(Rfw, FDtol = 1.e-6) == SFDI  && fdisspec(Rfw, FDGainTol = 1.e-3) == SFDI &&
+      fdiscond(Rfw,SFDI)[2] ≈ ones(3) && fdif2ngap(Rfw,SFDI)[2] ≈ ones(3) &&
+      any(isinf.(fdimmperf(Rfw,2))) && all(isfinite.(fdimmperf(Rfw,Inf)))
+
 
 
 # Example 5.10c - Solution of an EFDIP

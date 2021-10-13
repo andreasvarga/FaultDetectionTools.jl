@@ -91,13 +91,13 @@ syse = [sysf1.sys;eye(2,11)]
       iszero(Q.sys*syse[:,6]-R.sys[:,R.noise],atol=1.e-7) &&
       iszero(Q.sys*syse[:,7:end]-R.sys[:,R.aux],atol=1.e-7)
 @test fditspec(R) == fditspec_(R.sys[:,R.faults])
-@time scond, β, γ = fdscond(R)
+@time scond, β, γ = fdiscond(R)
 @test β == fdhinfminus(R.sys[:,R.faults])[1] && γ == fdhinfmax(R.sys[:,R.faults])[1] 
 freq = 0
-@time scond, β, γ = fdscond(R,freq)
+@time scond, β, γ = fdiscond(R,freq)
 @test β == fdhinfminus(R.sys[:,R.faults],freq)[1] && γ == fdhinfmax(R.sys[:,R.faults],freq)[1] 
 freq = [0, 3, 5]; 
-@time scond, β, γ = fdscond(R,freq)
+@time scond, β, γ = fdiscond(R,freq)
 @test β == fdhinfminus(R.sys[:,R.faults],freq)[1] && γ == fdhinfmax(R.sys[:,R.faults],freq)[1] 
 
 sysf1 = fdimodset(rss(3,1,6,stable=true),c = 1:2, d = 3, f = 4:5, n = 6, aux = 2:6)

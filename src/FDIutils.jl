@@ -320,7 +320,7 @@ function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:
    return smat, gains
 end
 """
-     fdscond_(sysrf::DescriptorStateSpace, freq) -> (scond, β, γ)
+     fdiscond_(sysrf::DescriptorStateSpace, freq) -> (scond, β, γ)
 
 Compute for a stable descriptor system `sysrf = (A-λE,B,C,D)` with the transfer function matrix `Rf(λ)`, 
 `β` - the H∞- index of `Rf(λ)`, `γ` - the maximum of the columns norms of `Rf(λ)` and 
@@ -328,7 +328,7 @@ Compute for a stable descriptor system `sysrf = (A-λE,B,C,D)` with the transfer
 If `freq` is a vector of real frequency values, then `β` and `γ`
 are evaluated over the frequencies contained in `freq`. 
 """
-function fdscond_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+function fdiscond_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
    p, m = size(sysrf)
 
    m == 0 && (return T[], T[], T[])

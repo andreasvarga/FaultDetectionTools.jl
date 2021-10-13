@@ -42,13 +42,15 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 
 * **[`fditspec`](@ref)**  Computation of the weak or strong structure matrix.
 * **[`fdisspec`](@ref)**  Computation of the strong structure matrix.
-* **[`fdscond`](@ref)**  Computation of the fault detection sensitivity condition.
+* **[`fdiscond`](@ref)**  Computation of the fault detection sensitivity condition.
 * **[`fdif2ngap`](@ref)**  Computation of the fault-to-noise gap.
+* **[`fdimmperf`](@ref)**  Computation of the model-matching performace.
 
 **Solving fault detection and isolation problems**
 
 * **[`efdsyn`](@ref)**  Exact synthesis of fault detection filters.
 * **[`efdisyn`](@ref)**  Exact synthesis of fault detection and isolation filters.
+* **[`afdsyn`](@ref)**  Approximate synthesis of fault detection filters.
 
 **FDI related computational utilities**
 
@@ -56,7 +58,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`fdhinfmax`](@ref)**  Evaluation of the maximum of column norm of the transfer function matrix of a descriptor system model.  
 * **[`fditspec_`](@ref)**  Computation of the weak or strong structure matrix of a descriptor system model.
 * **[`fdisspec_`](@ref)**  Computation of the strong structure matrix of a descriptor system model.
-* **[`fdscond_`](@ref)**  Computation of the column-gains sensitivity condition of the transfer function matrix of a descriptor system model.
+* **[`fdiscond_`](@ref)**  Computation of the column-gains sensitivity condition of the transfer function matrix of a descriptor system model.
 
 ## [Release Notes](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/ReleaseNotes.md)
 

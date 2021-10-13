@@ -16,7 +16,7 @@ Gw = [1/(s+2); 0];                   # enter Gw(s)
 Gf = [(s+1)/(s+2) 0; 0 1];           # enter Gf(s)
 p = 2; mu = 1; mw = 1; mf = 2;       # enter dimensions
 
-# setup the synthesis model with faults with Gf(s) = [ Gu(s) [0;1]]
+# setup the synthesis model 
 sysf = fdimodset(dss([Gu Gf Gw],minimal = true),c =1:mu, f = mu .+ (1:mf), n = (mu+mf) .+ (1:mw));
 
 # call of EFDSYN with the options for stability degree -3 and the synthesis 

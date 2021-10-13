@@ -10,6 +10,7 @@ include("test_fdigenspec.jl")
 # test FDI synthesis functions
 include("test_efdsyn.jl")
 include("test_efdisyn.jl")
+include("test_afdsyn.jl")
 end
 
 end
