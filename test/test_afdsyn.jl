@@ -23,7 +23,7 @@ S = fditspec(sysf)
 R = fdIFeval(Q, sysf);
 @test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) &&  
       info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0] && info.gap == Inf &&
-      info.gap ≈ fdif2ngap(R)[1]
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys)
 
 # solve an EFDP as an exact AFDP (S internally computed)
 @time Q, Rf, info = afdredsyn(sysf; exact = true, atol = 1.e-7, minimal = false, rdim = 2); info
@@ -31,7 +31,16 @@ R = fdIFeval(Q, sysf);
 R = fdIFeval(Q, sysf);
 @test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) &&  
       info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0] && info.gap == Inf &&
-      info.gap ≈ fdif2ngap(R)[1]
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys)
+
+# solve an EFDP as an exact AFDP 
+@time Q, Rf, info = afdsyn(sysf; exact = true, atol = 1.e-7, minimal = false, rdim = 2); info
+
+R = fdIFeval(Q, sysf);
+@test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) &&  
+      info.HDesign2 == [0.0 1.0 0.0; 0.0 0.0 1.0] && info.gap == Inf &&
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys)
+
 
 
 ## Example with fault and noise inputs: Rw non full-row rank
@@ -45,14 +54,29 @@ S = fditspec_(sysf.sys[:,sysf.faults])
 R = fdIFeval(Q, sysf)
 @test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
       info.HDesign ==  [1.0 0.0 0.0; 0.0 1.0 0.0] &&
-      info.gap ≈ fdif2ngap(R)[1]
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys) && order(Q.sys) == 1
 
 @time Q, Rfw, info = afdredsyn(sysf; exact = false, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2, S); info
 
 R = fdIFeval(Q, sysf)
 @test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
       info.HDesign ==  [1.0 0.0 0.0; 0.0 1.0 0.0] &&
-      info.gap ≈ fdif2ngap(R)[1]
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys) && order(Q.sys) == 1
+
+@time Q, Rfw, info = afdsyn(sysf; exact = true, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2); info
+
+R = fdIFeval(Q, sysf)
+@test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
+      info.HDesign ==  [0.0 1.0 0.0; 0.0 0.0 1.0] &&
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys) && order(Q.sys) == 0
+
+@time Q, Rfw, info = afdsyn(sysf; exact = false, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2); info
+
+R = fdIFeval(Q, sysf)
+@test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
+      info.HDesign ==  [0.0 1.0 0.0; 0.0 0.0 1.0] &&
+      info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys) && order(Q.sys) == 0
+
 
 
 ## Example with fault and noise inputs: Rw full-row rank
@@ -65,18 +89,28 @@ S = fditspec_(sysf.sys[:,sysf.faults])
 
 R = fdIFeval(Q, sysf)
 @test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
-      info.HDesign == [1.0 0.0 0.0] &&
       info.gap ≈ fdif2ngap(R)[1]
 te1 = info.gap
+
+# solve an EFDP with noise inputs as an exact AFDP: rdim = 1
+@time Q, Rfw, info = afdsyn(sysf; exact = true, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 1); info
+R = fdIFeval(Q, sysf)
+@test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
+      info.gap ≈ fdif2ngap(R)[1] 
 
 # solve an EFDP with noise inputs as an exact AFDP: rdim = 2
 @time Q, Rfw, info = afdredsyn(sysf; exact = true, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2, S); info
 
 R = fdIFeval(Q, sysf)
 @test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
-      info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0] &&
       info.gap ≈ fdif2ngap(R)[1]
 te2 = info.gap
+
+# solve an EFDP with noise inputs as an exact AFDP: rdim = 2
+@time Q, Rfw, info = afdsyn(sysf; exact = true, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2); info
+R = fdIFeval(Q, sysf)
+@test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
+      info.gap ≈ fdif2ngap(R)[1] 
 
 # solve an EFDP with noise inputs as an exact AFDP: rdim = 3
 @time Q, Rfw, info = afdredsyn(sysf; exact = true, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 3, S); info
@@ -349,6 +383,28 @@ Q1, Rf1, info1 = afdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 
 
 @test iszero(Q.sys-Q1.sys,atol=1.e-7) && iszero(Rf.sys-Rf1.sys,atol=1.e-7)
 
+# example with a weak AFDIP 
+s = rtf('s');
+# define 1x2 Gf(s) without zeros 
+Gf = [1/s 1/(s^2+4)]; # enter Gf(s)
+
+# build minimal realzation of the model with faults
+sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7), faults = 1:2);
+
+@time Q, Rf, info = afdsyn(sysf, Bool[1, 0]; sdeg = -3, rdim = 1, FDfreq = [0]); info
+# check synthesis results
+R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
+@test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
+      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      fdisspec(Rf, [0])[:] == Bool[1, 0] && 
+      fdif2ngap(Rf,Bool[1, 0],0)[1] ≈ info.gap ≈ fdif2ngap(R,Bool[1, 0],0)[1] &&
+      fdimmperf(Rf) == 0 && fdimmperf(Rf,Bool[1,0]) ≈ 1
+
+Q1, Rf1, info1 = afdsyn(sysf, Bool[1, 0]; sdeg = -3, rdim = 1, FDfreq = [0], FDGainTol = 0.001, HDesign = info.HDesign); info1 
+
+@test iszero(Q.sys-Q1.sys,atol=1.e-7) && iszero(Rf.sys-Rf1.sys,atol=1.e-7)
+
+
 
 ## Example with solvable strong synthesis (frequencies are also poles)  
 #
@@ -359,7 +415,7 @@ Gf = [1/s; 1/(s^2+4)]; # enter Gf(s)
 # build minimal realzation of the model with faults
 sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 
-@time Q, Rf, info = afdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0, 2]); info
+@time Q, Rf, info = afdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0]); info
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&

@@ -577,4 +577,11 @@ function gbalmr(Q::FDIFilter{T}; kwargs...) where T
     end
     return Q
 end
+function gminreal(Q::FDIFilter{T}; kwargs...) where T 
+    for i = 1:length(Q.sys)
+        Q.sys[i] = gminreal(Q.sys[i]; kwargs...)
+    end
+    return Q
+end
 gpole(Q::FDFilter{T}; kwargs...) where T = gpole(Q.sys;  kwargs...)
+gpole(Q::FDIFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)

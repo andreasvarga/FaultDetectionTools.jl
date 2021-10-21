@@ -260,7 +260,7 @@ function fditspec_(sysrf::DescriptorStateSpace{T}; FDfreq::Union{AbstractVector{
    return S
 end
 """
-     fdisspec_(sysrf::DescriptorStateSpace, freq; block = false, FDGainTol = 0.01, 
+     fdisspec_(sysrf::DescriptorStateSpace, freq; block = false, stabilize = false, FDGainTol = 0.01, 
                      atol, atol1, atol2, atol3, rtol, fast = true) -> (S, gains)
 
 Compute the strong binary structure matrix `S` of the transfer function matrix of a 

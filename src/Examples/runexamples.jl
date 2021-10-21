@@ -17,6 +17,9 @@ include("Ex5_9.jl")
 # solving EFDIP
 include("Ex5_10.jl")
 include("Ex5_10c.jl")
+# solving AFDIP
+include("Ex5_11.jl")
+include("Ex5_11c.jl")
 end
 
 end

@@ -58,9 +58,5 @@ end
 scale = sign.([ Rft[1].D[1,2], Rft[2].D[1,3], Rft[3].D[1,1]])
 Q = FDIFilter(scale .* Qt, p, mu)
 R = FDIFilterIF(scale .* Rft, 0, 0, mf)
-println("Q = ")
-display(Q)
-println("R = ")
-display(R)
-
+println("gap = $(fdif2ngap(R,S)[1])")
 end # module
