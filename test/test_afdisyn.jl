@@ -573,7 +573,9 @@ R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
       iszero(vcat(R.sys...)[:,R.noise]-vcat(Rfw.sys...)[:,Rfw.noise],atol=1.e-7) &&
       fditspec(Rfw) == SFDI && 
       fdif2ngap(Rfw,SFDI)[1] ≈ info.gap ≈ fdif2ngap(R,SFDI)[1]  &&
-      norm(fdimmperf(Rfw) - fdimmperf(Rfw,SFDI)) < 1.e-7
+      norm(fdimmperf(Rfw) - fdimmperf(Rfw,SFDI)) < 1.e-7 &&
+      all(fdimmperf(R,Rfw) .< 1.e-7)  
+
 
 end # test fdisyn
 

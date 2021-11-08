@@ -20,6 +20,12 @@ include("Ex5_10c.jl")
 # solving AFDIP
 include("Ex5_11.jl")
 include("Ex5_11c.jl")
+# solving EMMP
+include("Ex5_12.jl")
+include("Ex5_12c.jl")
+include("Ex5_13.jl")
+include("Ex5_13a.jl")
+include("Ex5_13c.jl")
 end
 
 end

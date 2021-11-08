@@ -330,6 +330,24 @@ function fdiscond(sysr::FDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real,M
     fdiscond_(sysr.sys[:,sysr.faults], freq)
 end
 """
+     fdiscond(sysr::FDFilterIF,SFDI,freq) -> (scond, β, γ)
+
+Compute the detection and isolation sensitivity condition
+`scond` (and related quatities `β` and `γ`) for the binary structure vector `SFDI` associated to
+the stable transfer function matrix `Rf(λ)` of the
+transfer channel from the fault inputs to residuals of the
+fault detection filter internal form object `sysr::FDFilterIF`. 
+If  `Rff(λ)` is the transfer function matrix formed of those `j`-th columns of `Rf(λ)` 
+for which `SFDI[j] = 1`, then:   
+`β` - the H∞- index of `Rff(λ)`, `γ` - the maximum of the columns norms of `Rff(λ)` and 
+the fault detection sensitivity condition `scond` evaluated as `scond := β/γ`. 
+If `freq` is a vector of real frequency values, then `β` and `γ`
+are evaluated over the frequencies contained in `freq`. 
+"""
+function fdiscond(sysr::FDFilterIF{T}, SFDI::Union{BitVector,Vector{Bool}}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+    fdiscond_(sysr.sys[:,sysr.faults[SFDI]], freq)
+end
+"""
      fdiscond(sysr::FDIFilterIF, SFDI, freq) -> (scond, β, γ)
 
 Compute the detection and isolation sensitivity condition
@@ -399,13 +417,13 @@ end
 
 Compute the fault-to-noise gap `gap` (and the related quantities `β` and `γ`) 
 for the stable fault detection filter internal form object `sysr::FDFilterIF`
-and the associated structure vector `SFDI`.
+and the associated binary structure vector `SFDI`.
 `sysr.sys[:,sysr.faults]` is the fault to residual channel of the filter 
 with the corresponding transfer function matrix `Rf(λ)` and 
 `sysr.sys[:,sysr.noise]` is the noise to residual channel of the filter 
 with the corresponding transfer function matrix `Rw(λ)`.   
 If  `Rff(λ)` is the transfer function matrix formed of those `j`-th columns of `Rf(λ)` 
-for which `SFDI[j] = true` and `Rdf(λ)` is the transfer function matrix formed of 
+for which `SFDI[j] = 1` and `Rdf(λ)` is the transfer function matrix formed of 
 those `j`-th columns of `Rf(λ)` for which `SFDI[j] = false`, then:   
 `β` is the H∞- index of `Rff(λ)`, `γ` is the H∞-norm of `[Rdf(λ) Rw(λ)]` and 
 `gap` is the fault-to-noise gap evaluated as `gap := β/γ`. 
@@ -483,7 +501,7 @@ end
 
 Compute the model-matching performance `γ` of the fault detection filter internal form object `sysr::FDFilterIF`. 
 If `Rw(λ)` is the transfer function matrix of the transfer channel from the noise inputs to residuals 
-`sysr.sys[i][:,sysr.noise]`, then
+`sysr.sys[:,sysr.noise]`, then
 `γ` is the  H∞-norm of `Rw(λ)`, if `nrmflag = Inf` (default) and the  H2-norm of `Rw(λ)`, if `nrmflag = 2`.
 The value of `γ` is infinite for an unstable filter or if `nrmflag = 2` and the transfer function matrix
 `Rw(λ)` of a continuous-time system is not strictly proper.
@@ -502,9 +520,9 @@ end
 
 Compute the model-matching performance `γ` of the fault detection filter internal form object `sysr::FDFilterIF`
 for a given binary structure vector `SFDI`. If `Rf(λ)` is the transfer function matrix of the 
-transfer channel from the fault inputs to residuals `sysr.sys[i][:,sysr.faults]` and 
+transfer channel from the fault inputs to residuals `sysr.sys[:,sysr.faults]` and 
 `Rw(λ)` is the transfer function matrix of the transfer channel from the noise inputs to residuals 
-`sysr.sys[i][:,sysr.noise]`, then
+`sysr.sys[:,sysr.noise]`, then
 `γ` is the  H∞-norm of `[Rdf(λ) Rw(λ)]`, if `nrmflag = Inf` (default) and the  H2-norm of `[Rdf(λ) Rw(λ)]`, 
 if `nrmflag = 2`, where `Rdf(λ)` is the transfer function matrix formed by those `j`-th columns of `Rf(λ)` for which 
 `SFDI[j] = 0`.  
@@ -578,6 +596,106 @@ function fdimmperf(sysr::FDIFilterIF{T}, SFDI::Union{BitMatrix,BitVector,Array{B
         inddfw = [inpf[.!SFDI[i,:]]; sysr.noise]
         γ[i] = isinf(nrmflag) ? ghinfnorm(sysr.sys[i][:,inddfw])[1] : 
                                 gh2norm(sysr.sys[i][:,inddfw])
+    end
+    return γ
+end
+"""
+     γ = fdimmperf(sysr::FDFilterIF, sysref::Union{FDFilterIF,FDIModel}[, nrmflag]) 
+
+Compute the model-matching performance `γ` of the fault detection filter internal form object `sysr::FDFilterIF`
+with respect to the fault detection reference filter internal form  `sysref::FDFilterIF`. 
+If `R(λ)` is the transfer function matrix of the fault detection filter internal form   
+`sysr.sys` and `Mr(λ)` is the transfer function matrix of the fault detection reference filter internal form   
+`sysref.sys`, then
+`γ` is the  H∞-norm of `R(λ)-Mr(λ)`, if `nrmflag = Inf` (default) or the  H2-norm of `R(λ)-Mr(λ)`, if `nrmflag = 2`.
+The value of `γ` is infinite for an unstable difference `R(λ)-Mr(λ)` or if `nrmflag = 2` and the transfer function matrix
+`R(λ)-Mr(λ)` of a continuous-time system is not strictly proper. In general, `R(λ)` and `Mr(λ)` are partitioned as
+`R(λ) = [ Ru(λ) Rd(λ) Rf(λ) Rw(λ) Ra(λ) ]` and `Mr(λ) = [ Mru(λ) Mrd(λ) Mrf(λ) Mrw(λ) Mra(λ) ]` in accordance with 
+the partitioning of the inputs in control inputs, disturbance inputs, fault inputs, noise inputs and auxiliary inputs.
+Void components of `Mr(λ)` corresponding to non-void components in `R(λ)` are assumed to be zero. 
+"""    
+function fdimmperf(sysr::FDFilterIF{T}, sysref::Union{FDFilterIF,FDIModel}, nrmflag::Real = Inf) where T
+
+    (nrmflag == Inf || nrmflag == 2) || error("only H∞- and H2-norms supported")
+    DescriptorSystems.promote_Ts(sysr.sys.Ts, sysref.sys.Ts)  # check sampling time
+
+    inpu = sysr.controls; mu = length(inpu)  
+    inpd = sysr.disturbances; md = length(inpd) 
+    inpf = sysr.faults; mf = length(inpf)  
+    inpw = sysr.noise;  mw = length(inpw) 
+    inpaux = sysr.aux;  maux = length(inpaux)  
+    mru = length(sysref.controls); 
+    mru == 0 || mru == mu ||  error("Incompatible control input groups in sysr and sysref") 
+    mrd = length(sysref.disturbances); 
+    mrd == 0 || mrd == md ||  error("Incompatible disturbance input groups in sysr and sysref") 
+    mrf = length(sysref.faults); 
+    mrf == 0 || mrf == mf ||  error("Incompatible fault input groups in sysr and sysref") 
+    mrw = length(sysref.noise); 
+    mrw == 0 || mrw == mw ||  error("Incompatible noise input groups in sysr and sysref") 
+    mra = length(sysref.aux); 
+    mra > 0 || mra == maux ||  error("Incompatible auxiliary input groups in sysr and sysref") 
+    
+    m = mu+md+mf+mw+maux;       # total number of inputs
+ 
+    rinp = zeros(0,m);
+    mru == 0 || (rinp = [rinp; eye(mu,m)])
+    mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m-mu)])
+    mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
+    mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
+    mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
+
+    return isinf(nrmflag) ? ghinfnorm(sysr.sys-sysref.sys*rinp)[1] : 
+                            gh2norm(sysr.sys-sysref.sys*rinp)
+end
+"""
+     γ = fdimmperf(sysr::FDIFilterIF, sysref::FDIFilterIF[, nrmflag]) 
+
+Compute the model-matching performance `γ` of the fault detection and isolation filter internal form object `sysr::FDIFilterIF`
+with respect to the fault detection and isolation reference filter internal form  `sysref::FDIFilterIF`. 
+If `Ri(λ)` is the transfer function matrix of the `i`-th fault detection and isolation filter internal form   
+`sysr.sys[i]` and `Mri(λ)` is the transfer function matrix of the `i`-th fault detection and isolation reference filter internal form   
+`sysref.sys[i]`, then `γ` is a vector whose `i`-th component
+`γ[i]` is the  H∞-norm of `Ri(λ)-Mri(λ)`, if `nrmflag = Inf` (default) or the  H2-norm of `Ri(λ)-Mri(λ)`, if `nrmflag = 2`.
+The value of `γ[i]` is infinite for an unstable difference `Ri(λ)-Mri(λ)` or if `nrmflag = 2` and the transfer function matrix
+`Ri(λ)-Mri(λ)` of a continuous-time system is not strictly proper. In general, `Ri(λ)` and `Mri(λ)` are partitioned as
+`Ri(λ) = [ Rui(λ) Rdi(λ) Rfi(λ) Rwi(λ) Rai(λ) ]` and `Mri(λ) = [ Mrui(λ) Mrdi(λ) Mrfi(λ) Mrwi(λ) Mrai(λ) ]` in accordance with 
+the partitioning of the inputs in control inputs, disturbance inputs, fault inputs, noise inputs and auxiliary inputs.
+Void components of `Mri(λ)` corresponding to non-void components in `Ri(λ)` are assumed to be zero. 
+"""    
+function fdimmperf(sysr::FDIFilterIF{T1}, sysref::FDIFilterIF{T2}, nrmflag::Real = Inf) where {T1,T2}
+    N = length(sysr.sys)
+    N == length(sysref.sys) || error("sysr and sysref must have the same number of component filters")
+    DescriptorSystems.promote_Ts(sysr.sys[1].Ts, sysref.sys[1].Ts)  # check sampling time
+
+    (nrmflag == Inf || nrmflag == 2) || error("only H∞- and H2-norms supported")
+    inpu = sysr.controls; mu = length(inpu)  
+    inpd = sysr.disturbances; md = length(inpd) 
+    inpf = sysr.faults; mf = length(inpf)  
+    inpw = sysr.noise;  mw = length(inpw) 
+    inpaux = sysr.aux;  maux = length(inpaux)  
+    mru = length(sysref.controls); 
+    mru == 0 || mru == mu ||  error("Incompatible control input groups in sysr and sysref") 
+    mrd = length(sysref.disturbances); 
+    mrd == 0 || mrd == md ||  error("Incompatible disturbance input groups in sysr and sysref") 
+    mrf = length(sysref.faults); 
+    mrf == 0 || mrf == mf ||  error("Incompatible fault input groups in sysr and sysref") 
+    mrw = length(sysref.noise); 
+    mrw == 0 || mrw == mw ||  error("Incompatible noise input groups in sysr and sysref") 
+    mra = length(sysref.aux); 
+    mra > 0 || mra == maux ||  error("Incompatible auxiliary input groups in sysr and sysref") 
+    
+    m = mu+md+mf+mw+maux;       # total number of inputs
+    rinp = zeros(0,m);
+    mru == 0 || (rinp = [rinp; eye(mu,m)])
+    mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m-mu)])
+    mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
+    mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
+    mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
+
+    γ = similar(Array{T1,1},N) 
+    for i = 1:N
+        γ[i] = isinf(nrmflag) ? ghinfnorm(sysr.sys[i]-sysref.sys[i]*rinp)[1] : 
+                                gh2norm(sysr.sys[i]-sysref.sys[i]*rinp)
     end
     return γ
 end

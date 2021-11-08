@@ -12,6 +12,7 @@ include("test_efdsyn.jl")
 include("test_efdisyn.jl")
 include("test_afdsyn.jl")
 include("test_afdisyn.jl")
+include("test_emmsyn.jl")
 end
 
 end

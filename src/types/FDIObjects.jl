@@ -35,6 +35,9 @@ function fdimodel_validation(sys::DescriptorStateSpace{T}, controls::Vector{Int}
     any(noise .> m) && error("noise inputs indices larger than the number of system inputs $m") 
     any(aux .> m) && error("auxiliary inputs indices larger than the number of system inputs $m") 
 end
+FDIModel(sys::DescriptorStateSpace, controls::Vector{Int}, disturbances::Vector{Int}, faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int})  = 
+           FDIModel{eltype(sys)}(sys; controls, disturbances, faults, noise, aux)
+
 """
     FDFilter <: AbstractFDDObject
 
@@ -350,6 +353,8 @@ function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}; controls::VRS = Int[]
     return FDIFilterIF{T}(sys, vec([controls; Int[]]), vec([disturbances; Int[]]), 
                           vec([faults; Int[]]), vec([noise; Int[]]), vec([aux; Int[]]))
 end
+FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}, controls::Vector{Int}, disturbances::Vector{Int}, faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T  = 
+           FDIFilterIF{T}(sys, controls, disturbances, faults, noise, aux)
 """
     FDIFilterIF(sys, mu, md, mf, mw = 0, maux = 0; moff = 0 ) -> R::FDIFilterIF
 
@@ -585,3 +590,14 @@ function gminreal(Q::FDIFilter{T}; kwargs...) where T
 end
 gpole(Q::FDFilter{T}; kwargs...) where T = gpole(Q.sys;  kwargs...)
 gpole(Q::FDIFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
+
+# left multiplication of FD objects with descriptor system object
+function *(sys::DescriptorStateSpace{T1}, sysr::FDFilterIF{T2}) where {T1,T2}
+    return FDFilterIF(sys*sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+end
+function *(sys::DescriptorStateSpace{T1}, sysr::FDIModel{T2}) where {T1,T2}
+    return FDIModel(sys*sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+end
+function *(sys::Vector{DescriptorStateSpace{T1}}, sysr::FDIFilterIF{T2}) where {T1,T2}
+    return FDIFilterIF(sys .* sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+end

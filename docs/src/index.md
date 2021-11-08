@@ -52,6 +52,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`efdisyn`](@ref)**  Exact synthesis of fault detection and isolation filters.
 * **[`afdsyn`](@ref)**  Approximate synthesis of fault detection filters.
 * **[`afdisyn`](@ref)**  Approximate synthesis of fault detection and isolation filters.
+* **[`emmsyn`](@ref)**  Exact model-matching based synthesis of fault detection filters.
 
 **FDI related computational utilities**
 

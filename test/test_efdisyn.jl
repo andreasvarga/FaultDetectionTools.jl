@@ -18,11 +18,11 @@ sysf = fdimodset(rss(1,p,mf),faults = 1:mf);
 
 
 # solve an EFDIP using the nullspace based approach
-@time Q, Rf, info = efdisyn(sysf; atol3 = 1.e-7, minimal = false, rdim = [2]); info
+@time Q, Rf, info = efdisyn(sysf; atol = 1.e-7, minimal = false, rdim = [2]); info
 R = fdIFeval(Q, sysf)
 @test iszero(Rf.sys[1][:,Rf.faults]-R.sys[1][:,R.faults],atol=1.e-7) && info.HDesign[1] == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
-@time Q, Rf, info = efdisyn(sysf; atol3 = 1.e-7, minimal = false, rdim = [2], separate = true); info
+@time Q, Rf, info = efdisyn(sysf; atol = 1.e-7, minimal = false, rdim = [2], separate = true); info
 R = fdIFeval(Q, sysf)
 @test iszero(Rf.sys[1][:,Rf.faults]-R.sys[1][:,R.faults],atol=1.e-7) && info.HDesign[1] == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
@@ -38,34 +38,39 @@ R = fdIFeval(Q, sysf);
       info.HDesign[1] == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
 # solve using observer based nullspace
-@time Q, Rf, info = efdisyn(sysf; nullspace = false, atol3 = 1.e-7, minimal = false, rdim = [2]); info
+@time Q, Rf, info = efdisyn(sysf; nullspace = false, atol = 1.e-7, minimal = false, rdim = [2]); info
 R = fdIFeval(Q, sysf);
 @test iszero(Rf.sys[1][:,Rf.faults]-R.sys[1][:,R.faults],atol=1.e-7) && iszero(R.sys[1][:,R.controls],atol=1.e-7) &&
       info.HDesign[1] == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
-@time Q, Rf, info = efdisyn(sysf; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = [1]); info
+@time Q, Rf, info = efdisyn(sysf; nullspace = false, atol = 1.e-7, minimal = true, rdim = [1]); info
 R = fdIFeval(Q, sysf);
 @test iszero(Rf.sys[1][:,Rf.faults]-R.sys[1][:,R.faults],atol=1.e-7) && iszero(R.sys[1][:,R.controls],atol=1.e-7) &&
       info.HDesign[1] == [0.0 1.0 0.0]
 
 SFDI = fdigenspec(sysf, atol = 1.e-7)
-@time Q, Rf, info = efdisyn(sysf, SFDI; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,3)); info
+@time Q, Rf, info = efdisyn(sysf, SFDI; nullspace = false, atol = 1.e-7, minimal = true, rdim = ones(Int,3)); info
 R = fdIFeval(Q, sysf);
 @test iszero(vcat(Rf.sys...)-vcat(R.sys...)[:,R.faults],atol=1.e-7) && iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) &&
       info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
       fditspec(Rf, FDtol = 1.e-6) == SFDI  && fdisspec(Rf, FDGainTol = 1.e-3) == SFDI
 
 
-SFDI = fdigenspec(sysf, atol = 1.e-7)
-@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [[0.03964565583901385 0.8670124660000067 -1.7144387091257782]]); info
-#@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [randn(1,3)]); info
+SFDI = fdigenspec(sysf, atol = 1.e-7)  # SFDI = [1 1; 0 1; 1 0]
+@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [[0.03964565583901385 0.8670124660000067 -1.7144387091257782]]); info
+#@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [randn(1,3)]); info
 @test fdiscond(Rf,SFDI[1:1,:])[2] ≈ ones(1) && fdif2ngap(Rf,SFDI[1:1,:])[2] ≈ ones(1)
+
+@time Q, Rf, info = efdsyn(sysf, SFDI[2,:]; nullspace = false, atol = 1.e-7, minimal = true, rdim = 1, HDesign = [0.03964565583901385 0.8670124660000067 -1.7144387091257782]); info
+#@time Q, Rf, info = efdisyn(sysf, SFDI[1:1,:]; nullspace = false, atol = 1.e-7, minimal = true, rdim = ones(Int,1),HDesign = [randn(1,3)]); info
+@test all(fdiscond(Rf,SFDI[2,:]) .≈ (1,1,1)) &&  fdif2ngap(Rf,SFDI[2,:])[2] ≈ 1
+
 
 # system with noise inputs
 p = 3; mf = 2; mu = 2; mw = 3;
 sysf = fdimodset(rss(1,p,mf+mu+mw),controls = 1:mu, faults = mu+1:mu+mf, noise = (mu+mf+1) .+ Vector(1:mf));
 SFDI = fdigenspec(sysf, atol = 1.e-7)
-@time Q, Rfw, info = efdisyn(sysf, SFDI; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = ones(Int,3)); info
+@time Q, Rfw, info = efdisyn(sysf, SFDI; nullspace = false, atol = 1.e-7, minimal = true, rdim = ones(Int,3)); info
 R = fdIFeval(Q, sysf);
 @test iszero(vcat(Rfw.sys...)[:,Rfw.faults]-vcat(R.sys...)[:,R.faults],atol=1.e-7) && 
       iszero(vcat(Rfw.sys...)[:,Rfw.noise]-vcat(R.sys...)[:,R.noise],atol=1.e-7) && 

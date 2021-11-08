@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.5.0 
+
+This minor release provides a new function for the model-matching based synthesis of fault detection and isolation filters and two new functions for the evaluation of the model-matching performance. The series coupling of a descriptor system model and fault detection objects of type `FDIModel` and `FDFilterIF`, as well as for the component-wise series coupling of a vector of descriptor system models and a fault detection object of type `FDIFilterIF` are now supported. 
+
 ## Version 0.4.0 
 
 This minor release provides a new function for the approximate synthesis of fault detection and isolation filters and three new functions for the evaluation of the achieved fault-to-noise gap and model-matching performace. The functions of the DescriptorSystems package  `gminreal` and `gpole` have been extended to cover FDIFilter objects as well. 
