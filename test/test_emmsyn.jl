@@ -11,7 +11,6 @@ using Test
 println("Test_emmsyn")
 @testset "emmsyn" begin
 
-
 ##
 p = 1; mf = 0; mw = 0;
 sysf = fdimodset(rss(1,p,mf+mw),faults = 1:mf,noise = mf.+Vector(1:mw))
