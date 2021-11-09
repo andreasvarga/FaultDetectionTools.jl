@@ -10,6 +10,7 @@ using Test
 # Testing examples for AFDSYN 
 println("Test_emmsyn")
 @testset "emmsyn" begin
+#rand()
 
 ##
 p = 1; mf = 0; mw = 0;
@@ -17,12 +18,12 @@ sysf = fdimodset(rss(1,p,mf+mw),faults = 1:mf,noise = mf.+Vector(1:mw))
 sysr = FDFilterIF(sysf.sys,0,0,mf,mw)
 
 # solve an EMMP for a single reference model
-Q, R, info = emmsyn(sysf,sysr); info
+Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(R.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == 0
 
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf,mw)
-Q, R, info = emmsyn(sysf,sysr); info
+Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(vcat(R.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == [0,0]
 
 ##
@@ -37,12 +38,13 @@ Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
 Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
-@test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) == [0,0]
-
+@test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
+      isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
 
 ##
 p = 3; mf = 2;
-sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
+sysf = fdimodset(rss(5,p,mf,stable=true),faults = 1:mf)
+
 sysr = FDFilterIF(sysf.sys,0,0,mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
@@ -59,7 +61,8 @@ R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true);
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
 Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
-@test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) == [0,0]
+@test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
+      isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
 
 ##
 p = 3; mf = 2;
@@ -95,7 +98,7 @@ sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
 Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false, simple = true); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
-@test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7 &&
+@test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-5 &&
       iszero(R.sys-info.M*sysr.sys, atol = 1.e-7)
 
 
