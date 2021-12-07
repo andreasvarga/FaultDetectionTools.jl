@@ -4934,7 +4934,8 @@ employed for the synthesis of the `i`-th component of the fault detection filter
    `false` for a standard problem 
       (i.e., `Ge(λ)` has no zeros on the boundary of the stability domain). 
 
-_Method:_ The synthesis Procedure AMMS from [1] is implemented. The 
+_Method:_ The synthesis Procedure AMMS from [1] is used 
+to determine the component filters. The 
 Procedure AMMS relies on the approximate model-matching synthesis method 
 proposed in [2]. For more details on computational aspects see [3].  
 

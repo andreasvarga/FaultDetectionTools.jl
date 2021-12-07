@@ -63,7 +63,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`fdisspec_`](@ref)**  Computation of the strong structure matrix of a descriptor system model.
 * **[`fdiscond_`](@ref)**  Computation of the column-gains sensitivity condition of the transfer function matrix of a descriptor system model.
 
-## [Release Notes](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/ReleaseNotes.md)
+## [Release Notes](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/master/ReleaseNotes.md)
 
 ## Main developer
 
