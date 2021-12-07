@@ -36,7 +36,7 @@ cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
 include("runexamples.jl")
 include("runcasestudies.jl")
 ````
-To execute a particular example, say Example 5.4 and its compact variant 5.c, execute 
+To execute a particular example, say Example 5.4 and its compact variant 5.4c, execute 
 
 ````JULIA
 using FaultDetectionTools
@@ -60,7 +60,7 @@ the [DescriptorSystems](https://github.com/andreasvarga/DescriptorSystems.jl) pa
 
 The implemented functions are based on the computational procedures described in Chapters 5, 6 and 7 of the book:
 
-Andreas Varga, "[Solving Fault Diagnosis Problems, Linear Synthesis Techniques](http://www.springer.com/us/book/9783319515588)", vol. 84 of Studies in Systems, Decision and Control, Springer International Publishing, xxviii+394, 2017.
+**Andreas Varga**, [Solving Fault Diagnosis Problems, Linear Synthesis Techniques](https://www.springer.com/us/book/9783319515588), vol. 84 of Studies in Systems, Decision and Control, Springer International Publishing, xxviii+394, 2017.
 
 This book describes the mathematical background of solving synthesis problems of fault detection and model detection filters and gives detailed descriptions of the underlying synthesis procedures. 
 

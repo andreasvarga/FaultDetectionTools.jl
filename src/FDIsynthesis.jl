@@ -3075,7 +3075,7 @@ if `nullspace = false`, a full-order observer based nullspace basis is used at t
 initial reduction step.
 This later option can  only be used for a proper system without disturbance inputs. 
 The `nullspace` option is ignored if any of `sysr.controls`, `sysr.disturbances`, `sysr.noise` or
-`sysr.aux` are non-void or if `minimal = true` 
+`sysr.aux` is non-void or if `minimal = true` 
 
 If `simple = true`, a simple proper nullspace basis `Nl(λ)` 
 is emplyed as left annihilator for synthesis. 
@@ -3650,7 +3650,7 @@ if `nullspace = false`, a full-order observer based nullspace basis is used at t
 initial reduction step.
 This later option can  only be used for a proper system without disturbance inputs. 
 The `nullspace` option is ignored if any of `sysr.controls`, `sysr.disturbances`, `sysr.noise` or
-`sysr.aux` are non-void or if `minimal = true` 
+`sysr.aux` is non-void or if `minimal = true` 
 
 If `simple = true`, a simple proper nullspace basis `Nl(λ)` 
 is emplyed as left annihilator for synthesis. 
@@ -3730,19 +3730,21 @@ the `i`-th EMMP, with a diagonal transfer function matrix `Mi(λ)`;
 employed for the synthesis of the `i`-th component of the fault detection filter `Q`; 
 `H[i]` is an empty matrix if no design matrix was involved.
    
-_Method:_ The synthesis Procedures EMM and EMMS from [1] are implemented.
+_Method:_ The synthesis Procedures EMM and EMMS from [1] are used 
+to determine the component filters.
   Procedure EMM relies on the model-matching synthesis method proposed in 
   [2], while Procedure EMMS uses the inversion-based method proposed in [3]. 
   Procedure EMM is generally employed, unless a strong exact fault 
   detection and isolation problem (strong EFDIP) is solved, in
   which case Procedure EMMS is used. 
 
-  The strong EFDIP corresponds to the choice of the reference filter `sysr` such that
-  `Mru(λ) = 0`, `Mrd(λ) = 0`, `Mrf(λ)` is invertible, `Mrw(λ) = 0` and `Mra(λ) = 0`. 
+  The strong EFDIP corresponds to the choice of each component of the bank of 
+  reference filters `sysr` such that
+  `Mrui(λ) = 0`, `Mrdi(λ) = 0`, `Mrfi(λ)` is invertible, `Mrwi(λ) = 0` and `Mrai(λ) = 0`. 
   In this case, only the indices of fault inputs `sysr.faults` must be specified
   and the indices of the rest of inputs must be void. 
   The solution of a fault estimation problem can be targeted by
-  choosing `Mrf(λ) = I` and checking that the resulting `info.M = I`. 
+  choosing `Mrfi(λ) = ei`, where `ei` is the `i`-th row of the appropriate identity matrix,  and checking that the resulting `info.M = 1`. 
 
 _References:_
 

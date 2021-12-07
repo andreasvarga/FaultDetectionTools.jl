@@ -272,7 +272,7 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info1.M*Mr.s
 
 Mr = FDIFilterIF([R.sys[1][:,R.faults], R.sys[2][:,R.faults]],0,0,mf);  # choose targeted reference model
 
-@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-4, sdeg = -3);
+@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-3, sdeg = -3);
 
 R1 = fdIFeval(QM,sysf); # form Q*[Gu Gd Gf;I 0 0];
 @test iszero(vcat(R1.sys...)[:,[R1.controls;R.disturbances]],atol=1.e-7) &&
@@ -345,7 +345,7 @@ Q, Rf, info = efdsyn(sysf, atol = 1.e-7, sdeg =-5, smarg = -0.05, minimal = true
                      FDfreq = 0, FDGainTol = 0.00001, rdim = 1, simple = false);  info
 
 gammasub = fdimmperf(Rf)
-fscond = fdiscond(Rf)
+fscond = fdiscond(Rf)[1]
 @test gammasub == 0 
 
 sysr = FDFilterIF(dss([1 1]),0,0,mf);
@@ -353,7 +353,7 @@ sysr = FDFilterIF(dss([1 1]),0,0,mf);
 Q1, Rf1, info1 = ammsyn(sysf,sysr, atol = 1.e-7, sdeg =-5, reltol = 1.e-5)
 
 gammasub1 = fdimmperf(Rf1,info1.M*sysr)
-fscond1 = fdiscond(Rf1)
+fscond1 = fdiscond(Rf1)[1]
 @test gammasub <= gammasub1 && fscond <= fscond1
 
 sysr2 = FDFilterIF(dss([1 0]),0,0,mf);
