@@ -252,9 +252,11 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    # set H for checking the solvability condition
    if emptyHD
       Htemp = eye(nvec)
+      noutmax = nvec
    else
       degs = Int[];
       rdim = size(HDesign,1); nh = size(HDesign,2)
+      noutmax = rdim
       if nh < nvec
          # pad with zeros: row rank is preserved
          Htemp = [ HDesign zeros(T, rdim, nvec-nh) ]
@@ -324,6 +326,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    # corresponding to the actual order of outputs of QR 
    reverse!(degs) 
    if rdim < nvec && mf > 0
+   #if rdim < noutmax && mf > 0
       # determine possible low order syntheses using i >= rmin basis vectors
       # and the corresponding expected orders    
       
@@ -437,7 +440,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
               if (rdim == nout && minimal) || rdim < nout
                  # dismiss design if check fails
                  if strongFD 
-                    Stest = fdisspec_(QRfwtest[:,indf], FDfreq; stabilize = true, block = true, 
+                  Stest = fdisspec_(QRfwtest[:,indf], FDfreq; stabilize = true, block = true, 
                                               FDGainTol, atol1, atol2, atol3, rtol = 0, fast)[1]
                  else
                     Stest = fditspec_(QRfwtest[:,indf]; block = true, atol1, atol2, rtol, FDtol)
@@ -463,7 +466,8 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
               end
           end
           nout += 1
-          if nout > nvec
+          #if nout > nvec
+          if nout > noutmax
              if itry > 5
                 finish = true
                 @warn "fault detectability not achieved with the chosen number of residuals"
@@ -597,8 +601,7 @@ function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple
    #   [1] Varga A.
    #   Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017.
 
-
-   ndim = ndims(S)
+    ndim = ndims(S)
    if ndim == 3 
       nvec = size(S,1)  # numbers of vectors
       n = size(S,3)     # number of frequencies
@@ -1006,7 +1009,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, aux = Vector(1:p+mu+mf+mw+maux))
           # determine [Q1i*Rff2 [Q1i*Q1 Q1i*Rf1 Q1i*Rw1 Q1i*Raux1]]
           _, QRauxi, infoi = try 
-             efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
+             efdsyn(sysc; rdim = ismissing(rdim) ? missing : rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
                                        FDtol, FDfreq, FDGainTol, simple, tcond, offset); 
           catch err
              findfirst("empty",string(err)) === nothing &&   
@@ -1572,7 +1575,7 @@ _References:_
               if (rdim == nout && minimal) || rdim < nout
                  # dismiss design if check fails
                  if strongFD 
-                    Stest = fdisspec_(QRfwtest[:,indf], FDfreq; stabilize = true, block = true, 
+                  Stest = fdisspec_(QRfwtest[:,indf], FDfreq; stabilize = true, block = true, 
                                               FDGainTol, atol1, atol2, atol3, rtol = 0, fast)[1]
                  else
                     Stest = fditspec_(QRfwtest[:,indf]; block = true, atol1, atol2, rtol, FDtol)
@@ -2908,7 +2911,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
    # end AFDISYN
 end
 function emmbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, atol::Real)
-   #   afdbasesel(rgain, degs, nout, simple, atol) -> (seli, selord)
+   #   emmbasesel(rgain, degs, nout, simple, atol) -> (seli, selord)
    #
    #   Select admissible basis vectors for solving the strong fault detection and isolation problem (strong EFDIP)
    #   using the `nvec × mf` full column rank frequency gain matrix `rgain`. 
@@ -2980,7 +2983,7 @@ function emmbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, a
    # end EMMBASESEL
 end
 """
-    emmsyn(sysf::FDIModel, sysr::FDFilterIF; simple = false, minimal = true, regmin = true, normalize = "gain", 
+    emmsyn(sysf::FDIModel, sysr::FDFilterIF; nullspace = true, simple = false, minimal = true, regmin = true, normalize = "gain", 
                            sdeg, smarg, poles, freq, HDesign, tcond, offset, 
                            atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
@@ -3063,6 +3066,17 @@ If `regmin = false`, the regularization is performed by choosing
 If `HDesign = H` is a full row rank design matrix, then `H*Nl(λ)` is used 
 instead `Nl(λ)` (default: `HDesign = missing`).
 
+An initial reduction step is performed using the nullspace-based approach (see [1]) 
+if `sysr.controls`, `sysr.disturbances`, `sysr.noise` and `sysr.aux` are void and
+`minimal = false`. In this case,  
+if `nullspace = true` (default),
+a minimal proper nullspace basis is used at the initial reduction step, while,
+if `nullspace = false`, a full-order observer based nullspace basis is used at the 
+initial reduction step.
+This later option can  only be used for a proper system without disturbance inputs. 
+The `nullspace` option is ignored if any of `sysr.controls`, `sysr.disturbances`, `sysr.noise` or
+`sysr.aux` are non-void or if `minimal = true` 
+
 If `simple = true`, a simple proper nullspace basis `Nl(λ)` 
 is emplyed as left annihilator for synthesis. 
 The orders of the basis vectors are provided in `info.deg`. 
@@ -3094,7 +3108,7 @@ of desired poles within the stability domain `Cs` to be assigned for the filters
 `tcond = tcmax` specifies the maximum alowed condition number `tcmax` 
 of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
 
-`freq = val` specifies the values of a test frequency to be employed to 
+`freq = val` specifies the value of a test frequency to be employed to 
 check the full column rank (i.e., left-invertibility) solvability condition 
 (default: randomly generated in the interval `(0,1)`). 
 The employed value of `freq` is returned in `info.freq`.
@@ -3243,16 +3257,42 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
       syse = [sysf.sys; eye(mu,m)];
       m2 = mf+mw+maux
+      desc = (sysf.sys.E != I)
       #
       # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
       # obtain QR = [ Q1 R1 ], where R1 = [ Rf1 Rw1 Raux1] = Q1*[Gf Gw Ga;0 0 0]
-      QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast) 
+      # QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast) 
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+         # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         syse = [sysf.sys; eye(mu,m)];
+         #
+         # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
+         # obtain QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = Q*[Gf Gw Gaux;0 0 0]
+         QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegdefault, offset) 
+         tcond1 = info1.tcond
+         degs = info1.degs
+      elseif mu == 0 && md == 0
+         # compute minimal basis as Q = Q1 = I  and set
+         # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+         QR = [eye(p) sysf.sys]
+         tcond1 = 1.
+         degs = Int[]
+      else
+         # compute minimal basis as Q = Q1 = [ I -Gu] and set
+         # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         # perform stabilization if strong detectability has to be enforced
+         tcond1 = 1.
+         degs = Int[]
+      end
    
       nvec = size(QR,1);   # number of basis vectors
       # check solvability conditions
       nvec == 0 && error("emmsyn: empty nullspace basis - the EMMP is not solvable")
-      degs = info1.degs
-      tcond1 = info1.tcond
+      # degs = info1.degs
+      # tcond1 = info1.tcond
       infodegs = degs
 
       indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
@@ -3428,7 +3468,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
              if isequal(normalize,"gain") 
                sc = zpk(dss2rm(Mi)[1,1])[3]
              elseif isequal(normalize,"dcgain")
-               sc = dcgain(Mi)
+               sc = dcgain(Mi)[1,1]
              else
                sc = ghinfnorm(Mi)[1]
              end
@@ -3487,7 +3527,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
           if isequal(normalize,"gain") 
              sc = zpk(dss2rm(Mi; atol1, atol2, rtol)[1,1])[3]
           elseif isequal(normalize,"dcgain")
-             sc = dcgain(Mi)
+             sc = dcgain(Mi)[1,1]
           else
              sc = ghinfnorm(Mi)[1]
           end
@@ -3509,7 +3549,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    # end EMMSYN
 end
 """
-    emmsyn(sysf::FDIModel, sysr::FDIFilterIF; simple = false, minimal = true, regmin = true, normalize = "gain", 
+    emmsyn(sysf::FDIModel, sysr::FDIFilterIF; nullspace = true, simple = false, minimal = true, regmin = true, normalize = "gain", 
                            sdeg, smarg, poles, freq, HDesign, tcond, offset, 
                            atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDIFilter, R::FDIFilterIF, info)
@@ -3579,7 +3619,7 @@ where
 The component-wise solution of the _standard_ EMMP is computed if `sysr.noise` and `sysr.aux` are void and
 ensures that `Rui(λ) = Mi(λ)*Mrui(λ)`, `Rdi(λ) = Mi(λ)*Mrdi(λ)` and `Rfi(λ) = Mi(λ)*Mrfi(λ)`, where `Mi(λ)` is 
 the transfer function matrix of a stable, diagonal and invertible updating filter returned in the `i`-th component of
-vector `info.M`. 
+the vector `info.M`. 
 This filter is determined to guarantee the stability of the `i`-th components of resulting filters `Q` and `R`.  
 If `sysr.noise` and `sysr.aux` are not both void, then 
 the _extended_ EMMP is component-wise solved which additionally ensures `Rwi(λ) = Mi(λ)*Mrwi(λ)` and `Rai(λ) = Mi(λ)*Mrai(λ)`. 
@@ -3588,8 +3628,8 @@ contained in the integer vectors `R.controls`, `R.disturbances`, `R.faults`, `R.
 
 Various user options can be specified via keyword arguments as follows:
 
-If `minimal = true` (default), a least order filter synthesis is performed, while 
-with `minimal = false` no least order synthesis is performed.  
+If `minimal = true` (default), least order filter syntheses are performed, while 
+with `minimal = false` no least order synthesis are performed.  
 
 If `regmin = true` (default), the regularization (see [1]) is performed for the case when `sysr.controls` and
 `sysr.disturbances` are void with the selection of a
@@ -3600,6 +3640,17 @@ If `regmin = false`, the regularization is performed by choosing
 If `HDesign = H` is a vector of full row rank design matrices, 
 then `H[i]*Nl(λ)` is used 
 instead `Nl(λ)` for the synthesis of the `i`-th filter (default: `HDesign = missing`).
+
+An initial reduction step is performed using the nullspace-based approach (see [1]) 
+if `sysr.controls`, `sysr.disturbances`, `sysr.noise` and `sysr.aux` are void and
+`minimal = false`. In this case,  
+if `nullspace = true` (default),
+a minimal proper nullspace basis is used at the initial reduction step, while,
+if `nullspace = false`, a full-order observer based nullspace basis is used at the 
+initial reduction step.
+This later option can  only be used for a proper system without disturbance inputs. 
+The `nullspace` option is ignored if any of `sysr.controls`, `sysr.disturbances`, `sysr.noise` or
+`sysr.aux` are non-void or if `minimal = true` 
 
 If `simple = true`, a simple proper nullspace basis `Nl(λ)` 
 is emplyed as left annihilator for synthesis. 
@@ -3632,13 +3683,13 @@ of desired poles within the stability domain `Cs` to be assigned for the filters
 `tcond = tcmax` specifies the maximum alowed condition number `tcmax` 
 of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
 
-`freq = val` specifies the values of a test frequency to be employed to 
+`freq = val` specifies the value of a test frequency to be employed to 
 check the full column rank (i.e., left-invertibility) solvability condition 
 (default: randomly generated in the interval `(0,1)`). 
 The employed value of `freq` is returned in `info.freq`.
 
 `normalize = job` specifies the option for the normalization  
-of the diagonal elements of the updating matrix `M(λ)` as follows:
+of the diagonal elements of the updating matrices `Mi(λ)` as follows:
 
       job = "gain"    – scale with the gains of the zero-pole-gain representation (default);
       job = "dcgain"  – scale with the DC-gains;
@@ -3668,7 +3719,7 @@ The resulting named tuple `info` contains `(tcond, degs, M, freq, HDesign) `, wh
 polynomial nullspace basis of `G(λ) := [ Gu(λ) Gd(λ); I 0]` (also the left Kronecker indices of `G(λ)`), if the 
 state-space realization of `[Gu(λ) Gd(λ)]` is minimal;
 
-`info.M` is a vector of descriptor systems, whose i-th system info.M[i] 
+`info.M` is a vector of descriptor systems, whose `i`-th system `info.M[i]` 
 contains the employed stable and invertible updating filter used to solve 
 the `i`-th EMMP, with a diagonal transfer function matrix `Mi(λ)`; 
 
@@ -3710,7 +3761,7 @@ _References:_
 function emmsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2}; 
                 poles::Union{AbstractVector,Missing} = missing, 
                 sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
-                minimal::Bool = true, simple::Bool = false, regmin::Bool = true, 
+                nullspace::Bool = true, minimal::Bool = true, simple::Bool = false, regmin::Bool = true, 
                 normalize::AbstractString = "gain", freq::Real = rand(), 
                 tcond::Real = 1.e4, HDesign::Union{AbstractMatrix,Missing} = missing,
                 offset::Real = sqrt(eps(float(real(T1)))), atol::Real = zero(float(real(T1))), 
@@ -3734,7 +3785,7 @@ function emmsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
    for i = 1:N
        Mri = FDFilterIF(sysref.sys[i], sysref.controls, sysref.disturbances, 
                         sysref.faults, sysref.noise, sysref.aux)
-       Qi, Ri, infoi = emmsyn(sysf, Mri; sdeg, smarg, poles, minimal, simple, regmin, normalize, freq, 
+       Qi, Ri, infoi = emmsyn(sysf, Mri; sdeg, smarg, poles, nullspace, minimal, simple, regmin, normalize, freq, 
                                          tcond, HDesign = emptyHD ? missing : HDesign[i], offset, 
                                          atol1, atol2, atol3, rtol, fast)
        Q[i] = Qi.sys
@@ -3746,7 +3797,1209 @@ function emmsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
    end
    p = size(sysf.sys,1)
    mu = length(sysf.controls)
-   info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = all(isempty.(HDesign)) ? missing : HDesign)
+   info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = all(ismissing.(HDesign)) ? missing : HDesign)
+   return FDIFilter(Q, p, mu), 
+          FDIFilterIF(R, controls = inpu, disturbances = inpd, faults = inpf, noise = inpw, aux = inpa), info
+end
+function ammbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, atol::Real, strongfdi::Bool )
+   #   ammbasesel(rgain, degs, nout, simple, atol, strongfdi) -> (seli, selord)
+   #
+   #   Select admissible basis vectors for solving the approximate model-matching problem (AMMP)
+   #   using the `nvec × mr` frequency gain matrix `rgain`. 
+   #   `seli` contains `nout`-touples (`mr ≤ nout`) of indices of basis vectors whose linear combination 
+   #   is admissible, i.e. , the strong fault detection and isolation problem is solvable if `strongfdi = true`,
+   #   or the fault detection problem is solvable if `strongfdi = false`. 
+   #   The number of selected vectors must satisfy `nout ≤ min(nvec,mr)`. 
+   #   Each row seli[i,:] contains nout indices of basis vectors, such that rgain[seli[i,:],:] 
+   #   has full row rank nout if `strongfdi = true`, or 
+   #   rgain[seli[i,:],:] has all columns nonzero if `strongfdi = false`.
+   #   If the associated `nvec` degrees contained in `degs` are provided, then
+   #   `selord[i]` is the corresponding tentatively achievable least filter order.
+   #   If `simple = true`, a simple basis is assumed, in which case, `degs[i]` is 
+   #   also the order of the `i`-th basis vector. If `simple = false`, a minimum 
+   #   rational basis is assumed. `selord` is empty if `degs` is empty. 
+   #   `atol` is an aboslute tolerance for rank determinations. 
+
+
+   #   Method: The selection approach is used in conjunction with the synthesis 
+   #   Procedure AMMS described in [1]. 
+
+   # References:
+   # [1] Varga A.
+   #     Solving Fault Diagnosis Problems - Linear Synthesis Techniques. Springer Verlag, 2017.
+
+   nvec, mr = size(rgain); 
+   nd = length(degs)
+   nodegs = (nd == 0)
+   
+   nodegs || length(degs) == nvec || error("the dimension of degs must be equal to the number of rows of rgain")
+   nout <= min(mr,nvec) || error("nout must have a value at most $(min(mr,nvec))")
+   
+   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   
+
+   # find nout combinations of nvec vectors which solve the AMMP 
+   seli = collect(combinations(Vector(1:nvec),nout))
+   ni = length(seli)
+   selord = nodegs ? Int[] : fill(-1,ni) 
+   nqmax = sum(degs)
+   ii = falses(ni)
+   for i = 1:ni
+       indv = seli[i];
+       # check admissibility
+       if strongfdi 
+          if rank(view(rgain,indv,:); atol) == nout
+             ii[i] = true
+             if !nodegs
+                # estimate orders 
+                if simple 
+                   # degree = the sums of degrees of selected vectors
+                   selord[i] = sum(degs[indv])
+                else
+                   # degree = rdim times the maximum degree of selected vectors
+                   selord[i] = min(nqmax,nout*maximum(degs[indv]))
+                end
+             end
+          end
+       else
+          # evaluate minimum column norm
+          beta = norm(view(rgain,indv,1)) 
+          for j = 2:mr
+              beta  = min(beta,norm(view(rgain,indv,j)))
+          end  
+          if (atol > 0 && beta > atol) || (atol == 0 && beta > nvec*mr*eps(norm(rgain)))
+             ii[i] = true
+             if !nodegs
+                # estimate orders 
+                if simple 
+                   # degree = the sums of degrees of selected vectors
+                   selord[i] = sum(degs[indv])
+                else
+                   # degree = rdim times the maximum degree of selected vectors
+                   selord[i] = min(nqmax,nout*maximum(degs[indv]))
+                end
+             end
+           end
+       end
+   end
+  
+   seli = seli[ii]
+
+   if !nodegs 
+      selord = selord[ii]
+      # sort row combinations to ensure increasing tentative orders  
+      ii = sortperm(selord)
+      seli = seli[ii]
+      selord = selord[ii]
+   end
+   return seli, selord      
+   # end AMMBASESEL
+end
+"""
+    ammsyn(sysf::FDIModel, sysr::FDFilterIF; nullspace = true, simple = false, mindeg = false, 
+                           regmin = true, normalize = "infnorm", H2syn = false, reltol = 1.e-4, 
+                           sdeg, smarg, poles, freq, HDesign, tcond, offset, 
+                           atol, atol1, atol2, atol3, rtol, fast = true) 
+                           -> (Q::FDFilter, R::FDFilterIF, info)
+
+Solve the _approximate model-matching problem_ (AMMP) for a given synthesis model `sysf::FDIModel` with additive faults 
+and a given stable reference filter `sysr::FDFilterIF`. 
+The computed stable and proper filter objects `Q` and `R` contain the 
+fault detection filter, representing a solution of the AMMP, and its internal form, respectively.
+
+The returned named tuple `info`, with the components `info.tcond`, `info.degs`, `info.M`, `info.freq`, 
+`info.HDesign`, `info.nonstandard`, `info.gammaopt0`, `info.gammaopt` and `info.gammasub`,  
+contains additional synthesis related information (see below). 
+
+The continuous- or discrete-time system `sysf.sys` is in a standard
+or descriptor state-space form `sysf.sys = (A-λE,B,C,D)`, which corresponds to the input-output form  
+
+       y = Gu(λ)*u + Gd(λ)*d + Gf(λ)*f + Gw(λ)*w + Ga(λ)*aux,
+
+with the Laplace- or Z-transformed plant outputs `y`, control inputs `u`, 
+disturbance inputs `d`, fault inputs `f`, noise inputs `w` and auxiliary 
+inputs `aux`, and with `Gu(λ)`, `Gd(λ)`, `Gf(λ)`, `Gw(λ)`, and `Ga(λ)` the corresponding 
+transfer-function matrices.
+The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
+`sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
+
+The continuous- or discrete-time reference filter `sysr.sys` is in a standard
+or descriptor state-space form `sysr.sys = (Ar-λEr,Br,Cr,Dr)`, which corresponds to the input-output form  
+
+       yr = Mru(λ)*u + Mrd(λ)*d + Mrf(λ)*f + Mrw(λ)*w + Mra(λ)*aux,
+
+with the Laplace- or Z-transformed reference filter outputs `yr`, control inputs `u`, 
+disturbance inputs `d`, fault inputs `f`, noise inputs `w` and auxiliary 
+inputs `aux`, and with `Mru(λ)`, `Mrd(λ)`, `Mrf(λ)`, `Mrw(λ)`, and `Mra(λ)` the corresponding 
+transfer-function matrices.
+The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
+`sysr.controls`, `sysr.disturbances`, `sysr.faults`, `sysr.noise` and `sysr.aux`, respectively.
+If any of the above vectors is void, then the corresponding transfer function matrix is considered null. 
+
+The fault detection filter object `Q`, contains in `Q.sys` the resulting filter 
+in a standard state-space form, which generates the residual signal `r`. 
+The corresponding input-output (implementation) form is
+
+            r = Qy(λ)*y + Qu(λ)*u               
+
+where `Qy(λ)` and `Qu(λ)` are the transfer function matrices from the output and control inputs to the residual. 
+The indices of output and control inputs are contained in the integer vectors 
+`Q.outputs` and `Q.controls`, respectively.
+
+Let define 
+
+      Ge(λ) = | Gu(λ) Gd(λ) Gf(λ) Gw(λ) Ga(λ) |,  Mr(λ) = | Mru(λ) Mrd(λ) Mrf(λ) Mrw(λ) Mra(λ) | . 
+              |  I     0     0     0     0    |
+
+In the standard case, `Ge(λ)` has no zeros on the boundary of the 
+stability domain, and the resulting stable filter `Q(λ) := |Qy(λ) Qu(λ)|` is 
+`Q(λ) = Q0(λ)`, where `Q0(λ)` is
+the optimal solution of the H∞- or H2-norm error minimization problem
+
+    gammaopt0 = ||Q0(λ)*Ge(λ)-M(λ)*Mr(λ)|| = min,         (1)
+
+where `M(λ) = M0(λ)` is an updating factor chosen as follows:
+`M0(λ) = I` in the case of emplyoing the 
+H∞ norm, while in the case of employing the H2 norm, `M0(λ) = I` for
+a discrete-time system or, for a continuous-time system, 
+`M0(λ)` is determined a stable, diagonal, and invertible transfer function 
+matrix, which ensures the existence of a finite H2-norm.
+
+In the non-standard case, `Ge(λ)`  has zeros on the boundary of the 
+stability domain, and the resulting optimal filter `Q0(λ)`, which solves 
+the H∞- or H2-norm error minimization problem (1) is a possibly 
+unstable or improper. A second updating factor `M1(λ)` is determined, with   
+the same properties as `M0(λ)`, which ensures that the computed stable and  
+proper filter `Q(λ) := M1(λ)*Q0(λ)` represents a suboptimal solution of an 
+updated H∞- or H2-norm error minimization problem, for which the   
+achieved suboptimal model-matching performance is
+
+    gammasub = ||Q(λ)*Ge(λ)-M(λ)*Mr(λ)|| ,            (2)
+
+where `M(λ) := M1(λ)*M0(λ)`. The _optimal_ solution `Qt(λ)` of the 
+updated H∞- or H2-norm error minimization problem 
+
+    gammaopt = ||Qt(λ)*Ge(λ)-M(λ)*Mr(λ)|| = min ,     (3)  
+
+is still possibly unstable or improper. The values of `gammaopt0`, `gammaopt` and `gammasub`
+are returned in `info.gammaopt0`, `info.gammaopt` and `info.gammasub`, respectively.
+
+The fault detection filter internal form object `R`, contains `R.sys`, the resulting 
+internal form of the filter 
+in a standard state-space form, which generates the residual signal `r`, and corresponds to the 
+input-output form
+
+       r = Ru(λ)*u + Rd(λ)*d + Rf(λ)*f + Rw(λ)*w + Ra(λ)*aux ,
+
+where 
+
+       | Ru(λ) Rd(λ) Rf(λ) Rw(λ) Ra(λ) | = Q(λ)*Ge(λ). 
+
+The indices of the inputs `u`, `d`, `f`, `w` and `aux` of the resulting filter `R.sys` are 
+contained in the integer vectors `R.controls`, `R.disturbances`, `R.faults`, `R.noise` and `R.aux`, respectively.
+The state-space realization of the resulting `M(λ)` is returned in `info.M`.
+
+Various user options can be specified via keyword arguments as follows:
+
+If `H2syn = false` (default), a H∞-norm based synthesis is performed, while 
+if `H2syn = true`, a H2-norm based synthesis is performed. 
+
+`reltol = tol` specifies the relative tolerance `tol` for the desired 
+accuracy of γ-iteration (default:  `tol = 1.e-4`).
+   
+If `mindeg = true`, a least order filter synthesis is performed, if possible, while 
+with `minimal = false` (default) no least order synthesis is performed.  
+
+If `regmin = true` (default), the regularization (see [1]) is performed for the case 
+when `sysr.controls` and/or `sysr.disturbances` are void with the selection of 
+a least order left annihilator `Nl(λ)` of `G(λ) = [Gu(λ) Gd(λ); I 0 ]`. 
+If `regmin = false`, the regularization is performed by choosing a left annihilator
+`Nl(λ)` as a minimal left nullspace basis of `G(λ)`.  
+
+If `HDesign = H` is a full row rank design matrix, then `H*Nl(λ)` is used as left annihilator
+instead `Nl(λ)` (default: `HDesign = missing`).
+
+If `nullspace = true` (default) and `sysr.controls` and/or `sysr.disturbances` are void, 
+a minimal proper nullspace basis is used at the initial reduction step.
+If `nullspace = false` and `sysr.controls` and/or `sysr.disturbances` are void, 
+a full-order observer based nullspace basis is used at the 
+initial reduction step.
+This option can  only be used for a proper system without disturbance inputs. 
+The `nullspace` option is ignored if both `sysr.controls` and `sysr.disturbances` are non-void. 
+
+If `simple = true`, a simple proper nullspace basis  
+is emplyed as left annihilator for synthesis. 
+The orders of the basis vectors are provided in `info.deg`. 
+If `simple = false` (default), then a minimal proper nullspace basis is computed. 
+
+`offset = β` specifies the boundary offset `β` to assess the stability of poles. 
+Accordingly, for the stability of a continuous-time system all real parts of poles must be at most `-β`, 
+while for the stability of a discrete-time system all moduli of poles must be at most `1-β`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+`smarg = α` specifies the stability margin which defines the stability 
+domain `Cs` of poles, as follows: 
+for a continuous-time system, `Cs` is the set of complex numbers 
+with real parts at most `α`, 
+while for a discrete-time system, `Cs` is the set of complex numbers with 
+moduli at most `α < 1` (i.e., the interior of a disc of radius `α` centered in the origin). 
+If `smarg` is missing, then the employed default values are `α = -β` 
+for a continuous-time system and `α = 1-β` for a discrete-time system, 
+where `β` is the boundary offset specified by the keyword argument `offset = β`. 
+
+`sdeg = γ` is the prescribed stability degree for the poles of the filters `Q` and `R` 
+(default: `γ = -0.05` for the real parts of poles for a continuous-time system and
+`γ = 0.95` for the magnitudes of poles for a discrete-time system). 
+
+`poles = v` specifies a complex vector `v` containing a complex conjugate set  
+of desired poles within the stability domain `Cs` to be assigned for the filters `Q` and `R`
+(default: `poles = missing`).
+
+`tcond = tcmax` specifies the maximum alowed condition number `tcmax` 
+of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
+
+`freq = val` specifies the value of a test frequency to be employed to 
+check the full column rank (i.e., left-invertibility) solvability condition 
+(default: randomly generated in the interval `(0,1)`). 
+The employed value of `freq` is returned in `info.freq`.
+
+`normalize = job` specifies the option for the normalization  
+of the diagonal elements of the updating matrix `M(λ)` as follows:
+
+      job = "gain"    – scale with the gains of the zero-pole-gain representation;
+      job = "dcgain"  – scale with the DC-gains;
+      job = "infnorm" – scale with the values of infinity-norms (default). 
+
+The rank determinations in the performed reductions
+are based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
+the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the order of the system `sysf.sys`. 
+The keyword argument `atol3` is an absolute tolerance for observability tests
+(default: internally determined value). 
+The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
+
+The resulting named tuple `info` contains `(tcond, degs, M, freq, HDesign, gammaopt0, gammaopt, gammasub, nonstandard) `, where:
+
+`info.tcond` is the maximum of the condition numbers of the employed 
+   non-orthogonal transformation matrices; a warning is issued if `info.tcond >= tcmax`;
+
+`info.degs` is an integer vector containing the increasingly ordered degrees of a left minimal   
+polynomial nullspace basis of `G(λ) := [ Gu(λ) Gd(λ); I 0]` (also the left Kronecker indices of `G(λ)`), if the 
+state-space realization of `[Gu(λ) Gd(λ)]` is minimal;
+
+`info.M` is the employed stable and invertible updating filter used to solve the AMMP, 
+with a stable, diagonal and invertible transfer function matrix `M(λ)`; 
+
+`info.freq` is the employed frequency used to check left invertibility 
+(set to `missing` if no frequency-based left invertibility check was performed)
+
+`info.HDesign` is the design matrix `H` employed for the synthesis of 
+   the fault detection filter `Q`; `H = missing` if no design matrix was involved;
+   
+`info.gammaopt0` is the optimal performance `gammaopt0` for the original problem (1); 
+   
+`info.gammaopt` is the optimal performance `gammaopt` for the updated problem (3); 
+
+`info.gammasub` is the suboptimal performance `gammasub` in (2); 
+
+`info.nonstandard` is set to `true` for a non-standard problem 
+   (i.e., `Ge(λ)` has zeros on the boundary of the stability domain), and set to 
+   `false` for a standard problem 
+      (i.e., `Ge(λ)` has no zeros on the boundary of the stability domain). 
+
+_Method:_ The synthesis Procedure AMMS from [1] is implemented. The 
+Procedure AMMS relies on the approximate model-matching synthesis method 
+proposed in [2]. For more details on computational aspects see [3].  
+
+_References:_
+
+[1] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques. 
+              Springer Verlag, 2017; sec. 5.6.
+
+[2] A. Varga, Integrated computational algorithm for solving 
+    H_inf-optimal FDI problems. In Proc. of the IFAC World Congress, 
+    Milano, Italy, pp. 10187–10192, 2011.
+
+[3] A. Varga. Descriptor system techniques in solving H_2/H-Inf-optimal
+    fault detection and isolation problems". In L. T. Biegler,  
+    S. L. Campbell, and V. Mehrmann (Eds.), Control and Optimization 
+    with Differential-Algebraic Constraints, vol. 23 of Advances in 
+    Design and Control, pp. 105–125. SIAM, 2012. 
+"""
+function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; poles::Union{AbstractVector,Missing} = missing, 
+                      sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
+                      nullspace::Bool = true, mindeg::Bool = false, simple::Bool = false, regmin::Bool = true, 
+                      normalize::AbstractString = "infnorm", freq::Real = rand(), reltol::Real = 0.0001, H2syn::Bool = false, 
+                      tcond::Real = 1.e4, HDesign::Union{AbstractMatrix,Missing} = missing,
+                      offset::Real = sqrt(eps(float(real(T1)))), atol::Real = zero(float(real(T1))), 
+                      atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+                      rtol::Real = ((size(sysf.sys.A,1)+1)*eps(real(float(one(T1)))))*iszero(max(atol1,atol2)), 
+                      fast::Bool = true) where {T1,T2}
+
+   Ts = DescriptorSystems.promote_Ts(sysf.sys.Ts,sysr.sys.Ts)
+   disc = (Ts != 0);  # system type (continuous- or discrete-time)
+   T = promote_type(T1,T2)
+
+   rdim = size(sysr.sys,1)    
+ 
+   # stability margin
+   ismissing(smarg) && (smarg = disc ? 1-offset : -offset)  # set default stability margin
+   
+   poles_nomissing = !ismissing(poles)
+    
+   # sort desired poles
+   if poles_nomissing 
+      tempc = poles[imag.(poles) .> 0]
+      if !isempty(tempc)
+         tempc1 = conj(poles[imag.(poles) .< 0])
+         isequal(tempc[sortperm(real(tempc))],tempc1[sortperm(real(tempc1))]) ||
+                 error("poles must be a self-conjugated complex vector")
+      end
+      # check that all eigenvalues are inside of the stability region
+      ( ((disc && any(abs.(poles) .> 1-offset) )  || (!disc && any(real.(poles) .> -offset)))  &&
+            error("The elements of poles must lie in the stability region of interest") )
+   end   
+   
+   # set default stability degree
+   sdegdefault = disc ? 0.95 : -0.05
+   ismissing(sdeg) && ismissing(poles) && (sdeg = sdegdefault)  # set desired stability degree to default value
+  
+   # imposed design option to form linear combinations of basis vectors
+   emptyHD = ismissing(HDesign)
+   if !emptyHD
+      !ismissing(rdim) && size(HDesign,1) != rdim && error("row dimension of HDesign must be equal to rdim")
+      size(HDesign,1) == rank(HDesign) || error("HDesign must have full row rank")
+   end
+   normflag = H2syn ? 2 : Inf
+  
+   # decode input information
+   inpu = sysf.controls; mu = length(inpu)  
+   inpd = sysf.disturbances; md = length(inpd) 
+   inpf = sysf.faults; mf = length(inpf)  
+   inpw = sysf.noise;  mw = length(inpw) 
+   inpaux = sysf.aux;  maux = length(inpaux)  
+   mru = length(sysr.controls); 
+   mru == 0 || mru == mu ||  error("Incompatible control input groups in sysf and sysr") 
+   mrd = length(sysr.disturbances); 
+   mrd == 0 || mrd == md ||  error("Incompatible disturbance input groups in sysf and sysr") 
+   mrf = length(sysr.faults); 
+   mrf == 0 || mrf == mf ||  error("Incompatible fault input groups in sysf and sysr") 
+   mrw = length(sysr.noise); 
+   mrw == 0 || mrw == mw ||  error("Incompatible noise input groups in sysf and sysr") 
+   mra = length(sysr.aux); 
+   mra > 0 || mra == maux ||  error("Incompatible auxiliary input groups in sysf and sysr") 
+       
+   m = mu+md+mf+mw+maux;       # total number of inputs
+   p = size(sysf.sys,1);       # number of measurable outputs
+    
+   # if mf == 0 && minimal
+   #    @warn "Minimal synthesis option not feasible in the case of no faults"
+   #    minimal = false
+   # end
+
+   rd = gnrank(sysf.sys[:,inpd]; atol1, atol2, rtol)
+   SMr = fditspec(sysr; atol1, atol2, rtol)
+   
+   if mru+mrd+mrw+mra == 0 
+      weakfdi = false
+      rref = gnrank(sysr.sys[:,sysr.faults]; atol1, atol2, rtol)
+      if rdim <= p-rd
+         strongfdi = (rdim == mf && rref == mf)
+         strongfdi || (weakfdi = !all(maximum(SMr,dims=1)))
+      else
+         weakfdi = true
+         strongfdi = false
+      end
+   else
+      weakfdi = true
+      strongfdi = false
+   end
+   
+   if mru+mrd+mrw+mra == 0 && !weakfdi
+      # perform either Procedure EMM or EMMS if SYSR has no 'controls', 
+      # 'disturbances', 'noise' and 'aux' input groups and no least order option is selected 
+      # Step 1): nullspace based reduction
+      #
+      desc = (sysf.sys.E != I)
+      m2 = mf+mw+maux
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+         # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         syse = [sysf.sys; eye(mu,m)];
+         #
+         # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
+         # obtain QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = Q*[Gf Gw Gaux;0 0 0]
+         QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegdefault, offset) 
+         tcond1 = info1.tcond
+         degs = info1.degs
+      elseif mu == 0 && md == 0
+         # compute minimal basis as Q = Q1 = I  and set
+         # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+         QR = [eye(p) sysf.sys]
+         tcond1 = 1.
+         degs = Int[]
+      else
+         # compute minimal basis as Q = Q1 = [ I -Gu] and set
+         # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         # perform stabilization if strong detectability has to be enforced
+         tcond1 = 1.
+         degs = Int[]
+      end
+                     
+      nvec = size(QR,1);   # number of basis vectors
+      # check solvability conditions
+      nvec == 0 && error("ammsyn: empty nullspace basis - the nullspace-based approach to solve the AMMP is not applicable")
+      infodegs = degs
+
+      indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
+      indfwa = (p+mu) .+ Vector(1:mf+mw+maux)  # input indices of [ Rf1 Rw1 Raux1] in QR
+      mfw = mf+mw
+      mfwa = mfw+maux
+      Rfwa = QR[:,indfwa]
+      indR = (p+mu) .+ (1:mfw);     # input indices of R = [Rf1 Rw1] in QR
+   
+      Rftest = evalfr(QR[:,indf], freq; atol1, atol2, rtol)
+   
+      if  !weakfdi
+         # set H for checking the solvability condition
+         if emptyHD
+            Htemp = eye(nvec)
+         else
+            degs = Int[];
+            nh = size(HDesign,2)
+            if nh < nvec
+               # pad with zeros: row rank is preserved
+               Htemp = [ HDesign zeros(T, rdim, nvec-nh) ]
+            else
+               # remove trailing columns if necessary: rank may drop
+               Htemp = HDesign[:,1:nvec];
+               if nh > nvec && rdim != rank(Htemp)
+                  error("The leading part of HDesign must have full row rank")
+               end
+            end
+         end
+         if strongfdi
+            # check strong isolability
+            rf = rank(Htemp*Rftest; atol, rtol)
+            mf == rf || @warn "The system sysf is not strongly isolable"
+         else
+            # check complete detectability
+            S = fditspec_(Htemp*QR[:,indf]; atol1, atol2, rtol)
+            all(maximum(S,dims=1)) || error("The system sysf is not completely detectable")
+         end
+         if nvec > rdim
+            # 2) Determine Q2 such that Q2*Rf1 has maximal full row rank
+            #    and Q2*Q1 has least McMillan degree
+            # flip degrees of a minimal polynomial basis
+            reverse!(degs)
+            finish = false
+            nq = order(QR)
+            emptyHD && (h = eye(nvec))
+            nout = rdim
+             
+            while !finish     
+                # choose nout basis vectors, which potentially lead to a least order
+                # filter with rdim outputs:
+                # basesel(i,:) contains the indices of candidate basis vectors;
+                # ordsel(i)    contains the presumably achievable least orders
+                basesel, ordsel = ammbasesel(Htemp*Rftest, degs, nout, simple, atol,strongfdi) 
+                #
+                # update the synthesis using the selections of candidate vector(s),
+                # starting with the least (potentially) achievable order
+                for i = 1:size(basesel,1)
+                    baseind = basesel[i] # indices of current basis selection
+                    if nout == mf
+                       hbase = eye(mf);
+                    else
+                       hbase = rand(mf,nout); 
+                    end
+                    ip = [baseind; setdiff(1:nvec,baseind)][:]
+                    if simple
+                       # handle simple basis
+                       # here only the case rdim = nout can happen
+                       if regmin
+                          if emptyHD 
+                             # select vectors and elliminate unobservable dynamics  
+                             noelim = falses(nq) 
+                             ell = sum(degs[1:basesel[i][1]-1]); 
+                             for jj = 1:nout 
+                                 ellnext = sum(degs[1:baseind[jj]]);
+                                 noelim[ell+1:ellnext] .= true;
+                                 ell = ellnext
+                             end
+                             ir = noelim
+                             Ar, Er, Br, Cr, Dr = dssdata(QR[baseind,:])
+                             QRfwtest = dss(view(Ar,ir,ir), Er == I ? I : view(Er,ir,ir),view(Br,ir,:),view(Cr,:,ir), Dr; Ts)
+                             h = Htemp[ip[1:rdim],:]
+                          else
+                             QRfwtest = gir(Htemp*QR[ip,:]; atol1, atol2, rtol)
+                          end
+                       else
+                          if emptyHD 
+                              h = Htemp[ip[1:rdim],:]
+                              QRfwtest = gir(QR[baseind,:]; atol1, atol2, rtol, infinite = false)
+                           else
+                              QRfwtest = gir(Htemp*QR; atol1, atol2, rtol, infinite = false)
+                           end
+                       end
+                    else
+                       # handle minimal basis
+                       # use the above output permutation vector ip for glmcover1  
+                       if regmin
+                          if rdim == nout
+                             if emptyHD 
+                                QRfwtest, _, info2 = glmcover1(QR[ip,:], rdim; atol1, atol2, rtol)
+                                if !isempty(ordsel) && (order(QRfwtest) != ordsel[i])
+                                   @warn "ammsyn: expected reduced order not achieved"
+                                end
+                                h = Htemp[ip[1:rdim],:]
+                             else
+                                QRfwtest, _, info2 = glmcover1([Htemp; eye(nvec)]*QR[ip,:], rdim; atol1, atol2, rtol)
+                             end
+                          else
+                             # the case rdim < nout can only happen if no
+                             # HDesign is explicitly provided
+                             Htemp = blockdiag(hbase,eye(nvec-nout)) 
+                             QRfwtest, _, info2 = glmcover1([Htemp; eye(nvec)]*QR[ip,:], rdim; atol1, atol2, rtol)
+                          end
+                       else
+                          # here only the case rdim = nout can happen
+                          if emptyHD
+                             h = Htemp[ip[1:rdim],:]
+                             QRfwtest = gir(QR[baseind,:]; atol1, atol2, rtol, infinite = false) 
+                          else
+                             QRfwtest = gir(Htemp*QR; atol1, atol2, rtol, infinite = false) 
+                          end
+                       end
+                    end
+                    # check admissibility of compressed Rf1; 
+                    if !simple && regmin
+                       # dismiss minimal design if the check fails
+                       Rftest1 = evalfr(QRfwtest[:,indf],freq; atol1, atol2, rtol) 
+                       if strongfdi
+                          rank(Rftest1; atol) == nout && (finish = true)
+                       else
+                          beta = norm(view(Rftest1,:,1)) 
+                          for j = 2:mf
+                              beta  = min(beta,norm(view(Rftest1,:,j)))
+                          end
+                          ((atol > 0 && beta > atol) || (atol == 0 && beta > nvec*mf*eps(norm(Rftest1)))) && (finish = true)
+                        end
+                        if finish
+                           # adjust condition number of employed transformations
+                           tcond1 = max(tcond1, info2.fnorm, info2.tcond)
+                           tcond1 > tcond && 
+                               @warn "ammsyn: possible loss of numerical stability due to ill-conditioned transformations"
+                           QR = QRfwtest
+                           break
+                        end
+                    end
+                end
+                nout += 1
+                nout > nvec && !finish &&
+                        error("something wrong: try perhaps with another test frequency")
+            end
+            emptyHD && (Htemp = h)
+         end
+         # 3): determine Q3 = inv(Ro), from the extended quasi-co-outer-co-inner
+         #     factorization R = [Ro 0]Ri;
+         #     update Q <- Q3*Q and R <- Q3*R
+         Ri, Ro, info1 = goifac(QR[:,indR]; atol1, atol2, rtol)
+         lo, ro = size(Ro)
+       
+         # detect nonstandard problem
+         nonstandard = (info1.nfuz+info1.niuz > 0)
+
+         if lo == ro && (order(Ro) == order(QR)) 
+            # extract descriptor state-space data
+            ae, ee, be, ce, de = dssdata(QR)
+            # form [Ro Q R] (recall that Ro and QR share the same A, E and C matrices)
+            # check concatanation formulas
+            RoQR = dss(ae, ee, [Ro.B be], ce, [Ro.D de]; Ts)
+            # form QR = inv(Ro)*[Q R]
+            QR = grsol(RoQR,p+mu+length(indR); atol1, atol2, rtol)[1]
+         else
+            # compute a left inverse of Ro with stable free poles
+            Roinv = glsol([Ro;eye(ro)],ro; atol1, atol2, rtol, sdeg)[1] 
+            # update QR <- Roinv*QR 
+            QR = gir(Roinv*QR; atol1, atol2, rtol, infinite = false)
+         end
+         
+         # form explicitly Rref = [ Mrf 0 ]
+         Rref = [ sysr.sys[:,sysr.faults] zeros(rdim,mw)];
+       
+         # compute F = [ F1 F2 ] =  Rref*Gi'
+         F = Rref*Ri';
+
+         # 4): Compute the solution Q4 of the LDP min||[F1-Q4 F2]||
+         #     and update Q <- Q4*Q and R <- Q4*R
+         if H2syn
+            if atol1 > 0
+               told = atol1;
+            else
+               told = 1.e4*eps;
+            end
+            if !disc && norm(F.D[:,ro+1:end],Inf) < told
+               Mib = dss(eye(T,rdim); Ts) 
+               F.D[:,ro+1:end] = zeros(size(F,1),mfw-ro)
+            else
+               # update Mr to achieve finite L2-norm
+               # Mib = dss(sdeg, 1, -sdeg, 0; Ts)*eye(rdim);
+               # mib = dss(sdeg, 1, -sdeg, 0; Ts)
+               # Mib = mib
+               # for i = 2:rdim
+               #    Mib = append(Mib,mib)
+               # end
+               # Rref = Mib*Rref
+               Mib = dsdiag(dss(sdeg, 1, -sdeg, 0; Ts), rdim)
+               Rref =  Mib * Rref
+               F = Rref*Ri'
+            end
+            # solve the H2-LDP min||[ F1-Q4 F2 ] ||_2
+            Qt, Qtu = gsdec(F[:,1:ro]; atol1, atol2, rtol, job = "stable")
+            QR = Qt*QR;  #  update [ Q R ] <- Q4*[ Q R ]
+            gopt0 = gl2norm(gir([Qtu F[:,ro+1:end]]; atol1, atol2, rtol); offset, atol, atol1, atol2, atol3, rtol, fast )
+         else
+            # solve the H_inf-LDP min ||[ F1-Q4 F2 ] ||_inf
+            Qt, gopt0 = glinfldp(F,mfw-ro; reltol, offset, atol1, atol2, rtol, fast )
+            QR = Qt*QR;  #  update [ Q R ] <- Q4*[ Q R ]
+            Mib = dss(eye(T,rdim); Ts)
+         end
+
+         if nonstandard
+            # 5) compute diagonal Q5 such that Q5*Q has a desired stability degree;
+            #    update Q <- Q5*Q and R <- Q5*R
+            Qt = dss(zeros(0,size(QR,2)); Ts); M = dss(zeros(0,0); Ts)
+            for i = 1:rdim
+                Qti, Mi = glcf(gir(QR[i,:]; atol1, atol2, rtol, contr = false); atol1, atol2, atol3, rtol, sdeg, smarg, evals = poles, 
+                                                          mininf = true, mindeg = true)
+                if isequal(normalize,"gain") 
+                   sc = zpk(dss2rm(Mi)[1,1])[3]
+                elseif isequal(normalize,"dcgain")
+                   sc = dcgain(Mi)[1,1]
+                else
+                   sc = ghinfnorm(Mi)[1]
+                end
+                Qt = [Qt; Qti/sc]; M = append(M,Mi/sc)
+            end
+            Mib = Mib*M
+            QR = Qt
+            # compute the optimal distance for the updated problem 
+            if H2syn
+               _, Qtu = gsdec(Mib*F[:,1:ro]; atol1, atol2, rtol, job = "stable")
+               gopt = gl2norm(gir([Qtu Mib*F[:,ro+1:end]]; atol1, atol2, rtol); offset, atol, atol1, atol2, atol3, rtol, fast )
+            else
+               _, gopt = glinfldp(Mib*F,mfw-ro; offset, atol1, atol2, rtol, fast )
+            end
+         else
+            gopt = gopt0
+         end
+         # transform to standard state-space
+         QR = gss2ss(QR; atol1, atol2, rtol)[1]  
+         Q = FDFilter(QR, p, mu)
+         R = FDFilterIF(QR, mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra; moff = p+mu)
+         M = Mib     
+      end
+   end
+   if weakfdi
+      # apply the three-step procedure to solve the AMMP if SYSR has  
+      # 'controls', 'disturbances' or 'noise' input groups
+      degs = []; 
+      finish = false;
+      if mru+mrd == 0
+         # perform nullspace-based synthesis if SYSR has no 'controls' and
+         # 'disturbances' input groups
+         # 1) Compute Q1, the left nullspace of [Gu Gd;I 0], and  
+         #    R = [Rf1 Rw1] = Q1*[Gf Gw;0 0]
+         #    QR contains Q1 in QR(:,1:p+mu) and R in QR(:,p+mu+1:end),
+         #    where Rf1 is in QR(:,p+mu+1:p+mu+mf) and 
+         #    Rw1 is in QR(:,p+mu+mf+1:end)
+   
+         desc = (sysf.sys.E != I)
+         mr = mf+mw+maux
+         if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+            # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+            #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+            syse = [sysf.sys; eye(mu,m)];
+            #
+            # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
+            # obtain QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = Q*[Gf Gw Gaux;0 0 0]
+            QR, info1 = glnull(syse, mr; simple, atol1, atol2, rtol, fast, sdeg = sdegdefault, offset) 
+            tcond1 = info1.tcond
+        elseif mu == 0 && md == 0
+            # compute minimal basis as Q = Q1 = I  and set
+            # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+            QR = [eye(p) sysf.sys]
+            tcond1 = 1.
+         else
+            # compute minimal basis as Q = Q1 = [ I -Gu] and set
+            # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
+            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
+                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+            # perform stabilization if strong detectability has to be enforced
+            tcond1 = 1.
+         end
+         if size(QR,1) > 0
+            # non-empty nullspace
+            finish = true
+            # separate implementation and internal forms
+            Q1 = gir(QR[:,1:p+mu]; atol1, atol2, rtol )
+            R1 = QR[:,(p+mu) .+ (1:mr)]
+         end
+      end
+      if !finish && mru == 0 
+         # 1) Compute Q1, the left nullspace of [Gu;I], and  
+         #    R = [Rd1 Rf1 Rw1] = Q1*[Gd Gf Gw;0 0 0]
+         #    QR contains Q1 in QR(:,1:p+mu) and R in QR(:,p+mu+1:end),
+         #    where Rd1 is in QR(:,p+mu+1:p+mu+md), Rf1 is in 
+         #    QR(:,p+mu+md+1:p+mu+md+mf) and Rw1 is in QR(:,p+mu+md+mf+1:end)
+      
+         # set options for nullspace computation
+         mr = md+mf+mw+maux;
+         if nullspace || (desc && rcond(sysf.sys.e) < 1.e-7 )
+            # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+            syse = [sysf.sys; eye(mu,m)];
+            #
+            # compute a left nullspace basis Q = Q1 of G1 = [Gu; I] = 0 and
+            # obtain QR = [ Q1 R1 ], where R1 = [Rd1 Rf1 Rw1 Raux1] = Q*[Gd Gf Gw Gaux;0 0 0 0]
+            QR, info1 = glnull(syse, mr; simple, atol1, atol2, rtol, fast, sdeg = sdegdefault, offset) 
+            tcond1 = info1.tcond
+        elseif mu == 0 
+            # compute minimal basis as Q = Q1 = I  and set
+            # QR = [ Q1 R1 ], where R1 = [Rd1 Rf1 Rw1 Raux1] = [ GD Gf Gw Gaux ]
+            QR = [eye(p) sysf.sys]
+            tcond1 = 1.
+         else
+            # compute minimal basis as Q = Q1 = [ I -Gu] and set
+            # QR = [ Q1 R1 ], where R1 = [ Rd1 Rf1 Rw1 Raux1] = [ Gd Gf Gw Gaux ]
+            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpd; inpf; inpw; inpaux]]],
+                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpd; inpf; inpw; inpaux]]]; Ts)] 
+            # perform stabilization if strong detectability has to be enforced
+            tcond1 = 1.
+         end
+         if size(QR,1) > 0
+            # non-empty nullspace
+            finish = true
+            # separate implementation and internal forms
+            Q1 = gir(QR[:,1:p+mu]; atol1, atol2, rtol )
+            R1 = QR[:,(p+mu) .+ (1:mr)]
+         end
+      end
+      if !finish && mrd == 0 
+         # 1) Compute Q1, the left nullspace of [Gd;0], and  
+         #    R = [Ru1 Rf1 Rw1] = Q1*[Gu Gf Gw;I 0 0]
+         #    QR contains Q1 in QR(:,1:p+mu) and R in QR(:,p+mu+1:end),
+         #    where Ru1 is in QR(:,p+mu+1:p+mu+mu), Rf1 is in 
+         #    QR(:,p+mu+mu+1:p+mu+mu+mf) and Rw1 is in QR(:,p+mu+mu+mf+1:end)
+         # set options for nullspace computation
+         mr = mu+mf+mw+maux;
+         # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+         syse = [sysf.sys; eye(mu,m)];
+         #
+         # compute a left nullspace basis Q = Q1 of G1 = [Gu; I] = 0 and
+         # obtain QR = [ Q1 R1 ], where R1 = [Rd1 Rf1 Rw1 Raux1] = Q*[Gd Gf Gw Gaux;0 0 0 0]
+         QR, info1 = glnull(syse, mr; simple, atol1, atol2, rtol, fast, sdeg = sdegdefault, offset) 
+         tcond1 = info1.tcond
+         if size(QR,1) > 0
+            # non-empty nullspace
+            finish = true
+            # separate implementation and internal forms
+            Q1 = gir(QR[:,1:p+mu]; atol1, atol2, rtol )
+            R1 = QR[:,(p+mu) .+ (1:mr)]
+         end
+      end
+      if !finish
+         # 1) Set Q1 = I and R = [Ru1 Rd1 Rf1 Rw1] = Q1*[Gu Gd Gf Gw;I 0 0 0]
+         #    QR contains Q1 in QR(:,1:p+mu) and R in QR(:,p+mu+1:end),
+         #    where Ru1 is in QR(:,p+mu+1:p+mu+mu), Rd1 is in 
+         #    QR(:,p+mu+1:p+mu+mu+md), Rf1 is in QR(:,p+mu+mu+md+1:p+mu+mu+md+mf)
+         #    and Rw1 is in QR(:,p+mu+mu+md+mf+1:end)
+         mr = m;
+         Q1 = dss(eye(p+mu);Ts)
+         R1 = [sysf; eye(mu,m)]
+         syse = R1;
+         tcond1 = 1;
+      end
+           
+      if mra == 0
+         # apply the two-step procedure for the case
+         # form Ge = [ Gu Gd Gf Gw; I 0 0 0] 
+         m1 = m-maux;
+         syse = [sysf.sys[:,1:m1]; eye(mu,m1)]
+         rinp = zeros(0,m1)
+         mru == 0 || (rinp = [rinp; eye(mu,m1)])
+         mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m1-mu)])
+         mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m1-mu-md)])
+         mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
+         # form explicitly Rref = [ Mru_i Mrd_i Mrf_i ] 
+         Rref = sysr.sys*rinp;
+      else
+         # apply the two-step procedure for the general case
+         # form Ge = [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+         syse = [sysf.sys; eye(mu,m)];
+         rinp = zeros(0,m);
+         mru == 0 || (rinp = [rinp; eye(mu,m)])
+         mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m-mu)])
+         mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
+         mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
+         mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
+         # form explicitly Rref = [Mru_i Mrd_i Mrf_i Mrw_i ] 
+         Rref = sysr.sys*rinp;
+      end
+      # 2) Compute the approximate solution of Q2*Ge = Rref .
+      Q2, info1 = glasol(R1, Rref[:,m-mr+1:end]; reltol, atol1, atol2, rtol, mindeg, L2sol = H2syn, sdeg, poles, fast, offset) 
+      Qib = gir(Q2*Q1; atol1, atol2, rtol)
+      gopt0 = info1.mindist
+      nonstandard = info1.nonstandard
+      if nonstandard
+         # 3) compute diagonal M such that M*Q has a desired stability degree;  
+         #    update Q <- M*Q
+         Qt = dss(zeros(0,p+mu); Ts); Mib = dss(zeros(0,0); Ts)
+         for i = 1:rdim
+             Qti, Mi = glcf(gminreal(Qib[i,:]; atol1, atol2, rtol); atol1, atol2, atol3, rtol, sdeg, smarg, evals = poles, 
+                                                          mininf = true, mindeg = true)
+             if isequal(normalize,"gain") 
+                sc = zpk(dss2rm(Mi; atol1, atol2, rtol)[1,1])[3]
+             elseif isequal(normalize,"dcgain")
+                sc = dcgain(Mi)[1,1]
+             else
+                sc = ghinfnorm(Mi)[1]
+             end
+             Qt = [Qt; Qti/sc]; Mib = append(Mib,Mi/sc)
+         end
+         Qib = Qt
+         # compute optimal performance
+         _, info1 = glasol(R1, Mib*Rref[:,m-mr+1:end]; reltol, atol1, atol2, rtol, mindeg, L2sol = H2syn, sdeg, poles, fast, offset) 
+         gopt = info1.mindist 
+         M = Mib  
+      else
+         gopt = gopt0
+         M = dss(eye(T,rdim);Ts)
+      end
+      Q = FDFilter(gss2ss(Qib; atol1, atol2, rtol)[1], p, mu)
+
+      R = FDFilterIF(gir(Q.sys*syse[:,m-mr+1:end]; atol1, atol2, rtol), mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra)
+      infodegs = Int[]
+      Htemp = missing
+      freq = missing
+   end   
+
+   gsub = nonstandard ? fdimmperf(R,M*sysr,normflag; atolinf = atol1) : gopt
+   # transform to standard state-space  
+   #Q = FDFilter(gss2ss(Qt; atol1, atol2, rtol)[1], p, mu)
+
+   #R = FDFilterIF(gss2ss(Rt; atol1, atol2, rtol)[1], mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra)
+   info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = ismissing(Htemp) ? missing : convert(Matrix{Float64},Htemp),
+           gammaopt0 = gopt0, gammaopt = gopt, gammasub = gsub, nonstandard = nonstandard)
+   return Q, R, info
+   
+   # end AMMSYN
+end
+"""
+    ammsyn(sysf::FDIModel, sysr::FDIFilterIF; nullspace = true, simple = false, mindeg = false, 
+                           regmin = true, normalize = "infnorm", H2syn = false, reltol = 1.e-4, 
+                           sdeg, smarg, poles, freq, HDesign, tcond, offset, 
+                           atol, atol1, atol2, atol3, rtol, fast = true) 
+                           -> (Q::FDFilter, R::FDFilterIF, info)
+
+Solve the _approximate model-matching problem_ (AMMP) for a given synthesis model `sysf::FDIModel` with additive faults 
+and a given bank of stable reference filters `sysr::FDIFilterIF`.
+The computed stable and proper filter objects `Q` and `R` contain the 
+bank of fault detection filters, representing the component-wise solution of the AMMP, and 
+their internal forms, respectively.
+
+The returned named tuple `info`, with the components `info.tcond`, `info.degs`, `info.M`, `info.freq`, 
+`info.HDesign`, `info.nonstandard`, `info.gammaopt0`, `info.gammaopt` and `info.gammasub`,  
+contains additional synthesis related information (see below). 
+
+The continuous- or discrete-time system `sysf.sys` is in a standard
+or descriptor state-space form `sysf.sys = (A-λE,B,C,D)`, which corresponds to the input-output form  
+
+       y = Gu(λ)*u + Gd(λ)*d + Gf(λ)*f + Gw(λ)*w + Ga(λ)*aux,
+
+with the Laplace- or Z-transformed plant outputs `y`, control inputs `u`, 
+disturbance inputs `d`, fault inputs `f`, noise inputs `w` and auxiliary 
+inputs `aux`, and with `Gu(λ)`, `Gd(λ)`, `Gf(λ)`, `Gw(λ)`, and `Ga(λ)` the corresponding 
+transfer-function matrices.
+The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
+`sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
+
+The continuous- or discrete-time reference filters packed in `sysr` 
+are in a standard or descriptor state-space form, where the `i`-th filter 
+`sysr.sys[i] = (Ari-λEri,Bri,Cri,Dri)` corresponds to the input-output form  
+
+       yri = Mrui(λ)*u + Mrdi(λ)*d + Mrfi(λ)*f + Mrwi(λ)*w + Mrai(λ)*aux,
+
+with the Laplace- or Z-transformed reference filter outputs `yri`, control inputs `u`, 
+disturbance inputs `d`, fault inputs `f`, noise inputs `w` and auxiliary 
+inputs `aux`, and with `Mrui(λ)`, `Mrdi(λ)`, `Mrfi(λ)`, `Mrwi(λ)`, and `Mrai(λ)` the corresponding 
+transfer-function matrices.
+The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
+`sysr.controls`, `sysr.disturbances`, `sysr.faults`, `sysr.noise` and `sysr.aux`, respectively.
+If any of the above vectors is void, then the corresponding transfer function matrices are considered null. 
+
+The fault detection and isolation filter object `Q`, contains in its `i`-th 
+component `Q.sys[i]` the resulting filter 
+in a standard state-space form, which generates the `i`-th component  `ri` of the residual signal. 
+The corresponding input-output (implementation) form is
+
+            ri = Qyi(λ)*y + Qui(λ)*u               
+
+where `Qyi(λ)` and `Qui(λ)` are the transfer function matrices from the output and control inputs to the residual. 
+The indices of output and control inputs are contained in the integer vectors 
+`Q.outputs` and `Q.controls`, respectively.
+
+Let define 
+
+      Ge(λ) = | Gu(λ) Gd(λ) Gf(λ) Gw(λ) Ga(λ) |,  Mri(λ) = | Mrui(λ) Mrdi(λ) Mrfi(λ) Mrwi(λ) Mrai(λ) | . 
+              |  I     0     0     0     0    |
+
+In the standard case, `Ge(λ)` has no zeros on the boundary of the 
+stability domain, and each resulting component stable filter `Qi(λ) := |Qyi(λ) Qui(λ)|` is 
+`Qi(λ) = Q0i(λ)`, where `Q0i(λ)` is
+the optimal solution of the H∞- or H2-norm error minimization problem
+
+    gammaopt0i = ||Q0i(λ)*Ge(λ)-Mi(λ)*Mri(λ)|| = min,         (1)
+
+where `Mi(λ) = M0i(λ)` is an updating factor chosen as follows:
+`M0i(λ) = I` in the case of emplyoing the 
+H∞ norm, while in the case of employing the H2 norm, `M0i(λ) = I` for
+a discrete-time system or, for a continuous-time system, 
+`M0i(λ)` is determined a stable, diagonal, and invertible transfer function 
+matrix, which ensures the existence of a finite H2-norm.
+
+In the non-standard case, `Ge(λ)`  has zeros on the boundary of the 
+stability domain, and each resulting optimal component filter `Q0i(λ)`, which solves 
+the H∞- or H2-norm error minimization problem (1) is a possibly 
+unstable or improper. A second updating factor `M1i(λ)` is determined, with   
+the same properties as `M0i(λ)`, which ensures that the computed stable and  
+proper filter `Qi(λ) := M1i(λ)*Q0i(λ)` represents a suboptimal solution of an 
+updated H∞- or H2-norm error minimization problem, for which the   
+achieved suboptimal model-matching performance is
+
+    gammasubi = ||Qi(λ)*Ge(λ)-Mi(λ)*Mri(λ)|| ,            (2)
+
+where `Mi(λ) := M1i(λ)*M0i(λ)`. The _optimal_ solutions `Qti(λ)` of the 
+updated H∞- or H2-norm error minimization problem 
+
+    gammaopti = ||Qti(λ)*Ge(λ)-Mi(λ)*Mri(λ)|| = min ,     (3)  
+
+is still possibly unstable or improper. The values of `gammaopt0i`, `gammaopti` and `gammasubi`
+are returned in the `i`-th components of the vectors `info.gammaopt0`, `info.gammaopt` and `info.gammasub`, respectively.
+
+The fault detection and isolation filter internal form object `R`, 
+contains in its `i`-th component `R.sys[i]`, the resulting 
+internal form of the filter 
+in a standard state-space form, 
+which generates the `i`-th component `ri` of residual signal , and corresponds to the 
+input-output form
+
+       ri = Rui(λ)*u + Rdi(λ)*d + Rfi(λ)*f + Rwi(λ)*w + Rai(λ)*aux ,
+
+where 
+
+       | Rui(λ) Rdi(λ) Rfi(λ) Rwi(λ) Rai(λ) | = Qi(λ)*Ge(λ). 
+
+The indices of the inputs `u`, `d`, `f`, `w` and `aux` of the resulting filter `R.sys` are 
+contained in the integer vectors `R.controls`, `R.disturbances`, `R.faults`, `R.noise` and `R.aux`, respectively.
+The state-space realization of the resulting `Mi(λ)` is returned in the `i`-th component of the
+vector `info.M`. 
+
+Various user options can be specified via keyword arguments as follows:
+
+If `H2syn = false` (default), a H∞-norm based synthesis is performed, while 
+if `H2syn = true`, a H2-norm based synthesis is performed. 
+
+`reltol = tol` specifies the relative tolerance `tol` for the desired 
+accuracy of γ-iteration (default:  `tol = 1.e-4`).
+   
+If `mindeg = true`, least order filter syntheses are performed, if possible, while 
+with `minimal = false` (default) no least order synthesis are performed.  
+
+If `regmin = true` (default), the regularization (see [1]) is performed for the case 
+when `sysr.controls` and/or `sysr.disturbances` are void with the selection of 
+a least order left annihilator `Nl(λ)` of `G(λ) = [Gu(λ) Gd(λ); I 0 ]`. 
+If `regmin = false`, the regularization is performed by choosing a left annihilator
+`Nl(λ)` as a minimal left nullspace basis of `G(λ)`.  
+
+If `HDesign = H` is a vector of full row rank design matrices, 
+then `H[i]*Nl(λ)` is used as left annihilator
+instead `Nl(λ)` for the synthesis of the `i`-th filter (default: `HDesign = missing`).
+
+If `nullspace = true` (default) and `sysr.controls` and/or `sysr.disturbances` are void, 
+a minimal proper nullspace basis is used at the initial reduction step.
+If `nullspace = false` and `sysr.controls` and/or `sysr.disturbances` are void, 
+a full-order observer based nullspace basis is used at the 
+initial reduction step.
+This option can  only be used for a proper system without disturbance inputs. 
+The `nullspace` option is ignored if both `sysr.controls` and `sysr.disturbances` are non-void. 
+
+If `simple = true`, a simple proper nullspace basis  
+is emplyed as left annihilator for synthesis. 
+The orders of the basis vectors are provided in `info.deg`. 
+If `simple = false` (default), then a minimal proper nullspace basis is computed. 
+
+`offset = β` specifies the boundary offset `β` to assess the stability of poles. 
+Accordingly, for the stability of a continuous-time system all real parts of poles must be at most `-β`, 
+while for the stability of a discrete-time system all moduli of poles must be at most `1-β`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+`smarg = α` specifies the stability margin which defines the stability 
+domain `Cs` of poles, as follows: 
+for a continuous-time system, `Cs` is the set of complex numbers 
+with real parts at most `α`, 
+while for a discrete-time system, `Cs` is the set of complex numbers with 
+moduli at most `α < 1` (i.e., the interior of a disc of radius `α` centered in the origin). 
+If `smarg` is missing, then the employed default values are `α = -β` 
+for a continuous-time system and `α = 1-β` for a discrete-time system, 
+where `β` is the boundary offset specified by the keyword argument `offset = β`. 
+
+`sdeg = γ` is the prescribed stability degree for the poles of the filters `Q` and `R` 
+(default: `γ = -0.05` for the real parts of poles for a continuous-time system and
+`γ = 0.95` for the magnitudes of poles for a discrete-time system). 
+
+`poles = v` specifies a complex vector `v` containing a complex conjugate set  
+of desired poles within the stability domain `Cs` to be assigned for the filters `Q` and `R`
+(default: `poles = missing`).
+
+`tcond = tcmax` specifies the maximum alowed condition number `tcmax` 
+of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
+
+`freq = val` specifies the value of a test frequency to be employed to 
+check the full column rank (i.e., left-invertibility) solvability condition 
+(default: randomly generated in the interval `(0,1)`). 
+The employed value of `freq` is returned in `info.freq`.
+
+`normalize = job` specifies the option for the normalization  
+of the diagonal elements of the updating matrices `Mi(λ)` as follows:
+
+      job = "gain"    – scale with the gains of the zero-pole-gain representation;
+      job = "dcgain"  – scale with the DC-gains;
+      job = "infnorm" – scale with the values of infinity-norms (default). 
+
+The rank determinations in the performed reductions
+are based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
+the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the order of the system `sysf.sys`. 
+The keyword argument `atol3` is an absolute tolerance for observability tests
+(default: internally determined value). 
+The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
+
+The resulting named tuple `info` contains `(tcond, degs, M, freq, HDesign, gammaopt0, gammaopt, gammasub, nonstandard) `, where:
+
+`info.tcond` is the maximum of the condition numbers of the employed 
+   non-orthogonal transformation matrices; a warning is issued if `info.tcond >= tcmax`;
+
+`info.degs` is an integer vector containing the increasingly ordered degrees of a left minimal   
+polynomial nullspace basis of `G(λ) := [ Gu(λ) Gd(λ); I 0]` (also the left Kronecker indices of `G(λ)`), if the 
+state-space realization of `[Gu(λ) Gd(λ)]` is minimal;
+
+`info.M` is a vector of descriptor systems, whose `i`-th system `info.M[i]` 
+contains the employed stable and invertible updating filter used to solve 
+the `i`-th AMMP, with a diagonal transfer function matrix `Mi(λ)`; 
+
+`info.freq` is the employed frequency used to check left invertibility 
+(set to `missing` if no frequency-based left invertibility check was performed)
+
+`info.HDesign` is a vector of design matrices `H`, where `H[i]` is the design matrix 
+employed for the synthesis of the `i`-th component of the fault detection filter `Q`; 
+`H[i]` is an empty matrix if no design matrix was involved.
+   
+`info.gammaopt0` is a vector whose `i`-th component is the optimal performance `gammaopt0i` for the `i`-th original problem (1); 
+   
+`info.gammaopt` is a vector whose `i`-th component is the optimal performance `gammaopti` for the `i`-th updated problem (3); 
+
+`info.gammasub` is a vector whose `i`-th component is the suboptimal performance `gammasubi` in (2); 
+
+`info.nonstandard` is set to `true` for a non-standard problem 
+   (i.e., `Ge(λ)` has zeros on the boundary of the stability domain), and set to 
+   `false` for a standard problem 
+      (i.e., `Ge(λ)` has no zeros on the boundary of the stability domain). 
+
+_Method:_ The synthesis Procedure AMMS from [1] is implemented. The 
+Procedure AMMS relies on the approximate model-matching synthesis method 
+proposed in [2]. For more details on computational aspects see [3].  
+
+_References:_
+
+[1] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques. 
+              Springer Verlag, 2017; sec. 5.6.
+
+[2] A. Varga, Integrated computational algorithm for solving 
+    H_inf-optimal FDI problems. In Proc. of the IFAC World Congress, 
+    Milano, Italy, pp. 10187–10192, 2011.
+
+[3] A. Varga. Descriptor system techniques in solving H_2/H-Inf-optimal
+    fault detection and isolation problems". In L. T. Biegler,  
+    S. L. Campbell, and V. Mehrmann (Eds.), Control and Optimization 
+    with Differential-Algebraic Constraints, vol. 23 of Advances in 
+    Design and Control, pp. 105–125. SIAM, 2012. 
+"""
+function ammsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2}; 
+                poles::Union{AbstractVector,Missing} = missing, 
+                sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
+                nullspace::Bool = true, mindeg::Bool = false, simple::Bool = false, regmin::Bool = true, 
+                normalize::AbstractString = "infnorm", freq::Real = rand(), reltol::Real = 0.0001, H2syn::Bool = false, 
+                tcond::Real = 1.e4, HDesign::Union{AbstractMatrix,Missing} = missing,
+                offset::Real = sqrt(eps(float(real(T1)))), atol::Real = zero(float(real(T1))), 
+                atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+                rtol::Real = ((size(sysf.sys.A,1)+1)*eps(real(float(one(T1)))))*iszero(max(atol1,atol2)), 
+                fast::Bool = true) where {T1,T2} 
+
+   N = length(sysref.sys)
+   DescriptorSystems.promote_Ts(sysf.sys.Ts, sysref.sys[1].Ts)  # check sampling time
+
+   emptyHD = ismissing(HDesign)
+   T = promote_type(T1,T2)
+   
+   HDesign = similar(Array{Matrix{T},1},N)
+   Q = similar(sysref.sys,N) 
+   R = similar(sysref.sys,N) 
+   M = similar(sysref.sys,N) 
+   gopt0 = similar(Vector{T},N)
+   gopt = similar(Vector{T},N)
+   gsub = similar(Vector{T},N)
+   tcond1 = 1
+   infodegs = 0
+   inpu, inpd, inpf, inpw, inpa = 0,0,0,0,0
+   nonstandard = true
+   for i = 1:N
+       Mri = FDFilterIF(sysref.sys[i], sysref.controls, sysref.disturbances, 
+                        sysref.faults, sysref.noise, sysref.aux)
+       Qi, Ri, infoi = ammsyn(sysf, Mri; sdeg, smarg, poles, nullspace, H2syn, reltol, 
+                                         mindeg, simple, regmin, normalize, freq, 
+                                         tcond, HDesign = emptyHD ? missing : HDesign[i], offset, 
+                                         atol1, atol2, atol3, rtol, fast)
+       Q[i] = Qi.sys
+       R[i] = Ri.sys
+       M[i] = infoi.M
+       HDesign[i] = ismissing(infoi.HDesign) ? zeros(T,0,0) : infoi.HDesign
+       tcond1 = max(tcond1, infoi.tcond)
+       gopt0[i] = infoi.gammaopt0
+       gopt[i] = infoi.gammaopt
+       gsub[i] = infoi.gammasub
+       i == 1 && (infodegs = infoi.degs; inpu = Ri.controls; inpd = Ri.disturbances; inpf = Ri.faults; inpw = Ri.noise; inpa = Ri.aux; nonstandard = infoi.nonstandard)
+   end
+   p = size(sysf.sys,1)
+   mu = length(sysf.controls)
+   info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = all(ismissing.(HDesign)) ? missing : HDesign,
+           gammaopt0 = gopt0, gammaopt = gopt, gammasub = gsub, nonstandard = nonstandard)
    return FDIFilter(Q, p, mu), 
           FDIFilterIF(R, controls = inpu, disturbances = inpd, faults = inpf, noise = inpw, aux = inpa), info
 end

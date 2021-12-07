@@ -410,8 +410,10 @@ end
 """
     fdimodset(sys; controls, c, disturbances, d, faults, f, fa, faults_sen, fs, noise, n, aux) -> sysf::FDIModel
 
-Build for a given linear time-invariant system model `sys = (A-λE,B,C,D)`, a synthesis model object `sysf` 
+Build for a given linear time-invariant system model `sys = (A-λE,B,C,D)`, a synthesis model object `sysf::FDIModel` 
 to be used in conjunction with the analysis and synthesis functions of FDI filters. 
+If `sys` is a vector of system models, then `sysf` results as a vector of synthesis model objects.
+
 The information on the partition of the input components in control, disturbance, fault, noise and auxiliary
 inputs can be specified using the following keyword arguments:
 
@@ -437,6 +439,8 @@ The resulting `sysf` contains the partitioned system
 noise inputs `w` and auxiliary inputs `v`, respectively, and `Du`, `Dd`, `Df`, `Dw` and `Dv` are the feedthrough matrices from those inputs.
 The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
 `sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
+
+Note: If 
 
 _Method:_ If `G(λ)` is the `p x m` transfer function matrix of `sys`, then the resulting system `sysf` has an 
 equivalent input output form `[Gu(λ) Gd(λ) Gf(λ) Gw(λ) Gv(λ)]`, where the following relations define the component matrices:
@@ -482,6 +486,14 @@ function fdimodset(sys::DescriptorStateSpace{T};
     return FDIModel{T}(dss(sys.A, sys.E, Be, sys.C, De, Ts = sys.Ts),  
             controls = Vector(1:mu), disturbances = mu .+ Vector(1:md) , faults = (mu+md) .+ Vector(1:mf), 
             noise = (mu+md+mf) .+ Vector(1:mw), aux = (mu+md+mf+mw) .+ Vector(1:maux))          
+end
+function fdimodset(sys::Vector{DescriptorStateSpace}; kwargs...)
+    N = length(sys)
+    sysf = similar(Vector{FDIModel},N)
+    for i = 1:N
+        sysf[i] = fdimodset(sys[i]; kwargs...)
+    end   
+    return sysf
 end
 """
     fdIFeval(sysQ::FDFilter, sysf::FDIModel; minimal = false, atol, atol1 = atol, atol2 = atol, rtol, fast = true) -> sysR::FDFilterIF

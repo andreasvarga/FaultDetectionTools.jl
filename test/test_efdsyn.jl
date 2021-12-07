@@ -10,7 +10,7 @@ using Test
 # Testing examples for EFDSYN 
 println("Test_efdsyn")
 @testset "efdsyn" begin
-rand()
+#rand()
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
@@ -803,7 +803,7 @@ syse = [sysf.sys; eye(mu,mu+md+mf)];
 @test orders == [1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
 #step(Rftilde,10)
 
-S = fditspec_(Rftilde;  atol = 1.e-5, FDtol = 0.0001)
+S = fditspec_(Rftilde;  atol = 1.e-6, FDtol = 0.00001)
 @test isequal(SFDI,S)  
 
 ## Yuan et al. IJC (1997)  weak synthesis with pole assignment and

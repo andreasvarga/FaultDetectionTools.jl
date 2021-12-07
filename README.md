@@ -13,14 +13,14 @@
 
 Julia 1.6 and higher.
 
-<!-- ## How to install
+## How to install
 
 ````JULIA
 pkg> add FaultDetectionTools
 pkg> test FaultDetectionTools
 ````
 
-For a short interactive demonstration of the main functions execute 
+<!-- For a short interactive demonstration of the main functions execute 
 
 ````JULIA
 using FaultDetectionTools
@@ -28,6 +28,29 @@ cd(joinpath(pkgdir(FaultDetectionTools), "test"))
 include("FDIToolsDemo.jl")
 ````
 -->
+To execute all examples in Chapter 5 and case studies in Chapter 8 in the fault diagnosis book (see below), execute 
+
+````JULIA
+using FaultDetectionTools
+cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
+include("runexamples.jl")
+include("runcasestudies.jl")
+````
+To execute a particular example, say Example 5.4 and its compact variant 5.c, execute 
+
+````JULIA
+using FaultDetectionTools
+cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
+include("Ex5_4.jl")
+include("Ex5_4c.jl")
+````
+To execute a particular case study, say Case Study 2.1, execute 
+
+````JULIA
+using FaultDetectionTools
+cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
+include("CS2_1.jl")
+````
 
 ## About
 
@@ -43,8 +66,6 @@ This book describes the mathematical background of solving synthesis problems of
 
 The targetted functionality parallels the functionality of the MATLAB collection of tools [FDITOOLS](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
 
-
-<!-- ## Implementation plan -->
 
 ## Supplementary information
 

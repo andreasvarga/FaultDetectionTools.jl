@@ -2,7 +2,7 @@ module RunExamples
 
 using Test, FaultDetectionTools
 
-@testset "Examples" begin
+@testset "Examples and Case Studies" begin
 # solving EFDP
 include("Ex5_2.jl")
 include("Ex5_3.jl")
@@ -26,6 +26,12 @@ include("Ex5_12c.jl")
 include("Ex5_13.jl")
 include("Ex5_13a.jl")
 include("Ex5_13c.jl")
+# solving AMMP
+include("Ex5_14.jl")
+include("Ex5_15.jl")
+include("Ex5_16.jl")
+include("Ex5_16c.jl")
+include("Ex5_17.jl")
 end
 
 end

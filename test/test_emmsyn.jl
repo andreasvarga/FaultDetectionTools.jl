@@ -18,12 +18,12 @@ sysf = fdimodset(rss(1,p,mf+mw),faults = 1:mf,noise = mf.+Vector(1:mw))
 sysr = FDFilterIF(sysf.sys,0,0,mf,mw)
 
 # solve an EMMP for a single reference model
-Q, R, info = emmsyn(sysf,sysr; minimal = false); info
+@time Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(R.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == 0
 
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf,mw)
-Q, R, info = emmsyn(sysf,sysr; minimal = false); info
+@time Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(vcat(R.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == [0,0]
 
 ##
@@ -32,7 +32,7 @@ sysf = fdimodset(rss(1,p,mf,stable = true),faults = 1:mf)
 sysr = FDFilterIF(sysf.sys,0,0,mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
-Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
+@time Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) == 0
 
 # solve an EMMP for a bank of two reference models
@@ -48,19 +48,19 @@ sysf = fdimodset(rss(5,p,mf,stable=true),faults = 1:mf)
 sysr = FDFilterIF(sysf.sys,0,0,mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
-Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7); info
+@time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7 &&
       iszero(R.sys-info.M*sysr.sys, atol = 1.e-7)
 
 # solve an EMMP with sysr = sysf: solution Q = I
-Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = true); info
+@time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = true); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7
 
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
-Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
+@time Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
       isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
 
@@ -70,23 +70,23 @@ sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
 sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
-Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false); info
+@time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7 &&
       iszero(R.sys-info.M*sysr.sys, atol = 1.e-7)
 
 # solve an EMMP using the computed design matrix
-Q1, Rf1, info1 = emmsyn(sysf,sysr, atol = 1.e-7, minimal = false, HDesign = info.HDesign); 
+@time Q1, Rf1, info1 = emmsyn(sysf,sysr, atol = 1.e-7, minimal = false, HDesign = info.HDesign); 
 @test iszero(Q.sys-Q1.sys,atol=1.e-7) && iszero(Rf.sys-Rf1.sys,atol=1.e-7)
 
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
-Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = true); info
+@time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = true); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7 &&
       iszero(R.sys-info.M*sysr.sys, atol = 1.e-7) && ismissing(info.HDesign)
 
-Q1, Rf1, info1 = emmsyn(sysf,sysr, atol = 1.e-7, minimal = true, HDesign = eye(2,3)); 
+@time Q1, Rf1, info1 = emmsyn(sysf,sysr, atol = 1.e-7, minimal = true, HDesign = eye(2,3)); 
 @test iszero(Q.sys-Q1.sys,atol=1.e-7) && iszero(Rf.sys-Rf1.sys,atol=1.e-7)
 
 
@@ -96,7 +96,7 @@ sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
 sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
-Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false, simple = true); info
+@time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false, simple = true); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-5 &&
       iszero(R.sys-info.M*sysr.sys, atol = 1.e-7)
@@ -108,14 +108,14 @@ sysf = fdimodset(rss(1,p,mf+mw,stable=true),faults = 1:mf,noise = mf.+Vector(1:m
 sysr = FDFilterIF(sysf.sys[1:mf,sysf.faults],0,0,mf)
 
 # solve an EMMP with reference model without noise input
-Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
+@time Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rfw.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) ≈ fdimmperf(R)
 
 sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf,mw)
 
 # solve an EMMP with reference model with noise input
-Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
+@time Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rfw.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7 
 
@@ -125,7 +125,7 @@ m = mu+md+mf+mw;
 sysf = fdimodset(rss(3,p,m), c = 1:mu,d = mu .+ (1:md),f = (mu+md) .+ (1:mf), n = (mu+md+mf) .+ (1:mw))
 sysr = fdimodset(dss(zeros(3,mu+md)),c = 1:mu,d = mu .+ (1:md)) 
 
-Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7); info
+@time Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rfw.sys-Q.sys*[sysf.sys[:,[sysf.controls;sysf.disturbances]]; eye(mu,mu+md)], atol = 1.e-7) && 
        fdimmperf(R,info.M*sysr) < 1.e-7 
@@ -154,7 +154,7 @@ sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), f = (mu+md).+(1:mf))
 Mr = FDFilterIF(dss([ 0 1 -1; -1 0 1; 1 -1 0]), 0, 0, mf)
 
 # solve an exact model-matching problem using EMMSYN
-Q, R, info = emmsyn(sysf,Mr; atol); info
+@time Q, R, info = emmsyn(sysf,Mr; atol); info
 
 # one step solution
 # solve Qbar*Ge = Me, where Ge = [Gu Gd Gf; I 0 0] and Me = [0 0 Mr ].
@@ -167,7 +167,7 @@ Qbar = glsol(Ge, Me; atol)[1]
 # solve an EMMP without explicit nullspace computation
 Mre = FDFilterIF([zeros(mf,mu) Mr.sys],mu,0,mf); 
 
-Q1, R1, info1 = emmsyn(sysf,Mre; atol); info1
+@time Q1, R1, info1 = emmsyn(sysf,Mre; atol); info1
 Rt1 = fdIFeval(Q1, sysf; atol = 1.e-7, minimal = true); 
 
 @test iszero(Q.sys-Q1.sys; atol) && iszero(R1.sys[:,R1.faults]-R.sys[:,R.faults]; atol) 
@@ -194,11 +194,19 @@ atol = 1.e-7                # tolerance for rank tests
 sdeg = -1                   # set stability degree
 
 # solve an exact model-matching problem using EMMSYN
-Q, R, info = emmsyn(sysf, Mr; atol, sdeg, minimal = false); info
+@time Q, R, info = emmsyn(sysf, Mr; atol, sdeg, minimal = false); info
 
 # check solution
 G = [sysf.sys; eye(mu,mu+mf)]; F = [zeros(mf,mu) info.M*Mr.sys];
 @test iszero(Q.sys*G-F; atol)
+
+# solve an exact model-matching problem using EMMSYN
+@time Q1, R1, info1 = emmsyn(sysf, Mr; atol, sdeg, nullspace = false, minimal = false); info
+
+# check solution
+G = [sysf.sys; eye(mu,mu+mf)]; F = [zeros(mf,mu) info1.M*Mr.sys];
+@test iszero(Q1.sys*G-F; atol)
+
 
 # Example 5.4c - Solution of an EFDP using EFDSYN
 # define s as an improper transfer function
@@ -222,7 +230,7 @@ Q = FDFilter(Qt.sys/scale,Qt.outputs,Qt.controls);
 Rf = FDFilterIF(Rft.sys/scale,faults = Rft.faults);
 
 #  solve an EMMP
-QM, RM, info = emmsyn(sysf,Rf)
+@time QM, RM, info = emmsyn(sysf,Rf)
 @test iszero(Q.sys-QM.sys,atol=1.e-7) && iszero(Rf.sys-RM.sys,atol=1.e-7) 
 
 ## Model Niemann 1998, Optim. Appl. Meth. 
@@ -264,7 +272,7 @@ R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
       order.(Q.sys) == ones(Int,nb)
 
 #  solve an EMMP
-QM, RM, info = emmsyn(sysf,Rf; atol = 1.e-7, minimal = true);
+@time QM, RM, info = emmsyn(sysf,Rf; atol = 1.e-7, minimal = true);
 # @test iszero(vcat(Q.sys...)-vcat(QM.sys...),atol=1.e-7) && iszero(Rf.sys-RM.sys,atol=1.e-7) 
 
 R1 = fdIFeval(QM,sysf); # form Q*[Gu Gd Gf;I 0 0];
@@ -307,7 +315,7 @@ sysf = fdimodset(sys, c = 1:mu, d = mu .+ (1:md) , f = (mu+md) .+ (1:mf));
 
 SFDI = fdigenspec(sysf) # determine achievable structure matrix
 nb = size(SFDI,1)
-@time Q, Rf = efdisyn(sysf, SFDI; atol = 1.e-7, rdim = 1, sdeg =-2, smarg = -1,
+Q, Rf = efdisyn(sysf, SFDI; atol = 1.e-7, rdim = 1, sdeg =-2, smarg = -1,
                                   FDfreq = 0, FDGainTol = 0.0001);
 
 # check synthesis conditions: Q*[Gu Gd;I 0] = 0 and Q*[Gf; 0] = Rf
@@ -321,7 +329,7 @@ R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
 
 
 #  solve an EMMP
-QM, RM, info = emmsyn(sysf,Rf; atol = 1.e-7, minimal = true);
+@time QM, RM, info = emmsyn(sysf,Rf; atol = 1.e-7, minimal = true);
 # @test iszero(vcat(Q.sys...)-vcat(QM.sys...),atol=1.e-7) && iszero(Rf.sys-RM.sys,atol=1.e-7) 
 
 R1 = fdIFeval(QM,sysf); # form Q*[Gu Gd Gf;I 0 0];

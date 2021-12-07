@@ -10,7 +10,7 @@ makedocs(
   pages    = [
      "Home"   => "index.md",
      "Library" => [ 
-        "FDIObjects.md",
+      "FDIObjects.md",
         "FDIanalysis.md",
         "FDIperformance.md",
         "FDIsynthesis.md"

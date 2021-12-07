@@ -348,6 +348,44 @@ function fdiscond(sysr::FDFilterIF{T}, SFDI::Union{BitVector,Vector{Bool}}, freq
     fdiscond_(sysr.sys[:,sysr.faults[SFDI]], freq)
 end
 """
+     fdiscond(sysr::FDFilterIF, SFDI, freq) -> (scond, β, γ)
+
+Compute the detection and isolation sensitivity condition vector
+`scond` (and related quatities `β` and `γ`) for the `q × mf` binary structure matrix `SFDI` associated to
+the stable transfer function matrix `Rf(λ)` of the
+transfer channel from the fault inputs to residuals of the
+fault detection filter internal form object `sysr::FDFilterIF`. 
+The filter `sysr` consists of `N` individual FDI filters `sysr.sys[i]`, for `i = 1, ..., N`, where
+`sysr.sys[i][:,sysr.faults]` is the fault to residual channel of the `i`-th filter and 
+`Rfi(λ)` is the corresponding transfer function matrix. 
+The global transfer function matrix `Rf(λ)` is formed by row concatenation of the 
+transfer function matrices of the `N` individual filters, i.e.,  `Rf(λ) := [ Rf1(λ); Rf2(λ); ...; RfN(λ)]`.
+The i-th element of the vectors `scond`, `β` and `γ` contain the quantities: 
+`β[i]` - the H∞- index of the nonzero columns of `Rffi(λ)`, `γ` - the maximum of the nonzero columns norms of `Rfi(λ)` and 
+the correspomding fault detection sensitivity condition `scond[i]` evaluated as `scond[i] := β[i]/γ[i]`,
+where `Rffi(λ)` is formed of those `j`-th  columns of the `i`-th row of `Rf(λ)` for which `S[i,j] = 1` and 
+`Rfi(λ)` is the `i`-th row of `Rf(λ)`. 
+It is assumed that for each `j` such that `SFDI[i,j] = 1`, the `j`-th column of `Rfi(λ)` is nonzero  and 
+for each `j` such that `SFDI[i,j] = 0`, the `j`-th column of `Rfi(λ)` is zero. 
+If `freq` is a vector of real frequency values, then `β[i]` and `γ[i]`
+are evaluated over the frequencies contained in `freq`. 
+"""
+function fdiscond(sysr::FDFilterIF{T}, SFDI::Union{BitMatrix,Array{Bool,2}}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing) where T
+    q = size(sysr.sys,1)   
+    inpf = sysr.faults
+    mf = length(inpf)
+    (q, mf ) == size(SFDI) || error("missmatch between the number of fault inputs and column dimension of SFDI")
+ 
+    mf == 0 && (return zeros(T,q,0), zeros(T,q,0), zeros(T,q,0))
+    scond = similar(Array{T,1},q)
+    β = similar(Array{T,1},q)
+    γ = similar(Array{T,1},q)
+    for i = 1:q
+        scond[i], β[i], γ[i] = fdiscond_(sysr.sys[i,inpf[view(SFDI,i,:)]], freq)
+    end
+    return scond, β, γ
+end
+"""
      fdiscond(sysr::FDIFilterIF, SFDI, freq) -> (scond, β, γ)
 
 Compute the detection and isolation sensitivity condition
@@ -445,6 +483,45 @@ function fdif2ngap(sysr::FDFilterIF{T}, SFDI::Union{BitVector,Vector{Bool}}, fre
    return β/γ, β, γ
 end
 """
+      fdif2ngap(sysr::FDFilterIF, SFDI, freq; atol = √ϵ) -> (gap, β, γ)
+
+Compute the fault-to-noise gap 
+`gap` (and the related quatities `β` and `γ`) for the `q × mf` binary structure matrix `SFDI` associated to
+the stable transfer function matrices `Rf(λ)` and `Rw(λ)` of the
+transfer channels from the fault inputs to residuals and noise inputs to residuals, respectively,  of the
+fault detection filter internal form object `sysr::FDFilterIF`. 
+The `i`-th element of the vectors `gap`, `β` and `γ` contain the quantities: 
+`β[i]` - the H∞- index of `Rffi(λ)`, `γ[i]` - the H∞-norm of `[Rdfi(λ) Rwi(λ)]` and 
+the fault-to-noise gap `gap` evaluated as `gap[i] := β[i]/γ[i]`, where
+`Rffi(λ)` is formed of those `j`-th  columns of the `i`-th row of `Rf(λ)` for which `S[i,j] = 1` and 
+`Rdfi(λ)` is formed of those `j`-th  columns of the `i`-th row of `Rf(λ)` for which `S[i,j] = 0`. 
+`gap[i] = ∞` if `[Rdfi(λ) Rwi(λ)] = 0` and `gap[i] = 0` if `Rffi(λ) = 0`.
+If `freq` is a vector of real frequency values, then `β[i]` and `γ[i]`
+are evaluated over the frequencies contained in `freq`. 
+`atol` is an absolute tolerance for the norms `Rwi(λ)`, such that norm values less than or equal to `atol` are 
+considered zero (default:  `√ϵ`, where `ϵ` is the working machine precision.)
+"""
+function fdif2ngap(sysr::FDFilterIF{T}, SFDI::Union{BitMatrix,Matrix{Bool}}, freq::Union{AbstractVector{<:Real},Real,Missing} = missing;
+                    atol::Real = sqrt(eps(T))) where T
+    q = size(sysr.sys,1)   
+    inpf = sysr.faults
+    mf = length(inpf)
+    (q, mf ) == size(SFDI) || error("missmatch between the number of fault inputs and column dimension of SFDI")
+    mw = length(sysr.noise)
+ 
+    mf+mw == 0 && (return zeros(T,q,0), zeros(T,q,0), zeros(T,q,0))
+ 
+    isstable(sysr.sys) || error("the system is unstable")
+    β = similar(Array{T,1},q) 
+    γ = similar(Array{T,1},q) 
+    for i = 1:q
+        β[i] = mf == 0 ? 0 : fdhinfminus(sysr.sys[i,inpf[SFDI[i,:]]],freq)[1]
+        t = ghinfnorm(sysr.sys[i,[inpf[.!SFDI[i,:]]; sysr.noise]])[1]
+        γ[i] = t <= atol ? 0 : t
+    end
+    return β ./ γ, β, γ
+ end
+ """
      fdif2ngap(sysr::FDIFilterIF, SFDI, freq; atol = √ϵ) -> (gap, β, γ)
 
 Compute the fault-to-noise gap 
@@ -456,7 +533,7 @@ The filter `sysr` consists of `N` individual FDI filters `sysr.sys[i]`, for `i =
 `sysr.sys[i][:,sysr.faults]` is the fault to residual channel of the `i`-th filter 
 with the corresponding transfer function matrix `Rfi(λ)` and `sysr.sys[i][:,sysr.noise]` is the noise to residual channel of the `i`-th filter 
 with the corresponding transfer function matrix `Rwi(λ)`.   
-The global transfer function matrices `Rf(λ)` areand `Rw(λ)` formed by row concatenation of the 
+The global transfer function matrices `Rf(λ)` and `Rw(λ)` are formed by row concatenation of the 
 transfer function matrices of the `N` individual filters, i.e.,  `Rf(λ) := [ Rf1(λ); Rf2(λ); ...; RfN(λ)]` and 
 `Rw(λ) := [ Rw1(λ); Rw2(λ); ...; RwN(λ)]` 
 Let  `Rffi(λ)` be the transfer function matrix formed of those `j`-th columns of `Rfi(λ)` 
@@ -539,6 +616,27 @@ function fdimmperf(sysr::FDFilterIF{T}, SFDI::Union{BitVector,Vector{Bool}}, nrm
                             gh2norm(sysr.sys[:,[inpf[.!SFDI]; sysr.noise]])
 end
 """
+     γ = fdimmperf(sysr::FDFilterIF, SFDI[, nrmflag]) 
+
+Compute the model-matching performance `γ` of the fault detection filter internal form object `sysr::FDFilterIF`
+for a given binary structure matrix `SFDI`. If `Rf(λ)` is the transfer function matrix of the 
+transfer channel from the fault inputs to residuals `sysr.sys[:,sysr.faults]` and 
+`Rw(λ)` is the transfer function matrix of the transfer channel from the noise inputs to residuals 
+`sysr.sys[:,sysr.noise]`, then
+`γ` is the  H∞-norm of `[Rdf(λ) Rw(λ)]`, if `nrmflag = Inf` (default) and the  H2-norm of `[Rdf(λ) Rw(λ)]`, 
+if `nrmflag = 2`, where `Rdf(λ) = .!SFDI .* Rf(λ)` (i.e., the element-wise product of `.!SFDI` and `Rf(λ)`.
+The value of `γ` is infinite for an unstable filter or if `nrmflag = 2` and the transfer function matrix
+`[Rdf(λ) Rw(λ)]` of a continuous-time system is not strictly proper.
+"""    
+function fdimmperf(sysr::FDFilterIF{T}, SFDI::Union{BitMatrix,Matrix{Bool}}, nrmflag::Real = Inf) where T
+
+    (nrmflag == Inf || nrmflag == 2) || error("only H∞- and H2-norms supported")
+
+    return isinf(nrmflag) ? ghinfnorm([dssubsel(sysr.sys[:,sysr.faults], .!SFDI) sysr.sys[:,sysr.noise]])[1] : 
+                            gh2norm([dssubsel(sysr.sys[:,sysr.faults], .!SFDI) sysr.sys[:,sysr.noise]])
+end
+
+"""
      γ = fdimmperf(sysr::FDIFilterIF[, nrmflag]) 
 
 Compute the model-matching performance `γ` of the stable fault detection and isolation filter internal form object `sysr::FDIFilterIF`. 
@@ -614,7 +712,7 @@ The value of `γ` is infinite for an unstable difference `R(λ)-Mr(λ)` or if `n
 the partitioning of the inputs in control inputs, disturbance inputs, fault inputs, noise inputs and auxiliary inputs.
 Void components of `Mr(λ)` corresponding to non-void components in `R(λ)` are assumed to be zero. 
 """    
-function fdimmperf(sysr::FDFilterIF{T}, sysref::Union{FDFilterIF,FDIModel}, nrmflag::Real = Inf) where T
+function fdimmperf(sysr::FDFilterIF{T}, sysref::Union{FDFilterIF,FDIModel}, nrmflag::Real = Inf; atolinf::Real = 0) where T
 
     (nrmflag == Inf || nrmflag == 2) || error("only H∞- and H2-norms supported")
     DescriptorSystems.promote_Ts(sysr.sys.Ts, sysref.sys.Ts)  # check sampling time
@@ -643,9 +741,8 @@ function fdimmperf(sysr::FDFilterIF{T}, sysref::Union{FDFilterIF,FDIModel}, nrmf
     mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
     mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
     mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
-
     return isinf(nrmflag) ? ghinfnorm(sysr.sys-sysref.sys*rinp)[1] : 
-                            gh2norm(sysr.sys-sysref.sys*rinp)
+                            gh2norm(sysr.sys-sysref.sys*rinp; atolinf)
 end
 """
      γ = fdimmperf(sysr::FDIFilterIF, sysref::FDIFilterIF[, nrmflag]) 

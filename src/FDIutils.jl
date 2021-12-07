@@ -296,7 +296,7 @@ function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:
       gains = zeros(T, 1, mf, lfreq)
       for i = 1:lfreq
           gs = evalfr(sysrf, w[i]; atol1, atol2, rtol, fast) 
-          any(isinf.(gs)) && error("fdisspec_:pole - the frequency $(w[i]) is a system pole")
+         any(isinf.(gs)) && error("fdisspec_:pole - the frequency $(w[i]) is a system pole")
           for j = 1:mf 
               gsj = norm(view(gs,:,j))
               gains[1,j,i] = gsj
@@ -308,9 +308,11 @@ function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:
       gains = zeros(T, p, mf, lfreq)
       for k = 1:p
          t = gir(sysrf[k,:]; contr = false, atol1, atol2, rtol)
+         stabilize && (t = glcf(t; atol1, atol2, atol3, rtol)[1])
          for i = 1:lfreq
-             gs = stabilize ? abs.(evalfr(glcf(t; atol1, atol2, atol3, rtol)[1], w[i]; atol1, atol2, rtol, fast)) :
-                              abs.(evalfr(t, w[i]; atol1, atol2, rtol, fast))
+            #  gs = stabilize ? abs.(evalfr(glcf(t; atol1, atol2, atol3, rtol)[1], w[i]; atol1, atol2, rtol, fast)) :
+            #                   abs.(evalfr(t, w[i]; atol1, atol2, rtol, fast))
+             gs = abs.(evalfr(t, w[i]; atol1, atol2, rtol, fast))
              any(isinf.(gs)) && error("fdisspec_:pole - the frequency $(w[i]) is a system pole")
              gains[k,:,i] = gs
              smat[k,:,i] = (gs .> FDGainTol)

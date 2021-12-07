@@ -10,7 +10,7 @@ using Test
 # Testing examples for EFDSYN 
 println("Test_efdisyn")
 @testset "efdisyn" begin
-rand()
+#rand()
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
@@ -356,7 +356,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1:2);
 # weak achievable specifications
 SFDI = fdigenspec(sysf)   
 
-@time Q, Rf, info = efdisyn(sysf, SFDI; sdeg = -3, rdim = 1); info
+@time Q, Rf, info = efdisyn(sysf, SFDI; sdeg = -3, smarg = -3, rdim = 1); info
 
 # check synthesis conditions: Q*[Gu Gd;I 0] = 0 and Q*[Gf; 0] = Rf
 R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
@@ -365,7 +365,7 @@ R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
       fditspec(Rf) == SFDI
 
 # the same results  must result using the resulting design matrix H
-Q1, Rf1, info1 = efdisyn(sysf, SFDI; sdeg = -3, rdim = 1, HDesign = info.HDesign); info1 
+Q1, Rf1, info1 = efdisyn(sysf, SFDI; sdeg = -3, smarg = -3, rdim = 1, HDesign = info.HDesign); info1 
 
 @test all(iszero.(Q.sys .- Q1.sys,atol=1.e-7)) && all(iszero.(Rf.sys .- Rf1.sys,atol=1.e-7))
 
@@ -377,9 +377,9 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1:2);
 # strong achievable specifications
 SFDI = fdigenspec(sysf, FDfreq = [0, 2], FDGainTol = 1.e-3)
 
-@time Q, Rf, info = efdisyn(sysf, SFDI; sdeg = -3, rdim = 1, FDfreq = [0, 2]); info
+@time Q, Rf, info = efdisyn(sysf, SFDI; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001); info
 
-# check synthesis results
+# check synthesis results  
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(vcat(R.sys...)[:,[R.controls;R.disturbances]],atol=1.e-7) &&
       iszero(vcat(R.sys...)[:,R.faults]-vcat(Rf.sys...),atol=1.e-7) &&
@@ -387,7 +387,7 @@ R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 
 
 # the same results  must result using the resulting design matrix H
-Q1, Rf1, info1 = efdisyn(sysf, SFDI; sdeg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001, HDesign = info.HDesign); info1 
+Q1, Rf1, info1 = efdisyn(sysf, SFDI; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001, HDesign = info.HDesign); info1 
 
 @test all(iszero.(Q.sys .- Q1.sys,atol=1.e-7)) && all(iszero.(Rf.sys .- Rf1.sys,atol=1.e-7))
 
