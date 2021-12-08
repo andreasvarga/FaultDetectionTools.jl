@@ -272,13 +272,13 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info1.M*Mr.s
 
 Mr = FDIFilterIF([R.sys[1][:,R.faults], R.sys[2][:,R.faults]],0,0,mf);  # choose targeted reference model
 
-@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-4, sdeg = -3);
+@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-3, sdeg = -3);
 
 R1 = fdIFeval(QM,sysf); # form Q*[Gu Gd Gf;I 0 0];
 @test iszero(vcat(R1.sys...)[:,[R1.controls;R.disturbances]],atol=1.e-7) &&
       iszero(vcat(R1.sys...)[:,[R1.faults;R1.noise]]-vcat(RM.sys...),atol=1.e-7) &&
       fdimmperf(R1,fditspec(Mr))[1] .<= info1.gammasub[1] &&
-      isapprox(fdif2ngap(R1,fditspec(Mr))[1], info.gap; atol=1.e-5)
+      all(fdif2ngap(R1,fditspec(Mr))[1] .>= info.gap)
 
 
 # Example 5.3 - Solution of an AFDP with strong synthesis 
