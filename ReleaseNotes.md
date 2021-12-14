@@ -3,7 +3,7 @@
 ## Version 0.6.0 
 
 This minor release concludes the implementation of the functions for solving synthesis problems of _fault detection and isolation_ (FDI) filters. This release provides a new function for the approximate model-matching based synthesis of FDI filters and three new functions for the evaluation of the model-matching performance. The presented examples in Chapter 5 and case studies in Chapter 8 of the book 
-"[Andreas Varga, Solving Fault Diagnosis Problems, Linear Synthesis Techniques, Springer 2017](https://www.springer.com/us/book/9783319515588)", can be fully reproduced using the collection of scripts provided in the `src/Examples` directory.  This release relies on the new enhanced version `v1.2` of the [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl) package. 
+"[A. Varga, Solving Fault Diagnosis Problems, Linear Synthesis Techniques, Springer 2017](https://www.springer.com/us/book/9783319515588)", can be fully reproduced using the collection of scripts provided in the `src/Examples` directory.  This release relies on the new enhanced version `v1.2` of the [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl) package. Several tutorials have been prepared to complement the information available in the above book.
 
 ## Version 0.5.0 
 

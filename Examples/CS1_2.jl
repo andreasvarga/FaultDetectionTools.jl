@@ -104,7 +104,7 @@ norms = [NormRu NormRd NormRfmRfnom]
 println(" Table 8.3  Robustness analysis results for the nominal synthesis with position measurements")
 println(" NormRu      NormRd       NormRfmRfnom")
 display(norms)
-@test norm(NormRu,Inf) < 1.e-5 &&  norm(NormRd,Inf) < 1.e-5 &&   norm(NormRfmRfnom,Inf) < 1.e-5 
+@test norm(NormRu,Inf) < 1.e-4 &&  norm(NormRd,Inf) < 1.e-4 &&   norm(NormRfmRfnom,Inf) < 1.e-4 
 println("orders = $(order.(Q.sys))")
 
 end  # module

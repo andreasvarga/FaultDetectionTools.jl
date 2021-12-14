@@ -11,24 +11,24 @@ end
 [![Code on Github.](https://img.shields.io/badge/code%20on-github-blue.svg)](https://github.com/andreasvarga/FaultDetectionTools.jl)
 
 The `FaultDetectionTools.jl` package (or shortly`FDITools`) is a collection of Julia functions for the analysis and solution 
-of fault detection problems. The functions of this collection relies on 
+of _fault detection and isolation_ (FDI) problems. The functions of this collection rely on 
 the [DescriptorSystems](https://github.com/andreasvarga/DescriptorSystems.jl) package [2], whose underlying computational functions are based on the
 [`MatrixPencils.jl`](https://github.com/andreasvarga/MatrixPencils.jl) [3] and
 [`MatrixEquations.jl`](https://github.com/andreasvarga/MatrixEquations.jl) [4] packages. 
 
 The implemented functions are based on the computational procedures described in Chapters 5, 6 and 7 of the book:
 
-Andreas Varga, "[Solving Fault Diagnosis Problems, Linear Synthesis Techniques](http://www.springer.com/us/book/9783319515588)", vol. 84 of Studies in Systems, Decision and Control, Springer International Publishing, xxviii+394, 2017.
+Andreas Varga, "[Solving Fault Diagnosis Problems, Linear Synthesis Techniques](http://www.springer.com/us/book/9783319515588)", vol. 84 of Studies in Systems, Decision and Control, Springer International Publishing, 2017.
 
 This book describes the mathematical background of solving synthesis problems of fault detection and model detection filters and gives detailed descriptions of the underlying synthesis procedures. 
 
-The targetted functionality parallels the functionality of the MATLAB collection of tools [`FDITOOLS`](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
-Supplementary information on the targetted functionality is also available on [arXiv](https://arxiv.org/abs/1703.08480) in the documentation of the companion MATLAB [`FDITOOLS`](https://github.com/andreasvarga/FDITools) collection.
+The targeted functionality parallels the functionality of the MATLAB collection of tools [`FDITOOLS`](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
+Supplementary information on the targeted functionality is also available on [arXiv](https://arxiv.org/abs/1703.08480) in the documentation of the companion MATLAB [`FDITOOLS`](https://github.com/andreasvarga/FDITools) collection.
 
 The available functions in the current version of the `FaultDetectionTools.jl` package are:
 
 
-**Building fault detection and isolation related objects**
+**Building FDI related objects**
 
 * **[`FDIModel`](@ref)**  Fault detection and isolation synthesis model.
 * **[`FDFilter`](@ref)**  Fault detection filter object.
@@ -38,6 +38,12 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`fdimodset`](@ref)**  Setup of synthesis models for solving fault detection and isolation problems.
 * **[`fdIFeval`](@ref)**  Evaluation of the internal forms of fault detection and isolation filters. 
 
+**Analysis of FDI synthesis models**
+
+* **[`fdigenspec`](@ref)**  Generation of achievable FDI specifications.
+* **[`fdichkspec`](@ref)**  Feasibility analysis of a set of FDI specifications.
+
+
 **Performance evaluation of FDI filters**
 
 * **[`fditspec`](@ref)**  Computation of the weak or strong structure matrix.
@@ -46,7 +52,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`fdif2ngap`](@ref)**  Computation of the fault-to-noise gap.
 * **[`fdimmperf`](@ref)**  Computation of the model-matching performace.
 
-**Solving fault detection and isolation problems**
+**Solving FDI problems**
 
 * **[`efdsyn`](@ref)**  Exact synthesis of fault detection filters.
 * **[`efdisyn`](@ref)**  Exact synthesis of fault detection and isolation filters.

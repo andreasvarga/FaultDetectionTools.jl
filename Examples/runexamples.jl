@@ -2,7 +2,7 @@ module RunExamples
 
 using Test, FaultDetectionTools
 
-@testset "Examples and Case Studies" begin
+@testset "Examples" begin
 # solving EFDP
 include("Ex5_2.jl")
 include("Ex5_3.jl")

@@ -8,8 +8,12 @@ makedocs(
   authors  = "Andreas Varga",
   format   = Documenter.HTML(prettyurls = false),
   pages    = [
-     "Home"   => "index.md",
-     "Library" => [ 
+    "Home"   => "index.md",
+    "Tutorials"   => [
+      "FDDbasics.md",
+      "SynthesisParadigms.md"
+      ],
+    "Library" => [ 
       "FDIObjects.md",
         "FDIanalysis.md",
         "FDIperformance.md",
