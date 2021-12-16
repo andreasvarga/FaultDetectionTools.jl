@@ -32,6 +32,12 @@ include("Ex5_15.jl")
 include("Ex5_16.jl")
 include("Ex5_16c.jl")
 include("Ex5_17.jl")
+# paradigms: nullspace and least order synthesis
+include("Ex7_3.jl")
+include("Ex7_3c.jl")
+include("Ex7_4.jl")
+include("Ex7_4c.jl")
+
 end
 
 end
