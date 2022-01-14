@@ -10,7 +10,7 @@ using Test
 # Testing examples for EFDSYN 
 println("Test_afdsyn")
 @testset "afdsyn" begin
-rand()
+rand(2);
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
