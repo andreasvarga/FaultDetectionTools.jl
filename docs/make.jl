@@ -1,5 +1,5 @@
-import Pkg; Pkg.add("DescriptorSystems")
-using Documenter, DescriptorSystems, FaultDetectionTools
+#import Pkg; Pkg.add("DescriptorSystems")
+using Documenter, DescriptorSystems, FaultDetectionTools, DescriptorSystems
 DocMeta.setdocmeta!(FaultDetectionTools, :DocTestSetup, :(using FaultDetectionTools); recursive=true)
 
 makedocs(
@@ -13,11 +13,16 @@ makedocs(
       "FDDbasics.md",
       "SynthesisParadigms.md"
       ],
-    "Library" => [ 
-      "FDIObjects.md",
+    "Fault Detection" => [ 
+        "FDIObjects.md",
         "FDIanalysis.md",
-        "FDIperformance.md",
-        "FDIsynthesis.md"
+        "FDIsynthesis.md",
+        "FDIperformance.md"],
+    "Model Detection" => [ 
+        "MDObjects.md",
+        "MDanalysis.md",
+        "MDsynthesis.md",
+        "MDperformance.md"
         ],
      "Utilities" => [
         "FDIutils.md"

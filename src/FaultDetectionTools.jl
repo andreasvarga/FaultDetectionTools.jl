@@ -20,6 +20,12 @@ export fdigenspec, fdichkspec
 export efdsyn, efdisyn, efdbasesel, afdsyn, afdredsyn, afdisyn, afdbasesel, emmsyn, emmbasesel, ammsyn, ammbasesel
 export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdiscond_
 
+export MDMModel, MDModel, mdmodset, MDFilter, MDFilterIF, mdIFeval
+export mddist, mddist2c
+export mdsspec, mdperf, mdmatch
+export emdsyn, emdbasesel
+
+
 const VRS = Union{Vector{Int}, UnitRange{Int}, Int}
 
 include("types/FDIObjects.jl")
@@ -27,4 +33,8 @@ include("FDIanalysis.jl")
 include("FDIperformance.jl")
 include("FDIsynthesis.jl")
 include("FDIutils.jl")
+include("types/MDObjects.jl")
+include("MDanalysis.jl")
+include("MDperformance.jl")
+include("MDsynthesis.jl")
 end

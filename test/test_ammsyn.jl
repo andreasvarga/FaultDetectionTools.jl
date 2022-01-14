@@ -171,7 +171,7 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info.M*Mr.sy
 @test iszero(R.sys-Q.sys*Ge, atol = 1.e-7) && 
       fdimmperf(R,info.M*Mr) ≈ info.gammasub && glinfnorm(Me-Q.sys*Ge)[1] ≈ info.gammasub
 
-
+#fails
 # Example 5.14 of (V,2017)
 s = rtf('s'); # define the Laplace variable s
 Gf = 1/(s+1);        # enter $G_f(s)$
@@ -191,9 +191,12 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info.M*Mr.sy
       fdimmperf(R,info.M*Mr) ≈ info.gammasub && glinfnorm(Me-Q.sys*Ge)[1] ≈ info.gammasub
 
 
-Me = FDFilterIF([zeros(mf,mu) Mr.sys zeros(mf,mw)], 0, 0, mf, mw )
+Me1 = FDFilterIF([zeros(mf,mu) Mr.sys zeros(mf,mw)], 0, 0, mf, mw )
 
-@time Q1, R1, info1 = ammsyn(sysf, Me; regmin = false, atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
+@time Q1, R1, info1 = ammsyn(sysf, Me1; regmin = false, atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
+@test iszero(R1.sys-Q1.sys*Ge, atol = 1.e-7) && 
+      fdimmperf(R1,info1.M*Me1) ≈ info1.gammasub && glinfnorm(info1.M*Me1.sys-Q1.sys*Ge)[1] ≈ info1.gammasub
+
 @test iszero(Q.sys-Q1.sys,atol=1.e-7) && iszero(R.sys-R1.sys,atol=1.e-7)
 
 

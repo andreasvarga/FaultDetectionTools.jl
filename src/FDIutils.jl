@@ -284,7 +284,7 @@ function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:
    n = size(sysrf.A,1)
    for k = 1:lfreq
       # check if freq(k) is a pole 
-      ispole = isinf(freq[k]) ? (sysrf.e == I ? false : rank(sysrf.E) < n) : rank(sysrf.A-w[k]*sysrf.E) < n 
+      ispole = isinf(freq[k]) ? (sysrf.E == I ? false : rank(sysrf.E) < n) : rank(sysrf.A-w[k]*sysrf.E) < n 
       ispole || break
    end
    ispole && !stabilize && error("sysf has poles in Ω")

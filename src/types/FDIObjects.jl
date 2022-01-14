@@ -115,12 +115,12 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDFilter)
    end
 end
 """
-    FDIFilter <: Vector{AbstractFDDObject}
+    FDIFilter <: AbstractFDDObject
 
 Type for fault detection and isolation filters resulted as solutions of fault detection and isolation problems.
     
 If `filter::FDIFilter` is the fault detection and isolation filter object, 
-the underlying i-th descriptor system models
+the underlying `i`-th descriptor system model
 can be obtained via `filter.sys[i]` and the indices of output and control inputs 
 can be accessed as the integer vectors 
 contained in `filter.outputs` and `filter.controls`, respectively.
@@ -309,7 +309,7 @@ end
 Type for the internal form of fault detection and isolation filters resulted as solutions of fault detection and isolation problems.
     
 If `filter::FDIFilterIF` is the fault detection and isolation filter internal form object, 
-the underlying `i`-th descriptor system models
+the underlying `i`-th descriptor system model
 can be obtained via `filter.sys[i]` and the indices of control, disturbance, fault, noise 
 and auxiliary inputs can be accessed as the integer vectors 
 contained in `filter.controls`, `filter.disturbances`, `filter.faults`, 
@@ -440,8 +440,6 @@ noise inputs `w` and auxiliary inputs `v`, respectively, and `Du`, `Dd`, `Df`, `
 The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
 `sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
 
-Note: If 
-
 _Method:_ If `G(λ)` is the `p x m` transfer function matrix of `sys`, then the resulting system `sysf` has an 
 equivalent input output form `[Gu(λ) Gd(λ) Gf(λ) Gw(λ) Gv(λ)]`, where the following relations define the component matrices:
 `Gu(λ) = G(λ)*Su`, `Gd(λ) = G(λ)*Sd`,  `Gf(λ) = [G(λ)*Sf Ss]`, `Gw(λ) = G(λ)*Sw`,  `Gv(λ) = G(λ)*Sv`, with
@@ -457,15 +455,15 @@ function fdimodset(sys::DescriptorStateSpace{T};
                    aux::VRS = Int[]) where T
     p, m = size(sys)
     nx = order(sys)
-    inpu = sort(unique([controls;c]))
-    inpd = sort(unique([disturbances;d]))
+    inpu = unique([controls;c])
+    inpd = unique([disturbances;d])
     isempty(intersect(inpu,inpd)) || error("control and disturbance inputs must be distinct")
-    inpf1 = sort(unique([faults;f;fa])) 
+    inpf1 = unique([faults;f;fa]) 
     isempty(intersect(inpd,inpf1)) || error("disturbance and fault inputs must be distinct")
-    inpfs = sort(unique([faults_sen;fs])) 
-    inpw = sort(unique([noise;n]))
+    inpfs = unique([faults_sen;fs]) 
+    inpw = unique([noise;n])
     isempty(intersect(inpw,inpf1)) || error("noise and fault inputs must be distinct")
-    inpaux = sort(unique([aux;Int[]]))
+    inpaux = unique([aux;Int[]])
     mu = length(inpu)
     md = length(inpd)
     mf1 = length(inpf1)
@@ -473,12 +471,12 @@ function fdimodset(sys::DescriptorStateSpace{T};
     mf = mf1+mf2
     mw = length(inpw)
     maux = length(inpaux)
-    mu == 0 || inpu[mu] <= m || error("selected index/indices of control inputs larger than the number of system inputs $m")   
-    md == 0 || inpd[md] <= m || error("selected index/indices of disturbance inputs larger than the number of system inputs $m")   
-    mf1 == 0 || inpf1[mf1] <= m || error("selected index/indices of fault inputs larger than the number of system inputs $m")   
-    mf2 == 0 || inpfs[mf2] <= p || error("selected index/indices of sensor fault inputs larger than the number of system outputs $p")   
-    mw == 0 || inpw[mw] <= m || error("selected index/indices of noise inputs larger than the number of system inputs $m")   
-    maux == 0 || inpaux[maux] <= m || error("selected index/indices of auxiliary inputs larger than the number of system inputs $m")   
+    mu == 0 || maximum(inpu) <= m || error("selected index/indices of control inputs larger than the number of system inputs $m")   
+    md == 0 || maximum(inpd) <= m || error("selected index/indices of disturbance inputs larger than the number of system inputs $m")   
+    mf1 == 0 || maximum(inpf1) <= m || error("selected index/indices of fault inputs larger than the number of system inputs $m")   
+    mf2 == 0 || maximum(inpfs) <= p || error("selected index/indices of sensor fault inputs larger than the number of system outputs $p")   
+    mw == 0 || maximum(inpw) <= m || error("selected index/indices of noise inputs larger than the number of system inputs $m")   
+    maux == 0 || maximum(inpaux) <= m || error("selected index/indices of auxiliary inputs larger than the number of system inputs $m")   
     Dsf = mf2 > 0 ? eye(T, p, p)[:,inpfs] : zeros(T, p, 0)
     
     Be = [sys.B[:,inpu] sys.B[:,inpd] sys.B[:,inpf1] zeros(T, nx, mf2) sys.B[:,inpw] sys.B[:,inpaux]];
@@ -546,9 +544,9 @@ end
 Compute the internal form `sysR` of the fault detection and isolation filter `sysQ` applied to the synthesis model `sysf`. 
 If `sysf` has the partitioned transfer function matrix `G(λ) = [ Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) ]` in accordance with
 the partitioned system inputs as `controls`, `disturbances`, `faults`, `noise` and `auxiliary` inputs, respectively,
-and `Qi(λ) = [ Qyi(λ) Qui(λ) ]` is the partitioned transfer function matrix of the i-th filter `sysQ.sys[i]` 
+and `Qi(λ) = [ Qyi(λ) Qui(λ) ]` is the partitioned transfer function matrix of the `i`-th filter `sysQ.sys[i]` 
 in accordance with the partitioned filter inputs as `outputs` and `controls`, then 
-the transfer function matrix `Ri(λ)` of the i-th filter in the resulting internal form `sysR.sys[i]` is given by
+the transfer function matrix `Ri(λ)` of the `i`-th filter in the resulting internal form `sysR.sys[i]` is given by
      
      Ri(λ) = | Qyi(λ)  Qui(λ) | * | Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) |
                                   |  I       0     0     0     0   |

@@ -220,7 +220,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    desc = (sysf.sys.E != I)
    m2 = mf+mw+maux
    sdegNS = strongFD ? sdegdefault : missing     
-   if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+   if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
       syse = [sysf.sys; eye(mu,m)];
       #
@@ -816,7 +816,7 @@ nullspace basis for the synthesis of the `i`-th filter component, if `simple = t
 and the degrees of the
 basis vectors of an equivalent polynomial nullspace basis, if `simple = false`;
 
-`info.HDesign` is an `nb`-dimensional vector, whose `i`-th component is 
+`info.HDesign` is an `nb`-dimensional vector, whose `i`-th component 
 is the design matrix `H_i` employed for the synthesis of 
 the `i`-th fault detection filter.
    
@@ -921,7 +921,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       size(HDesign,1) == nb || error("number of HDesign components must be equal to the row dimension of SFDI")
       if !ismissing(rdim) 
          for i = 1:nb
-             if isempty(HDesign[i])
+             if !isempty(HDesign[i])
                 mH = size(HDesign[i],1)
                 if mH > 0
                    mH == rdim[i] || error("row dimension of HDesign[$i] must be equal to rdim[$i]")
@@ -972,7 +972,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       desc = (sysf.sys.E != I)
       m2 = mf+mw+maux
       sdegNS = strongFD ? sdegdefault : missing
-      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
          #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
@@ -2122,7 +2122,7 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    desc = (sysf.sys.E != I)
    m2 = mf+mw+maux
    sdegNS = strongFD ? sdegdefault : missing     
-   if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+   if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
       syse = [sysf.sys; eye(mu,m)]
       #
@@ -2831,7 +2831,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       desc = (sysf.sys.E != I)
       m2 = mf+mw+maux
       sdegNS = strongFD ? sdegdefault : missing
-      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
          #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
@@ -3262,7 +3262,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
       # obtain QR = [ Q1 R1 ], where R1 = [ Rf1 Rw1 Raux1] = Q1*[Gf Gw Ga;0 0 0]
       # QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast) 
-      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
          #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
@@ -4231,7 +4231,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       #
       desc = (sysf.sys.E != I)
       m2 = mf+mw+maux
-      if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+      if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
          #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
@@ -4435,7 +4435,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
             # update QR <- Roinv*QR 
             QR = gir(Roinv*QR; atol1, atol2, rtol, infinite = false)
          end
-         
+            
          # form explicitly Rref = [ Mrf 0 ]
          Rref = [ sysr.sys[:,sysr.faults] zeros(rdim,mw)];
        
@@ -4528,7 +4528,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    
          desc = (sysf.sys.E != I)
          mr = mf+mw+maux
-         if nullspace || md > 0 || (desc && rcond(sysf.sys.e) < 1.e-7 )
+         if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
             # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
             #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
             syse = [sysf.sys; eye(mu,m)];
@@ -4567,7 +4567,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       
          # set options for nullspace computation
          mr = md+mf+mw+maux;
-         if nullspace || (desc && rcond(sysf.sys.e) < 1.e-7 )
+         if nullspace || (desc && rcond(sysf.sys.E) < 1.e-7 )
             # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
             syse = [sysf.sys; eye(mu,m)];
             #
@@ -4631,7 +4631,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          syse = R1;
          tcond1 = 1;
       end
-           
+     
       if mra == 0
          # apply the two-step procedure for the case
          # form Ge = [ Gu Gd Gf Gw; I 0 0 0] 

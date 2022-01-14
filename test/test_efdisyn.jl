@@ -7,7 +7,7 @@ using Polynomials
 using Random
 using Test
 
-# Testing examples for EFDSYN 
+# Testing examples for EFDISYN 
 println("Test_efdisyn")
 @testset "efdisyn" begin
 rand()

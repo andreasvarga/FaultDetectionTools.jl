@@ -3,6 +3,8 @@ module RunExamples
 using Test, FaultDetectionTools
 
 @testset "Examples" begin
+# LPV to noise inputs
+include("Ex2_4.jl")
 # solving EFDP
 include("Ex5_2.jl")
 include("Ex5_3.jl")
@@ -32,12 +34,14 @@ include("Ex5_15.jl")
 include("Ex5_16.jl")
 include("Ex5_16c.jl")
 include("Ex5_17.jl")
-# paradigms: nullspace and least order synthesis
+# solving EMDP
+include("Ex6_1.jl")
+include("Ex6_1c.jl")
+# synthesis paradigms: nullspace and least order synthesis
 include("Ex7_3.jl")
 include("Ex7_3c.jl")
 include("Ex7_4.jl")
 include("Ex7_4c.jl")
-
 end
 
 end

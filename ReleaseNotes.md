@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.7.0 
+
+This minor release provides implementations of several basic model detection related objects and their constructors, jointly with functions to perform basic analysis and performance evaluation, as well as a function for the exact solution of synthesis problems of model detection filters. 
+
 ## Version 0.6.0 
 
 This minor release concludes the implementation of the functions for solving synthesis problems of _fault detection and isolation_ (FDI) filters. This release provides a new function for the approximate model-matching based synthesis of FDI filters and three new functions for the evaluation of the model-matching performance. The presented examples in Chapters 5 and 7, and the case studies in Chapter 8 of the book 

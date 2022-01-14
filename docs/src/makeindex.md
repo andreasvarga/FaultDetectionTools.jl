@@ -3,9 +3,12 @@
 ```@index
 Pages = [ "FDIObjects.md",
           "FDIanalysis.md",
-          "FDIperformance.md",
           "FDIsynthesis.md",
-          "FDIutils.md" ]
+          "FDIperformance.md",
+          "FDIutils.md",
+          "MDObjects.md",
+          "MDsynthesis.md",
+          "MDperformance.md"]
 Module = ["FaultDetectionTools"]
 Order = [:type, :function]
 ```
