@@ -15,7 +15,7 @@ struct MDModel <: AbstractFDDObject
     ma::Int
     function MDModel(sys::DescriptorStateSpace, mu::Int, md::Int, mw::Int, ma::Int)  
         mdmodel_validation(sys, mu, md, mw, ma)
-        new(sys[:,1:mu+md+mw+ma], mu, md, mw, ma)
+        new(sys, mu, md, mw, ma)
     end
 end
 """
@@ -316,7 +316,7 @@ Type for model detection filters resulted as solutions of model detection proble
 If `filter::MDFilter` is the model detection filter object, 
 the underlying `i`-th descriptor system model
 can be obtained via `filter.sys[i]` and the dimensions of the partitioned filter input vectors as 
-`outputs` and `controls`,  
+`measured outputs` and `control inputs`,  
 can be accessed as the integers contained in `filter.ny` and `filter.mu`, respectively.
 """
 struct MDFilter{T} <: AbstractFDDObject where T 
@@ -338,46 +338,10 @@ struct MDFilter{T} <: AbstractFDDObject where T
         new{T}(sysn, ny, mu)
     end
 end
-# """
-#     MDFilter(sys, p, mu) -> Q::MDFilter
-
-# Build for a vector of linear time-invariant descriptor system models `sys[i] = (Ai-λEi,Bi,Ci,Di)`
-# with the same number of inputs, a model detection filter object `Q`, 
-# as determined with the synthesis functions of model detection filters. 
-# `p` and `mu` are the number of measured outputs and the number of control inputs, respectively. 
-# It is assumed that each `Bi = [Byi Bui Bvi]` and `Di = [Dyi Dui Dvi]` are partitioned matrices such that
-# `Byi` and `Dyi` have `p` columns, and `Bui` and `Dui` have `mu` columns, 
-# where `Byi` and `Bui` are the input matrices from the measured outputs `y` and 
-# control inputs `u`, `Dyi` and `Dui` are the feedthrough matrices from the measured outputs `y` and 
-# control inputs `u`. 
-
-# The resulting `Q` contains the vector of partitioned systems
-# `Q.sys[i] = (Ai-λEi,[Byi Bdi],Ci,[Dyi Dui])` and the indices of inputs corresponding 
-# to the measured outputs and control inputs are contained in the associated 
-# integer vectors `Q.outputs` and `Q.controls`. 
-# """
-# function MDFilter(sys::Vector{DescriptorStateSpace{T}}, p::Int, mu::Int) where T
-#     m = size(sys[1],2) 
-#     p < 0 && error("number of measured outputs must be non-negative")
-#     mu < 0 && error("number of control inputs must be non-negative")
-#     p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-#     return MDFilter{T}(sys, Vector(1:p), Vector(p+1:p+mu))          
-# end
-# function MDFilter(sys::Vector{DescriptorStateSpace}, p::Int, mu::Int)
-#     m = size(sys[1],2) 
-#     p < 0 && error("number of measured outputs must be non-negative")
-#     mu < 0 && error("number of control inputs must be non-negative")
-#     p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-#     return MDFilter{eltype(sys[1])}(sys, Vector(1:p), Vector(p+1:p+mu))          
-# end
-
-# function MDFilter(sys::Vector{DescriptorStateSpace{T}}; outputs::VRS = Int[], controls::VRS = Int[]) where T 
-#     return MDFilter{T}(sys, vec([outputs; Int[]]), vec([controls; Int[]]))          
-# end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilter)
     summary(io, filter); println(io)
     for i = 1:length(filter.sys)
-        println(io, "Filter #$i:")
+        println(io, "Filter# $i:")
         display(filter.sys[i])
     end
     p = filter.ny
@@ -424,22 +388,6 @@ struct MDFilterIF{T} <: AbstractFDDObject where T
         return t
     end
 end
-# function mdfilterIF_validation(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mw::Int, ma::Int) where T
-#     m = size(sys,2) 
-    
-#     inpu = unique(controls); 
-#     inpd = unique(disturbances); 
-#     inpw = unique(noise); 
-#     inpaux = unique(aux); 
-    
-#     isempty(intersect(inpu,inpd)) || error("control and disturbance inputs must be distinct")
-#     isempty(intersect(inpd,inpw)) || error("disturbance and noise inputs must be distinct")
-#     isempty(intersect(inpw,inpaux)) || error("noise and aux inputs must be distinct")  
-    
-#     mu+md+mw+ma > m && error("number of inputs exceeds the number of system inputs $m") 
-    
-#     return inpu, inpd, inpw, inpaux
-# end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilterIF)
     summary(io, filter); println(io)
     M, N = size(filter.sys)
@@ -449,7 +397,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilterIF)
         mw = filter.mw[j]
         maux = filter.ma[j]
         for i = 1:M
-            println(io, "\n(Filter,Model) = (#$i,#$j):")
+            println(io, "\n(Filter#,Model#) = ($i,$j):")
             display(filter.sys[i,j])
             if mu+md+mw+maux > 0
                println(io, "Input groups:")

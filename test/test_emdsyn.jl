@@ -21,6 +21,7 @@ sys4 = dss(0.01*k/(s+0.01*k)); # stall load fault model
 
 # setup synthesis model
 sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu);
+display(sysm)
 
 @time distgap, fpeak = mddist(sysm)
 @time distgapc, fpeakc = mddist2c(sysm,sysm)
@@ -39,6 +40,9 @@ sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu);
 @test norm(distgap3-distgap3c,Inf) < 1.e-7 
 
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20]); info.MDperf
+display(Q)
+display(R)
+gpole(Q)
 @test sortperm(distgap[1,:]) == sortperm(info.MDperf[1,:]) && 
       sortperm(distgap[2,:]) == sortperm(info.MDperf[2,:]) && 
       sortperm(distgap[3,:]) == sortperm(info.MDperf[3,:]) && 
@@ -55,6 +59,7 @@ sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu);
 @test mind == 2 && argmin(mdgain) == mind
 
 sysc1=MDModel(rss(3,2,6,stable = true); mu = 2, md = 1,mw = 2, ma = 1)
+display(sysc1)
 sysc2=MDModel(rss(3,2,6,stable = true); mu = 2, md = 2, mw = 1)
 sysm = mdmodset([sysc1,sysc2])
 @test mddist2c([sysc1,sysc2],[sysc1,sysc2])[1] == mddist2c([sysc1,sysc2],sysm)[1] == mddist2c(sysm,[sysc1,sysc2])[1]
@@ -153,6 +158,7 @@ sysm = mdmodset(sysu, controls = 1:mu);
 # of the left nullspace basis vectorsH = [ 0.7645 0.8848 0.5778 0.9026 ];
 H = [ 0.7645 0.8848 0.5778 0.9026 ];
 @time Q, R, info = emdsyn(sysm, sdeg = -1, poles = [-1], HDesign = H); 
+display(Q)
 R1 = mdIFeval(Q, sysm, atol=1.e-7, minimal = true)
 @test norm(diag(info.MDperf)) < 1.e-7 && all(iszero.(R.sys .- R1.sys,atol=1.e-7))
 
