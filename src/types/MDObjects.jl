@@ -15,7 +15,7 @@ struct MDModel <: AbstractFDDObject
     ma::Int
     function MDModel(sys::DescriptorStateSpace, mu::Int, md::Int, mw::Int, ma::Int)  
         mdmodel_validation(sys, mu, md, mw, ma)
-        new(sys, mu, md, mw, ma)
+        new(sys[:,1:mu+md+mw+ma], mu, md, mw, ma)
     end
 end
 """
