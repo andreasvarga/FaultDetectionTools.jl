@@ -10,7 +10,7 @@ using Random
 abstract type AbstractFDDObject end
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
-import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr, gminreal, gpole
+import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr, gminreal, gpole, isstable
 import Combinatorics: combinations
 import Base: +, -, *
 

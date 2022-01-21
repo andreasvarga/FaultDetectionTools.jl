@@ -77,11 +77,14 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 **Solving model detection problems**
 
 * **[`emdsyn`](@ref)**  Exact synthesis of model detection filters.
+* **[`amdsyn`](@ref)**  Approximate synthesis of model detection filters.
 
 **Performance evaluation of model detection filters**
 
 * **[`mdsspec`](@ref)**  Computation of the strong structure matrix.
 * **[`mdperf`](@ref)**  Computation of the distance-matching performace.
+* **[`mdmatch`](@ref)**  Computation of the distance-matching performace to a component model.
+* **[`mdgap`](@ref)**  Computation of the noise gaps.
 
 **Computational utilities**
 

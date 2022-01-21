@@ -21,12 +21,12 @@ C = 180/pi*eye(p,n); Du = zeros(p,mu); Dw = [zeros(p,n) eye(p)];
 Gamma = 1 .- [ 0  0 0 .5 .5 .5 1  1 1;
             0 .5 1  0 .5  1 0 .5 1 ]';
 N = size(Gamma,1);
-# define multiple physical fault model Gui = Gu*Gamma_i
+
+# define multiple physical fault model Gui = Gu*Gamma_i with noise inputs
 sysuw = similar(Vector{DescriptorStateSpace},N)
 
 for i = 1:N
   sysuw[i] = dss(A,[Bu*diagm(Gamma[i,:]) Bw],C,[Du Dw]);
-  #sysu[i] = gir(dss(A,Bu*diagm(Gamma[i,:]),C,0),atol = 1.e-7);
 end
 
 # setup synthesis model
@@ -35,8 +35,6 @@ sysm = mdmodset(sysuw, controls = 1:mu, noise = mu+1:mu+mw);
 
 # use nonminimal design with  AMDSYN
 Q, R, info = amdsyn(sysm,sdeg = -1, poles = [-1], minimal = false); 
-#info.MDperf
-#info.MDgap 
 
 println("Norms of final residual models")
 display(info.MDperf)
