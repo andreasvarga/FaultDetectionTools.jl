@@ -110,7 +110,7 @@ The keyword argument `rtolinf = tol` specifies the relative accuracy `tol` to be
 to compute the infinity norms. The default value used is `tol = 0.00001`.
 """    
 function mdperf(sysR::MDFilterIF{T}; MDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
-                cdinp::Bool = false, rtolinf::Real = 0.00001, atol::Real = zero(float(real(T))), 
+                cdinp::Bool = false, offset::Real = sqrt(eps(T)), rtolinf::Real = 0.00001, atol::Real = zero(float(real(T))), 
                 atol1::Real = atol, atol2::Real = atol, rtol::Real = 0, fast::Bool = true) where T
     if ismissing(MDfreq)   
        lfreq = 0
@@ -132,7 +132,7 @@ function mdperf(sysR::MDFilterIF{T}; MDfreq::Union{AbstractVector{<:Real},Real,M
                 fmax = MDfreq[1]
                 for k = 1:lfreq
                     tval = opnorm(evalfr(sysR.sys[i,j][:,inpud]; fval = MDfreq[k], atol1, atol2, rtol, fast))
-                    gmax > tval && (gmax = tval; fmax = tfreq)
+                    gmax > tval || (gmax = tval; fmax = MDfreq[k])
                 end
                 mdgain[i,j] = gmax
                 fpeak[i,j] = fmax
@@ -215,4 +215,86 @@ function mdmatch(Q::MDFilter{T}, sysc::MDModel; minimal::Bool = false, MDfreq::U
        tmin <= mdgain[i] || (tmin = mdgain[i]; mind = i)
    end
    return mdgain, fpeak, mind
+end
+"""
+     mdgap(sysR::MDFilterIF; MDfreq, cdinp = false, rtolinf = 0.00001, 
+            offset, atol, atol1 = atol, atol2 = atol, rtol = 0, fast = true) -> (gap, β, γ)
+
+Compute the noise gaps performance of a collection of model detection filters
+using the model detection filter internal form object `sysR::MDFilterIF`.  
+For an `M × N` array of filters `sysR`, let the `(i,j)`-th component filter 
+`sysR.sys[i,j]` have the input-output form
+ 
+     rij = Ruij(λ)*u + Rdij(λ)*dj + Rwij(λ)*wj + Rvij(λ)*vj ,
+
+with the Laplace- or Z-transformed residual output `rij`, control inputs `u`, 
+disturbance inputs `dj`, noise inputs `wj`, and auxiliary inputs `vj`,  
+and with `Ruij(λ)`, `Rdij(λ)`, `Rwij(λ)` and `Rvij(λ)`, the corresponding transfer function matrices. 
+Then, `gap`, `β` and `γ` are `M`-dimensional vectors, such that the `i`-th noise gap is evaluated as 
+`gap[i] = β[i]/γ[i]`, where `β[i] = min(||Rij(λ)||∞` for `i` ``\\neq`` `j`) 
+and `γ[i] = ||Rwii(λ)||∞`.  `Rij(λ)` is defined as `Rij(λ) = Ruij(λ)`  if `cdinp = false` (default) 
+or `Rij(λ) = [Ruij(λ) Rdij(λ)]` if `cdinp = true`.  
+
+If `MDfreq = ω`, where `ω` is a given vector of real frequency values, 
+then each gain `β[i]` represents the minimum of 
+the maximum of 2-norm pointwise gains evaluated for all frequencies in `ω`.
+
+The stability boundary offset, `β`, to be used to assess the finite poles which belong to the
+boundary of the stability domain can be specified via the keyword parameter `offset = β`.
+Accordingly, for a continuous-time system, these are the finite poles having 
+real parts within the interval `[-β,β]`, while for a discrete-time system, 
+these are the finite pole having moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+Pencil reduction algorithms are employed to compute the H∞-norms. 
+These algorithms perform rank decisions based on rank 
+revealing QR-decompositions with column pivoting 
+if `fast = true` (default) or the more reliable SVD-decompositions if `fast = false`.
+
+If `(Arij-λErij,Brij,Crij,Drij)` is the descriptor realization of `sysR.sys[i,j]`, then 
+the keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `Arij`, `Brij`, `Crij`, `Drij`, the absolute tolerance for the nonzero elements of `Erij`,  
+and the relative tolerance for the nonzero elements of `Arij`, `Brij`, `Crij`, `Drij` and `Eirj`.
+The default relative tolerance is `nij*ϵ`, where `ϵ` is the working _machine epsilon_ 
+and `nij` is the order of the system `sysR.sys[i,j]`.  
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+The keyword argument `rtolinf = tol` specifies the relative accuracy `tol` to be used 
+to compute the infinity norms. The default value used is `tol = 0.00001`.
+"""    
+function mdgap(sysR::MDFilterIF{T}; MDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
+                cdinp::Bool = false, rtolinf::Real = 0.00001, offset::Real = sqrt(eps(T)), atol::Real = zero(float(real(T))), 
+                atol1::Real = atol, atol2::Real = atol, rtol::Real = 0, fast::Bool = true) where T
+    if ismissing(MDfreq)   
+       lfreq = 0
+    else         
+       isa(MDfreq,Vector) || (MDfreq = [MDfreq]) 
+       lfreq = length(MDfreq);
+    end
+    M, N = size(sysR.sys)
+    β = similar(Vector{T}, M)
+    γ = similar(Vector{T}, M)
+    inpud = 1:sysR.mu
+    for i = 1:M
+        mi = sysR.mu + sysR.md[i] 
+        inpw = mi : mi + sysR.mw[i] 
+        γ[i] = ghinfnorm(sysR.sys[i,i][:,inpw]; rtolinf, atol1, atol2, rtol, fast, offset)[1]
+        gmin = Inf
+        for j = 1:N
+            j == i && continue
+            cdinp && (inpud = 1:sysR.mu+sysR.md[j]) 
+            if lfreq == 0
+                gmin = min(gmin,ghinfnorm(sysR.sys[i,j][:,inpud]; rtolinf, atol1, atol2, rtol, fast, offset)[1])
+            else
+                gmax = zero(T)
+                for k = 1:lfreq
+                   gmax = max(gmax,opnorm(evalfr(sysR.sys[i,j][:,inpud]; fval = MDfreq[k], atol1, atol2, rtol, fast)))
+                end
+                gmin = min(gmin,gmax)
+            end
+        end
+        β[i] = gmin
+    end
+
+    return β./γ, β, γ
 end

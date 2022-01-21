@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version 0.8.0 
+
+This minor release concludes the implementation of the functions for solving synthesis problems of 
+model detection filters and provides a new function for the solution of the approximate model detection problem and a new function for the evaluation of the noise gaps performance. 
+
 ## Version 0.7.0 
 
 This minor release provides implementations of several basic model detection related objects and their constructors, jointly with functions to perform basic analysis and performance evaluation, as well as a function for the exact solution of synthesis problems of model detection filters. 

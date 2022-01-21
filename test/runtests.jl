@@ -16,6 +16,7 @@ include("test_emmsyn.jl")
 include("test_ammsyn.jl")
 # test model detection functions
 include("test_emdsyn.jl")
+include("test_amdsyn.jl")
 end
 
 end

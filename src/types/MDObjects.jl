@@ -15,7 +15,7 @@ struct MDModel <: AbstractFDDObject
     ma::Int
     function MDModel(sys::DescriptorStateSpace, mu::Int, md::Int, mw::Int, ma::Int)  
         mdmodel_validation(sys, mu, md, mw, ma)
-        new(sys, mu, md, mw, ma)
+        new(sys[:,1:mu+md+mw+ma], mu, md, mw, ma)
     end
 end
 """
@@ -149,7 +149,8 @@ function mdmodel_validation(sys::Vector{<:DescriptorStateSpace}, mu::Int, md::Ve
     any(mw .< 0) && error("number of noise inputs must be nonnegative")
     any(ma .< 0) && error("number of auxiliary inputs must be nonnegative")
     mi = size.(sys,2)
-    any(md+mw+ma-mi .> -mu) && error("specified number of inputs exceeds the number of system inputs")
+    #any(md+mw+ma-mi .> -mu) && error("specified number of inputs exceeds the number of system inputs")
+    all(md+mw+ma-mi .== -mu) || error("specified number of inputs differs from the number of system inputs")  
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sysm::MDMModel)
     summary(io, sysm); println(io)
@@ -419,7 +420,8 @@ struct MDFilterIF{T} <: AbstractFDDObject where T
                 sysn[i,j] = sys[i,j][:,1:mj]
             end
         end
-        new{T}(sysn, mu, md, mw, ma)
+        t = new{T}(sysn, mu, md, mw, ma)
+        return t
     end
 end
 # function mdfilterIF_validation(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mw::Int, ma::Int) where T
@@ -511,4 +513,18 @@ function mdIFeval(Q::MDFilter, sysm::MDMModel; minimal::Bool = false,
    end
    return MDFilterIF{T1}(sysR, sysm.mu, sysm.md, sysm.mw, sysm.ma) 
 end
+function gbalmr(Q::MDFilter{T}; kwargs...) where T 
+    for i = 1:length(Q.sys)
+        Q.sys[i] = gbalmr(Q.sys[i]; kwargs...)[1]
+    end
+    return Q
+end
+function gminreal(Q::MDFilter{T}; kwargs...) where T 
+    for i = 1:length(Q.sys)
+        Q.sys[i] = gminreal(Q.sys[i]; kwargs...)
+    end
+    return Q
+end
+gpole(Q::MDFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
+isstable(Q::MDFilter{T}; kwargs...) where T = all(isstable.(Q.sys;  kwargs...))
 

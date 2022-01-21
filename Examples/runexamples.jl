@@ -37,6 +37,9 @@ include("Ex5_17.jl")
 # solving EMDP
 include("Ex6_1.jl")
 include("Ex6_1c.jl")
+# solving AMDP
+include("Ex6_2.jl")
+include("Ex6_2c.jl")
 # synthesis paradigms: nullspace and least order synthesis
 include("Ex7_3.jl")
 include("Ex7_3c.jl")

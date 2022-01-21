@@ -22,8 +22,8 @@ export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdi
 
 export MDMModel, MDModel, mdmodset, MDFilter, MDFilterIF, mdIFeval
 export mddist, mddist2c
-export mdsspec, mdperf, mdmatch
-export emdsyn, emdbasesel
+export mdsspec, mdperf, mdmatch, mdgap
+export emdsyn, amdsyn, emdbasesel
 
 
 const VRS = Union{Vector{Int}, UnitRange{Int}, Int}

@@ -4,7 +4,7 @@
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the exact fault detection problem (EFDP) for a given synthesis model
+Solve the _exact fault detection problem_ (EFDP) for a given synthesis model
 `sysf` with additive faults. The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection filter, representing the solution of the EFDP, and its internal form, respectively.
 
@@ -554,7 +554,7 @@ end
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the exact fault detection isolation problem (EFDIP) for a given synthesis model
+Solve the _exact fault detection isolation problem_ (EFDIP) for a given synthesis model
 `sysf` with additive faults and a given binary structure vector `S`. 
 The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection filter, representing the solution of the EFDIP, and its internal form, respectively, and are determined such that
@@ -666,7 +666,7 @@ end
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the exact fault detection and isolation problem (EFDIP) for a given synthesis model
+Solve the _exact fault detection and isolation problem_ (EFDIP) for a given synthesis model
 `sysf` with additive faults and a given binary structure matrix `SFDI` with `nb` rows (specifications). 
 The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection and isolation filter, representing the solution of the EFDIP, and its internal form, respectively.
@@ -1151,7 +1151,7 @@ function afdredsyn(sysfred::Union{FDFilterIF{T},FDIModel{T}}; rdim::Union{Int,Mi
    FDtol, FDGainTol, FDfreq, tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
       -> (Qred::FDFilter, Rred::FDFilterIF, info) 
 
-Solve the approximate fault detection problem (AFDP) for a reduced synthesis model
+Solve the _approximate fault detection problem_ (AFDP) for a reduced synthesis model
 `sysfred`. The computed stable and proper filter objects `Qred` and `Rred` contain the 
 fault detection filter, representing the solution of the AFDP, and its internal form, respectively.
 
@@ -2392,7 +2392,7 @@ end
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true)  
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the approximate fault detection and isolation problem (AFDIP) for a given synthesis model
+Solve the _approximate fault detection and isolation problem_ (AFDIP) for a given synthesis model
 `sysf` with additive faults and a given binary structure vector `SFDI`. 
 The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection filter, representing the solution of the AFDIP, and its internal form, respectively, 
@@ -2436,7 +2436,7 @@ end
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the approximate fault detection and isolation problem (AFDIP) for a given synthesis model
+Solve the _approximate fault detection and isolation problem_ (AFDIP) for a given synthesis model
 `sysf` with additive faults and a given binary structure matrix `SFDI` with `nb` rows (specifications). 
 The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection and isolation filter, representing the solution of the AFDIP, and its internal form, respectively.
