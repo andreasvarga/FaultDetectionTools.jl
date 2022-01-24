@@ -10,7 +10,7 @@ using Test
 # Testing examples for AFDSYN 
 println("Test_afdisyn")
 @testset "afdisyn" begin
-rand(2)
+Random.seed!(2123)
 
 ## Examples without control and disturbance inputs
 p = 3; mf = 2;
@@ -87,9 +87,9 @@ SFDI = fdigenspec(sysf, atol = 1.e-7)
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(vcat(Rfw.sys...)[:,Rfw.faults]-vcat(R.sys...)[:,R.faults],atol=1.e-7) && 
       iszero(vcat(Rfw.sys...)[:,Rfw.noise]-vcat(R.sys...)[:,R.noise],atol=1.e-7) && 
-      iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) &&
-      info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
-      fditspec(Rfw, FDtol = 1.e-6) == SFDI  && fdisspec(Rfw, FDGainTol = 1.e-3) == SFDI &&
+      iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) 
+@test info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
+      fditspec(Rfw, FDtol = 1.e-6) == SFDI  && fdisspec(Rfw, FDGainTol = 1.e-4) == SFDI &&
       fdiscond(Rfw,SFDI)[1] ≈ fdiscond(R,SFDI)[1] && fdif2ngap(R,SFDI)[1] ≈ info.gap &&
       any(isinf.(fdimmperf(Rfw,2))) && all(isfinite.(fdimmperf(Rfw,Inf)))
 
