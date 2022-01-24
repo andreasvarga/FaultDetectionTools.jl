@@ -22,64 +22,37 @@ display(sysf)
 # tests FDFilter
 filter = rss(3,1,3)
 Q = FDFilter(filter,1,2)
-Q2 = FDFilter(filter; outputs = [1],controls = [2,3])
-@test iszero(Q.sys-Q2.sys,atol=1.e-7) && 
-            Q.controls == Q2.controls && Q.outputs == Q2.outputs
-Q3 = FDFilter(filter,outputs = 1,controls = 2:3)
-@test iszero(Q.sys-Q3.sys,atol=1.e-7) && 
-            Q.controls == Q3.controls && Q.outputs == Q3.outputs
 display(Q)
 
 # tests FDIFilter
 filter = [rss(3,1,3), rss(2,2,3)]
 Q = FDIFilter(filter,1,2)
-Q2 = FDIFilter(filter; outputs = [1],controls = [2,3])
-@test iszero(Q.sys[1]-Q2.sys[1],atol=1.e-7) &&  iszero(Q.sys[2]-Q2.sys[2],atol=1.e-7) &&
-            Q.controls == Q2.controls && Q.outputs == Q2.outputs
-Q3 = FDIFilter(filter,outputs = 1,controls = 2:3)
-@test iszero(Q.sys[1]-Q3.sys[1],atol=1.e-7) &&  iszero(Q.sys[2]-Q3.sys[2],atol=1.e-7) &&
-            Q.controls == Q3.controls && Q.outputs == Q3.outputs
 display(Q)
 
 # tests FDFilterIF
 filteri = rss(3,1,6)
-R = FDFilterIF(filteri,controls=1:2,disturbances=[3],aux=6,noise=5,faults=[4])
-R1 = FDFilterIF(filteri,2,1,1,1,1)
-@test iszero(R.sys-R1.sys,atol=1.e-7) && 
-       R.controls == R1.controls && R.disturbances == R1.disturbances &&
-       R.faults == R1.faults && R.noise == R1.noise &&
-       R.aux == R1.aux
-            
-R = FDFilterIF(filteri,aux=[6],noise=[5],faults=[4])
-R1 = FDFilterIF(filteri,0,0,1,1,1;moff = 3)
-@test iszero(R.sys-R1.sys,atol=1.e-7) && 
-       R.controls == R1.controls && R.disturbances == R1.disturbances &&
-       R.faults == R1.faults && R.noise == R1.noise &&
-       R.aux == R1.aux
+R = FDFilterIF(filteri,2,1,1,1,1);
+display(R)
 
-R2 = FDFilterIF(filteri[:,4:end],0,0,1,1,1)
-@test iszero(R.sys-R2.sys,atol=1.e-7) && 
-       R.controls == R2.controls && R.disturbances == R2.disturbances &&
-       R.faults == R2.faults && R.noise == R2.noise &&
-       R.aux == R2.aux
+R1 = FDFilterIF(filteri; mu = 2, md = 1, mf = 1, mw = 1, ma = 1);
+@test iszero(R1.sys-R.sys,atol=1.e-7)
+           
+R1 = FDFilterIF(filteri; mf = 1, mw = 1, ma = 1, moff = 3);
+R2 = FDFilterIF(filteri[:,4:end],0,0,1,1,1);
+@test iszero(R1.sys-R2.sys,atol=1.e-7)
+
 
 # tests FDIFilterIF
 filteri = [rss(3,1,6), rss(2,2,6)]
-R = FDIFilterIF(filteri,controls=1:2,disturbances=[3],aux=6,noise=5,faults=[4])
-R1 = FDIFilterIF(filteri,2,1,1,1,1)
-@test iszero(R.sys[1]-R1.sys[1],atol=1.e-7) && iszero(R.sys[2]-R1.sys[2],atol=1.e-7) && 
-       R.controls == R1.controls && R.disturbances == R1.disturbances &&
-       R.faults == R1.faults && R.noise == R1.noise &&
-       R.aux == R1.aux
+R = FDIFilterIF(filteri,2,1,1,1,1);
 display(R)
-            
-R = FDIFilterIF(filteri,aux=[6],noise=[5],faults=[4])
-R1 = FDIFilterIF(filteri,0,0,1,1,1;moff = 3)
-@test iszero(R.sys[1]-R1.sys[1],atol=1.e-7) && iszero(R.sys[2]-R1.sys[2],atol=1.e-7) && 
-       R.controls == R1.controls && R.disturbances == R1.disturbances &&
-       R.faults == R1.faults && R.noise == R1.noise &&
-       R.aux == R1.aux
 
+R1 = FDIFilterIF(filteri; mu = 2, md = 1, mf = 1, mw = 1, ma = 1);
+@test all(iszero.(R1.sys .- R.sys, atol=1.e-7))
+
+
+R2 = FDIFilterIF(filteri; mf = 1, mw = 1, ma = 1, moff = 3);
+display(R2)
 
 sysf1 = fdimodset(rss(3,1,6,stable=true),c = 1:2, d = 3, f = 4:5, n = 6, aux = 2:6)
 Q = FDFilter(rss(3,1,3,stable=true),1,2)

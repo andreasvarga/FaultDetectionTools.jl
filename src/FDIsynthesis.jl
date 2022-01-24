@@ -201,13 +201,13 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    end
   
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    if mf == 0 && minimal
@@ -218,7 +218,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    # Step 1): nullspace based reduction
    #
    desc = (sysf.sys.E != I)
-   m2 = mf+mw+maux
+   m2 = mf+mw+ma
    sdegNS = strongFD ? sdegdefault : missing     
    if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
@@ -235,8 +235,8 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    else
       # compute minimal basis as Q = Q1 = [ I -Gu] and set
       # QR = [ Q R ], where R = [ Gf Gw Ga ]
-      QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-             sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+      QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+             sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
       # perform stabilization if strong detectability has to be enforced
       strongFD  && (QR = glcf(QR; atol1, atol2, atol3, rtol, fast)[1]) 
       degs = Int[]; tcond1 = 1.
@@ -540,8 +540,8 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    QR = gss2ss(QR; atol1, atol2, rtol)[1]
    
    Q = FDFilter(QR, p, mu)
-   #R = fdRset(QR[:,p+mu+1:end],faults = Vector(1:mf), noise = mf .+ Vector(1:mw), aux = (mf+mw) .+ Vector(1:maux))
-   R = FDFilterIF(QR,0,0,mf,mw,maux; moff = p+mu)
+   #R = fdRset(QR[:,p+mu+1:end],faults = Vector(1:mf), noise = mf .+ Vector(1:mw), aux = (mf+mw) .+ Vector(1:ma))
+   R = FDFilterIF(QR; mf, mw, ma, moff = p+mu)
    info = (tcond = tcond1, degs = infodegs, S = S, HDesign = convert(Matrix{Float64},Htemp))
 
    return Q, R, info
@@ -566,15 +566,15 @@ function efdsyn(sysf::FDIModel{T}, SFDI::Union{BitVector,Vector{Bool}}; kwargs..
    md = length(sysf.disturbances) 
    mf = length(sysf.faults)
    mw = length(sysf.noise) 
-   maux = length(sysf.noise)  
+   ma = length(sysf.noise)  
    mf == length(SFDI) || error("number of faults must be equal to the length dimension of SFDI")
    indd = Vector(1:mf)[SFDI .== false] 
    indf = Vector(1:mf)[SFDI .== true] 
    sysc = fdimodset(sysf.sys, c = 1:mu, d = [Vector(mu .+ (1:md)); (mu+md) .+ indd], 
-                    f = (mu+md) .+ indf, aux = (mu+md) .+ (1:mf+mw+maux));
+                    f = (mu+md) .+ indf, aux = (mu+md) .+ (1:mf+mw+ma));
    #
    Q, Rft, info = efdsyn(sysc; kwargs...)
-   return Q, FDFilterIF(Rft.sys[:,Rft.aux],0,0,mf,mw,maux), info
+   return Q, FDFilterIF(Rft.sys[:,Rft.aux],0,0,mf,mw,ma), info
 end
 function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple::Bool)
    #   efdbasesel(S, degs, rdim, nout, simple) -> (seli, selord)
@@ -850,13 +850,13 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
    
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    if mf == 0 && minimal
@@ -943,7 +943,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
          indf = Vector(1:mf)[SFDI[i,:] .== true] 
          # pack [Gu [Gd Gf1] Gf2 [Gf Gw Gaux]]
          sysc = fdimodset(sysf.sys, c = 1:mu, d = [Vector(mu .+ (1:md)); (mu+md) .+ indd], 
-                          f = (mu+md) .+ indf, aux = (mu+md) .+ (1:mf+mw+maux));
+                          f = (mu+md) .+ indf, aux = (mu+md) .+ (1:mf+mw+ma));
          # solve the corresponding EFDP           
          Qti, Rti, infoi = try 
             efdsyn(sysc; rdim = rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
@@ -965,16 +965,16 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
          HDesign1[i] = infoi.HDesign
       end
       Q = FDIFilter(Qt, p, mu)
-      R = FDIFilterIF(Rt,0,0,mf,mw,maux)
+      R = FDIFilterIF(Rt; mf, mw, ma)
   else     
       # Step 1): nullspace based reduction
       #
       desc = (sysf.sys.E != I)
-      m2 = mf+mw+maux
+      m2 = mf+mw+ma
       sdegNS = strongFD ? sdegdefault : missing
       if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         #syse = [sysf(:,[inpu inpd inpf inpw inpa]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -989,8 +989,8 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
-         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          strongFD  && (QR = glcf(QR; atol1, atol2, atol3, rtol, fast)[1]) 
          tcond0 = 1.
@@ -1006,7 +1006,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           indd = Vector(1:mf)[SFDI[i,:] .== false] 
           indf = Vector(1:mf)[SFDI[i,:] .== true] 
           # pack [Rfd1 Rff2 [Q1 Rf1 Rw1 Raux1]]
-          sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, aux = Vector(1:p+mu+mf+mw+maux))
+          sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, aux = Vector(1:p+mu+mf+mw+ma))
           # determine [Q1i*Rff2 [Q1i*Q1 Q1i*Rf1 Q1i*Rw1 Q1i*Raux1]]
           _, QRauxi, infoi = try 
              efdsyn(sysc; rdim = ismissing(rdim) ? missing : rdim[i], HDesign = ismissing(HDesign) ? missing : HDesign[i], atol1, atol2, atol3, sdeg, smarg, poles, minimal,
@@ -1028,7 +1028,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           HDesign1[i] = infoi.HDesign
        end
        Q = FDIFilter(QRt, p, mu)
-       R = FDIFilterIF(QRt,0,0,mf,mw,maux; moff = p+mu)
+       R = FDIFilterIF(QRt; mf, mw, ma, moff = p+mu)
    end   
    info = (tcond = tcond1, degs = degs1, HDesign = HDesign1)
 
@@ -1331,9 +1331,9 @@ _References:_
    # decode input information 
    length(sysfred.controls) == 0 || error("the reduced system must not have control inputs")
    length(sysfred.disturbances) == 0 || error("the reduced system must not have disturbance inputs")
-   inpf = sysfred.faults; mf = length(inpf)
-   inpw = sysfred.noise; mw = length(inpw)
-   inpaux = sysfred.aux;  maux = length(inpaux)  
+   inpf = sysfred.faults; mf = sysfred.mf
+   inpw = sysfred.noise; mw = sysfred.mw
+   inpa = sysfred.aux;  ma = sysfred.ma 
    indf = inpf  
    Ts = sysfred.sys.Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
@@ -1684,7 +1684,7 @@ _References:_
       # set(sysfredupd,'InputGroup',InpG)
 
       Qred = FDFilter(sysfredupd[:,end-nvec+1:end], nvec, 0)
-      Rred = FDFilterIF(sysfredupd,0,0,mf,mw,maux)
+      Rred = FDFilterIF(sysfredupd; mf, mw, ma)
       if rw > 0
          beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
          gap = beta/ghinfnorm(sysfredupd[:,inpw])[1]
@@ -1781,7 +1781,7 @@ _References:_
    sysfredupd = gss2ss(scale*sysfredupd)[1]
    
    Qred = FDFilter(sysfredupd[:,end-nvec+1:end], nvec, 0)
-   Rred = FDFilterIF(sysfredupd,0,0,mf,mw,maux)
+   Rred = FDFilterIF(sysfredupd; mf, mw, ma)
    beta = fdhinfminus(sysfredupd[:,inpf],FDfreq)[1]
    info = (tcond = tcond1, HDesign = convert(Matrix{Float64},Htemp), freq = freq, gap = beta/gamma)
    
@@ -2103,13 +2103,13 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    !ismissing(scale2) && iszero(scale2) && error("scale2 must be nonzero") 
    
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    if mf == 0 && minimal
@@ -2120,7 +2120,7 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    # Step 1): nullspace based reduction
    #
    desc = (sysf.sys.E != I)
-   m2 = mf+mw+maux
+   m2 = mf+mw+ma
    sdegNS = strongFD ? sdegdefault : missing     
    if nullspace || simple || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
@@ -2137,8 +2137,8 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    else
       # compute minimal basis as Q = Q1 = [ I -Gu] and set
       # QR = [ Q R ], where R = [ Gf Gw Ga ]
-      QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-             sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+      QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+             sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
       # perform stabilization if strong detectability has to be enforced
       strongFD  && (QR = glcf(QR; atol1, atol2, atol3, rtol, fast)[1]) 
       degs = Int[]; tcond1 = 1.
@@ -2149,7 +2149,7 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
 
    indf = (p+mu) .+ Vector(1:mf)             # input indices of Rf in QR
    indw = (p+mu+mf) .+ Vector(1:mw)          # input indices of Rw in QR
-   indaux = (p+mu+mf+mw) .+ Vector(1:maux)   # input indices of Ra in QR
+   indaux = (p+mu+mf+mw) .+ Vector(1:ma)   # input indices of Ra in QR
 
    # compute rank of Rw
    rw = gnrank(QR[:,indw]; atol1, atol2, rtol)
@@ -2269,7 +2269,7 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
       # the case rw < nvec
       # compute a left nullspace basis Qt such that Qt*Rw = 0 and
       # obtain QRt = [ Qt Rt ], where Rt = [ Q Rft Rwt Rat] = Qt*[Q1 Rf Rw Ra]
-      m2 = p+mu+mf+mw+maux
+      m2 = p+mu+mf+mw+ma
       QRt, infot = glnull(QR[:,[indw; Vector(1:p+mu); indf; indw; indaux]], m2; simple, atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
       QR2 = QRt[:,nvec .+ [Vector(1:p+mu); indf; indw; indaux]]
       nvec2 == size(QR2,1) || error("something wrong: try to adapt the rank decision tolerance")
@@ -2376,7 +2376,7 @@ function afdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    QR = [QR1;QR2] 
     
    Q = FDFilter(QR, p, mu)
-   R = FDFilterIF(QR,0,0,mf,mw,maux; moff = p+mu)
+   R = FDFilterIF(QR; mf, mw, ma, moff = p+mu)
    info = (tcond = max(tcond1,tcond2), degs = degs, degs2 = degs2, S = S1, S2 = S2, 
            HDesign = HDesign1, HDesign2 = HDesign2, freq = freq, 
            gap = fdif2ngap(R,FDfreq)[1])
@@ -2407,12 +2407,12 @@ function afdsyn(sysf::FDIModel{T}, SFDI::Union{BitVector,AbstractVector{Bool}}; 
    md = length(sysf.disturbances) 
    mf = length(sysf.faults)
    mw = length(sysf.noise) 
-   maux = length(sysf.aux)  
+   ma = length(sysf.aux)  
    mf == length(SFDI) || error("number of faults must be equal to the length dimension of SFDI")
    indd = Vector(1:mf)[SFDI .== false] 
    indf = Vector(1:mf)[SFDI .== true] 
    sysc = fdimodset(sysf.sys, c = 1:mu, d = [Vector(mu .+ (1:md)); (mu+md) .+ indd], 
-                    f = (mu+md) .+ indf, n = (mu+md+mf) .+ (1:mw), aux = (mu+md) .+ (1:mf+mw+maux));
+                    f = (mu+md) .+ indf, n = (mu+md+mf) .+ (1:mw), aux = (mu+md) .+ (1:mf+mw+ma));
    #
    Q, Rft, info = try 
       afdsyn(sysc; kwargs...)
@@ -2423,11 +2423,11 @@ function afdsyn(sysf::FDIModel{T}, SFDI::Union{BitVector,AbstractVector{Bool}}; 
       @warn "afdsyn: solution of strong AFDIP failed: trying to solve a weak AFDIP"           
       sysc = fdimodset(sysf.sys, c = 1:mu, d = mu .+ (1:md), 
                          f = (mu+md) .+ indf, n = [(mu+md) .+ indd; (mu+md+mf) .+ (1:mw)], 
-                         aux = (mu+md) .+ (1:mf+mw+maux));
+                         aux = (mu+md) .+ (1:mf+mw+ma));
       Q, Rft, info = afdsyn(sysc; kwargs...)
-      return Q, FDFilterIF(Rft.sys[:,Rft.aux],0,0,mf,mw,maux), info
+      return Q, FDFilterIF(Rft.sys[:,Rft.aux]; mf, mw, ma), info
    end
-   return Q, FDFilterIF(Rft.sys[:,Rft.aux],0,0,mf,mw,maux), info
+   return Q, FDFilterIF(Rft.sys[:,Rft.aux]; mf, mw, ma), info
 end
 """
     afdisyn(sysf::FDIModel, SFDI; rdim, nullspace = true, simple = false, minimal = true, separate = false,
@@ -2679,13 +2679,13 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
    
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    if mf == 0 && minimal
@@ -2824,16 +2824,16 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           gap[i] = infoi.gap
       end
       Q = FDIFilter(Qt, p, mu)
-      R = FDIFilterIF(Rt,0,0,mf,mw,maux)
+      R = FDIFilterIF(Rt; mf, mw, ma)
   else     
       # Step 1): nullspace based reduction
       #
       desc = (sysf.sys.E != I)
-      m2 = mf+mw+maux
+      m2 = mf+mw+ma
       sdegNS = strongFD ? sdegdefault : missing
       if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         #syse = [sysf(:,[inpu inpd inpf inpw inpa]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -2848,8 +2848,8 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
-         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          strongFD  && (QR = glcf(QR; atol1, atol2, atol3, rtol, fast)[1]) 
          tcond0 = 1.
@@ -2865,7 +2865,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           indd = Vector(1:mf)[SFDI[i,:] .== false] 
           indf = Vector(1:mf)[SFDI[i,:] .== true] 
           # pack [Rfd1 Rff2 [Q1 Rf1 Rw1 Raux1]]
-          sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, n = (p+mu+mf) .+ (1:mw), aux = Vector(1:p+mu+mf+mw+maux))
+          sysc = fdimodset(QR, d = (p+mu) .+ indd, f = (p+mu) .+ indf, n = (p+mu+mf) .+ (1:mw), aux = Vector(1:p+mu+mf+mw+ma))
           # determine [Q1i*Rff2 [Q1i*Q1 Q1i*Rf1 Q1i*Rw1 Q1i*Raux1]]
           _, QRauxi, infoi = try 
              afdsyn(sysc; rdim = ismissing(rdim) ? missing : rdim[i],  HDesign = ismissing(HDesign) ? missing : HDesign[i], 
@@ -2881,7 +2881,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
              t3 = (mod(i,10) == 3 ? "$i-rd" : "")
              t4 = (mod(i,10) > 3 ? "$i-th" : "")
              @warn "afdsyn: solution of strong AFDIP failed for the $t1$t2$t3$t4 reduced AFDP: trying to solve a weak AFDIP"           
-             sysc = fdimodset(QR, f = (p+mu) .+ indf, n = [(p+mu) .+ indd; (p+mu+mf) .+ (1:mw)], aux = Vector(1:p+mu+mf+mw+maux))
+             sysc = fdimodset(QR, f = (p+mu) .+ indf, n = [(p+mu) .+ indd; (p+mu+mf) .+ (1:mw)], aux = Vector(1:p+mu+mf+mw+ma))
              _, QRauxi, infoi = try 
                afdsyn(sysc; rdim = ismissing(rdim) ? missing : rdim[i],  HDesign = ismissing(HDesign) ? missing : HDesign[i], 
                HDesign2 = ismissing(HDesign2) ? missing : HDesign2[i], atol1, atol2, atol3, rtol, sdeg, smarg, poles, minimal,
@@ -2901,7 +2901,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
           gap[i] = infoi.gap
        end
        Q = FDIFilter(QRt, p, mu)
-       R = FDIFilterIF(QRt,0,0,mf,mw,maux; moff = p+mu)
+       R = FDIFilterIF(QRt; mf, mw, ma, moff = p+mu)
    end   
    info = (tcond = tcond1, degs = degs1, degs2 = degs2, HDesign = HDesign1s, HDesign2 = HDesign2s, 
            freq = freq, gap = fdif2ngap(R, SFDI, FDfreq)[1])
@@ -3226,11 +3226,11 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    end
   
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    mru = length(sysr.controls); 
    mru == 0 || mru == mu ||  error("Incompatible control input groups in sysf and sysr") 
    mrd = length(sysr.disturbances); 
@@ -3240,9 +3240,9 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    mrw = length(sysr.noise); 
    mrw == 0 || mrw == mw ||  error("Incompatible noise input groups in sysf and sysr") 
    mra = length(sysr.aux); 
-   mra > 0 || mra == maux ||  error("Incompatible auxiliary input groups in sysf and sysr") 
+   mra > 0 || mra == ma ||  error("Incompatible auxiliary input groups in sysf and sysr") 
        
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    if mf == 0 && minimal
@@ -3256,7 +3256,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
                    
       # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
       syse = [sysf.sys; eye(mu,m)];
-      m2 = mf+mw+maux
+      m2 = mf+mw+ma
       desc = (sysf.sys.E != I)
       #
       # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -3264,7 +3264,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       # QR, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast) 
       if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         #syse = [sysf(:,[inpu inpd inpf inpw inpa]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -3281,8 +3281,8 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
-         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          tcond1 = 1.
          degs = Int[]
@@ -3296,12 +3296,12 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       infodegs = degs
 
       indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
-      indfwa = (p+mu) .+ Vector(1:mf+mw+maux)  # input indices of [ Rf1 Rw1 Raux1] in QR
+      indfwa = (p+mu) .+ Vector(1:mf+mw+ma)  # input indices of [ Rf1 Rw1 Raux1] in QR
       Rfwa = QR[:,indfwa]
    
       Rftest = evalfr(QR[:,indf],freq; atol1, atol2, rtol)
    
-      if mf+mw+maux > 0 
+      if mf+mw+ma > 0 
          # set H for checking the solvability condition
          if emptyHD
             Htemp = eye(nvec)
@@ -3483,8 +3483,8 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          Htemp = missing
       end
       Rt = M*sysr.sys     # R = M*SYSR    
-      if mw+maux > 0 && mrw+mra == 0
-         Rt = gir([Rt Qt*[sysf.sys[:,[inpw;inpaux]]; zeros(mu,mw+maux)]]; atol1, atol2, rtol) 
+      if mw+ma > 0 && mrw+mra == 0
+         Rt = gir([Rt Qt*[sysf.sys[:,[inpw;inpa]]; zeros(mu,mw+ma)]]; atol1, atol2, rtol) 
       end
    else
       # apply the two-step procedure to solve the EMMP if the least order
@@ -3493,7 +3493,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       if mrw+mra == 0
          # apply the two-step procedure for the case
          # form Ge = [ Gu Gd Gf; I 0 0 ] 
-         m1 = m-mw-maux;
+         m1 = m-mw-ma;
          syse = [sysf.sys[:,1:m1]; eye(mu,m1)]
          rinp = zeros(0,m1)
          mru == 0 || (rinp = [rinp; eye(mu,m1)])
@@ -3510,7 +3510,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m-mu)])
          mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
          mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mf,m-mu-md-mf)])
-         mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
+         mra == 0 || (rinp = [rinp; zeros(ma,m-ma) eye(ma)])
          # form explicitly Rref = [Mru_i Mrd_i Mrf_i Mrw_i ] 
          Rref = sysr.sys*rinp;
       end
@@ -3535,14 +3535,14 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       end
       Rt = M*sysr.sys     # R = M*SYSR   
  
-      if mw+maux > 0 && mrw+mra == 0
-         Rt = gir([Rt Qt*[sysf[:,[inpw;inpaux]]; zeros(mu,mw+maux)]]; atol1, atol2, rtol) 
+      if mw+ma > 0 && mrw+mra == 0
+         Rt = gir([Rt Qt*[sysf[:,[inpw;inpa]]; zeros(mu,mw+ma)]]; atol1, atol2, rtol) 
       end
    end
    # transform to standard state-space  
    Q = FDFilter(gss2ss(Qt; atol1, atol2, rtol)[1], p, mu)
 
-   R = FDFilterIF(gss2ss(Rt; atol1, atol2, rtol)[1], mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra)
+   R = FDFilterIF(gss2ss(Rt; atol1, atol2, rtol)[1]; mu = mru, md = mrd, mf = mrf, mw = mw > 0 ? mw : mrw, ma = ma > 0 ? ma : mra)
    info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = ismissing(Htemp) ? missing : convert(Matrix{Float64},Htemp))
    return Q, R, info
    
@@ -3783,10 +3783,9 @@ function emmsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
    M = similar(sysref.sys,N) 
    tcond1 = 1
    infodegs = 0
-   inpu, inpd, inpf, inpw, inpa = 0,0,0,0,0
+   mu, md, mf, mw, ma = 0,0,0,0,0
    for i = 1:N
-       Mri = FDFilterIF(sysref.sys[i], sysref.controls, sysref.disturbances, 
-                        sysref.faults, sysref.noise, sysref.aux)
+       Mri = FDFilterIF(sysref.sys[i], sysref.mu, sysref.md, sysref.mf, sysref.mw, sysref.ma)
        Qi, Ri, infoi = emmsyn(sysf, Mri; sdeg, smarg, poles, nullspace, minimal, simple, regmin, normalize, freq, 
                                          tcond, HDesign = emptyHD ? missing : HDesign[i], offset, 
                                          atol1, atol2, atol3, rtol, fast)
@@ -3795,13 +3794,11 @@ function emmsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
        M[i] = infoi.M
        HDesign[i] = ismissing(infoi.HDesign) ? zeros(T,0,0) : infoi.HDesign
        tcond1 = max(tcond1, infoi.tcond)
-       i == 1 && (infodegs = infoi.degs; inpu = Ri.controls; inpd = Ri.disturbances; inpf = Ri.faults; inpw = Ri.noise; inpa = Ri.aux)
+       i == 1 && (infodegs = infoi.degs; mu = Ri.mu; md = Ri.md; mf = Ri.mf; mw = Ri.mw; ma = Ri.ma)
    end
    p = size(sysf.sys,1)
-   mu = length(sysf.controls)
    info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = all(ismissing.(HDesign)) ? missing : HDesign)
-   return FDIFilter(Q, p, mu), 
-          FDIFilterIF(R, controls = inpu, disturbances = inpd, faults = inpf, noise = inpw, aux = inpa), info
+   return FDIFilter(Q, p, sysf.mu), FDIFilterIF(R; mu, md, mf, mw, ma), info
 end
 function ammbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, atol::Real, strongfdi::Bool )
    #   ammbasesel(rgain, degs, nout, simple, atol, strongfdi) -> (seli, selord)
@@ -4182,11 +4179,11 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    normflag = H2syn ? 2 : Inf
   
    # decode input information
-   inpu = sysf.controls; mu = length(inpu)  
-   inpd = sysf.disturbances; md = length(inpd) 
-   inpf = sysf.faults; mf = length(inpf)  
-   inpw = sysf.noise;  mw = length(inpw) 
-   inpaux = sysf.aux;  maux = length(inpaux)  
+   inpu = sysf.controls; mu = sysf.mu  
+   inpd = sysf.disturbances; md = sysf.md  
+   inpf = sysf.faults; mf = sysf.mf   
+   inpw = sysf.noise;  mw = sysf.mw  
+   inpa = sysf.aux;  ma = sysf.ma   
    mru = length(sysr.controls); 
    mru == 0 || mru == mu ||  error("Incompatible control input groups in sysf and sysr") 
    mrd = length(sysr.disturbances); 
@@ -4196,9 +4193,9 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    mrw = length(sysr.noise); 
    mrw == 0 || mrw == mw ||  error("Incompatible noise input groups in sysf and sysr") 
    mra = length(sysr.aux); 
-   mra > 0 || mra == maux ||  error("Incompatible auxiliary input groups in sysf and sysr") 
+   mra > 0 || mra == ma ||  error("Incompatible auxiliary input groups in sysf and sysr") 
        
-   m = mu+md+mf+mw+maux;       # total number of inputs
+   m = mu+md+mf+mw+ma;       # total number of inputs
    p = size(sysf.sys,1);       # number of measurable outputs
     
    # if mf == 0 && minimal
@@ -4230,10 +4227,10 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       # Step 1): nullspace based reduction
       #
       desc = (sysf.sys.E != I)
-      m2 = mf+mw+maux
+      m2 = mf+mw+ma
       if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+         #syse = [sysf(:,[inpu inpd inpf inpw inpa]); eye(mu,m)];
          syse = [sysf.sys; eye(mu,m)];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -4250,8 +4247,8 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
-         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+         QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+                sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          tcond1 = 1.
          degs = Int[]
@@ -4263,9 +4260,9 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       infodegs = degs
 
       indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
-      indfwa = (p+mu) .+ Vector(1:mf+mw+maux)  # input indices of [ Rf1 Rw1 Raux1] in QR
+      indfwa = (p+mu) .+ Vector(1:mf+mw+ma)  # input indices of [ Rf1 Rw1 Raux1] in QR
       mfw = mf+mw
-      mfwa = mfw+maux
+      mfwa = mfw+ma
       Rfwa = QR[:,indfwa]
       indR = (p+mu) .+ (1:mfw);     # input indices of R = [Rf1 Rw1] in QR
    
@@ -4508,7 +4505,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          # transform to standard state-space
          QR = gss2ss(QR; atol1, atol2, rtol)[1]  
          Q = FDFilter(QR, p, mu)
-         R = FDFilterIF(QR, mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra; moff = p+mu)
+         R = FDFilterIF(QR; mu = mru, md = mrd, mf = mrf, mw = mw > 0 ? mw : mrw, ma = ma > 0 ? ma : mra, moff = p+mu)
          M = Mib     
       end
    end
@@ -4527,10 +4524,10 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          #    Rw1 is in QR(:,p+mu+mf+1:end)
    
          desc = (sysf.sys.E != I)
-         mr = mf+mw+maux
+         mr = mf+mw+ma
          if nullspace || md > 0 || (desc && rcond(sysf.sys.E) < 1.e-7 )
             # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-            #syse = [sysf(:,[inpu inpd inpf inpw inpaux]); eye(mu,m)];
+            #syse = [sysf(:,[inpu inpd inpf inpw inpa]); eye(mu,m)];
             syse = [sysf.sys; eye(mu,m)];
             #
             # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
@@ -4545,8 +4542,8 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          else
             # compute minimal basis as Q = Q1 = [ I -Gu] and set
             # QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = [ Gf Gw Gaux ]
-            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpaux]]],
-                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpaux]]]; Ts)] 
+            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpf; inpw; inpa]]],
+                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpf; inpw; inpa]]]; Ts)] 
             # perform stabilization if strong detectability has to be enforced
             tcond1 = 1.
          end
@@ -4566,7 +4563,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          #    QR(:,p+mu+md+1:p+mu+md+mf) and Rw1 is in QR(:,p+mu+md+mf+1:end)
       
          # set options for nullspace computation
-         mr = md+mf+mw+maux;
+         mr = md+mf+mw+ma;
          if nullspace || (desc && rcond(sysf.sys.E) < 1.e-7 )
             # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
             syse = [sysf.sys; eye(mu,m)];
@@ -4583,8 +4580,8 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          else
             # compute minimal basis as Q = Q1 = [ I -Gu] and set
             # QR = [ Q1 R1 ], where R1 = [ Rd1 Rf1 Rw1 Raux1] = [ Gd Gf Gw Gaux ]
-            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpd; inpf; inpw; inpaux]]],
-                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpd; inpf; inpw; inpaux]]]; Ts)] 
+            QR = [ eye(p) dss(sysf.sys.A, sysf.sys.E, [-sysf.sys.B[:,inpu] sysf.sys.B[:,[inpd; inpf; inpw; inpa]]],
+                   sysf.sys.C, [-sysf.sys.D[:,inpu] sysf.sys.D[:,[inpd; inpf; inpw; inpa]]]; Ts)] 
             # perform stabilization if strong detectability has to be enforced
             tcond1 = 1.
          end
@@ -4603,7 +4600,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          #    where Ru1 is in QR(:,p+mu+1:p+mu+mu), Rf1 is in 
          #    QR(:,p+mu+mu+1:p+mu+mu+mf) and Rw1 is in QR(:,p+mu+mu+mf+1:end)
          # set options for nullspace computation
-         mr = mu+mf+mw+maux;
+         mr = mu+mf+mw+ma;
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
          syse = [sysf.sys; eye(mu,m)];
          #
@@ -4635,7 +4632,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       if mra == 0
          # apply the two-step procedure for the case
          # form Ge = [ Gu Gd Gf Gw; I 0 0 0] 
-         m1 = m-maux;
+         m1 = m-ma;
          syse = [sysf.sys[:,1:m1]; eye(mu,m1)]
          rinp = zeros(0,m1)
          mru == 0 || (rinp = [rinp; eye(mu,m1)])
@@ -4653,7 +4650,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          mrd == 0 || (rinp = [rinp; zeros(md,mu) eye(md,m-mu)])
          mrf == 0 || (rinp = [rinp; zeros(mf,mu+md) eye(mf,m-mu-md)])
          mrw == 0 || (rinp = [rinp; zeros(mw,mu+md+mf) eye(mw,m-mu-md-mf)])
-         mra == 0 || (rinp = [rinp; zeros(maux,m-maux) eye(maux)])
+         mra == 0 || (rinp = [rinp; zeros(ma,m-ma) eye(ma)])
          # form explicitly Rref = [Mru_i Mrd_i Mrf_i Mrw_i ] 
          Rref = sysr.sys*rinp;
       end
@@ -4689,7 +4686,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       end
       Q = FDFilter(gss2ss(Qib; atol1, atol2, rtol)[1], p, mu)
 
-      R = FDFilterIF(gir(Q.sys*syse[:,m-mr+1:end]; atol1, atol2, rtol), mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra)
+      R = FDFilterIF(gir(Q.sys*syse[:,m-mr+1:end]; atol1, atol2, rtol); mu =  mru, md = mrd, mf = mrf, mw = mw > 0 ? mw : mrw, ma = ma > 0 ? ma : mra)
       infodegs = Int[]
       Htemp = missing
       freq = missing
@@ -4699,7 +4696,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
    # transform to standard state-space  
    #Q = FDFilter(gss2ss(Qt; atol1, atol2, rtol)[1], p, mu)
 
-   #R = FDFilterIF(gss2ss(Rt; atol1, atol2, rtol)[1], mru, mrd, mrf, mw > 0 ? mw : mrw, maux > 0 ? maux : mra)
+   #R = FDFilterIF(gss2ss(Rt; atol1, atol2, rtol)[1], mru, mrd, mrf, mw > 0 ? mw : mrw, ma > 0 ? ma : mra)
    info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = ismissing(Htemp) ? missing : convert(Matrix{Float64},Htemp),
            gammaopt0 = gopt0, gammaopt = gopt, gammasub = gsub, nonstandard = nonstandard)
    return Q, R, info
@@ -4980,11 +4977,12 @@ function ammsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
    gsub = similar(Vector{T},N)
    tcond1 = 1
    infodegs = 0
-   inpu, inpd, inpf, inpw, inpa = 0,0,0,0,0
+   #inpu, inpd, inpf, inpw, inpa = 0,0,0,0,0
+   mu, md, mf, mw, ma = 0,0,0,0,0
    nonstandard = true
    for i = 1:N
-       Mri = FDFilterIF(sysref.sys[i], sysref.controls, sysref.disturbances, 
-                        sysref.faults, sysref.noise, sysref.aux)
+       Mri = FDFilterIF(sysref.sys[i]; mu = sysref.mu, md = sysref.md, 
+                        mf = sysref.mf, mw = sysref.mw, ma = sysref.ma)
        Qi, Ri, infoi = ammsyn(sysf, Mri; sdeg, smarg, poles, nullspace, H2syn, reltol, 
                                          mindeg, simple, regmin, normalize, freq, 
                                          tcond, HDesign = emptyHD ? missing : HDesign[i], offset, 
@@ -4997,12 +4995,10 @@ function ammsyn(sysf::FDIModel{T1}, sysref::FDIFilterIF{T2};
        gopt0[i] = infoi.gammaopt0
        gopt[i] = infoi.gammaopt
        gsub[i] = infoi.gammasub
-       i == 1 && (infodegs = infoi.degs; inpu = Ri.controls; inpd = Ri.disturbances; inpf = Ri.faults; inpw = Ri.noise; inpa = Ri.aux; nonstandard = infoi.nonstandard)
+       i == 1 && (infodegs = infoi.degs; mu = Ri.mu; md = Ri.md; mf = Ri.mf; mw = Ri.mw; ma = Ri.ma; nonstandard = infoi.nonstandard)
    end
    p = size(sysf.sys,1)
-   mu = length(sysf.controls)
    info = (tcond = tcond1, degs = infodegs, M = M, freq = freq, HDesign = all(ismissing.(HDesign)) ? missing : HDesign,
            gammaopt0 = gopt0, gammaopt = gopt, gammasub = gsub, nonstandard = nonstandard)
-   return FDIFilter(Q, p, mu), 
-          FDIFilterIF(R, controls = inpu, disturbances = inpd, faults = inpf, noise = inpw, aux = inpa), info
+   return FDIFilter(Q, p, sysf.mu), FDIFilterIF(R; mu, md, mf, mw, ma), info
 end

@@ -55,7 +55,7 @@ R = fdIFeval(Q, sysf)
 @test iszero(Rfw.sys-R.sys,atol=1.e-7) && 
       info.HDesign ==  [1.0 0.0 0.0; 0.0 1.0 0.0] &&
       info.gap ≈ fdif2ngap(R)[1] && isstable(Q.sys) && order(Q.sys) == 1 && fdimmperf(R,Rfw) < 1.e-7 &&
-      fdimmperf(FDFilterIF(Rfw.sys[:,Rfw.noise],0,0,0,length(Rfw.noise))) ≈ fdimmperf(R,FDFilterIF(Rfw.sys[:,Rfw.faults],0,0,length(Rfw.faults))) 
+      fdimmperf(FDFilterIF(Rfw.sys[:,Rfw.noise]; mw = Rfw.mw)) ≈ fdimmperf(R,FDFilterIF(Rfw.sys[:,Rfw.faults]; mf = Rfw.mf)) 
 
 @time Q, Rfw, info = afdredsyn(sysf; exact = false, FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2, S); info
 

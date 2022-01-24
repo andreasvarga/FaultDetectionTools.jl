@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.9.0 
+
+This minor release is breaking relying on new and simpler definitions of the fault detection related objects. All constructors have been updated accordingly. 
+
 ## Version 0.8.0 
 
 This minor release concludes the implementation of the functions for solving synthesis problems of 

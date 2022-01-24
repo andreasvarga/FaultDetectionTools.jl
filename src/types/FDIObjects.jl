@@ -4,115 +4,127 @@
 Type for synthesis models employed to solve fault detection and isolation problems.
     
 If `sysf::FDIModel` is the synthesis model object, the underlying descriptor system model
-can be obtained via `sysf.sys` and the indices of control, disturbance, fault, noise 
-and auxiliary inputs can be accessed as the integer vectors 
-contained in `sysf.controls`, `sysf.disturbances`, `sysf.faults`, 
-`sysf.noise` and `sysf.aux`, respectively.
+can be obtained via `sysf.sys` and the dimensions of the control, disturbance, fault, noise and auxiliary
+vectors are contained in the integers `sysf.mu`, `sysf.md`, `sysf.mf`, `sysf.mw` and `sysf.ma`, respectively.
+The ranges of indices of control, disturbance, fault, noise and auxiliary inputs can be accessed as
+`sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
 """
 struct FDIModel{T} <: AbstractFDDObject where T 
     sys::DescriptorStateSpace{T}
-    controls::Vector{Int}
-    disturbances::Vector{Int}
-    faults::Vector{Int}
-    noise::Vector{Int}
-    aux::Vector{Int}
-    function FDIModel{T}(sys::DescriptorStateSpace{T}; controls::Vector{Int} = Int[], disturbances::Vector{Int} = Int[], 
-                         faults::Vector{Int} = Int[], noise::Vector{Int} = Int[], aux::Vector{Int} = Int[]) where T 
-        fdimodel_validation(sys, controls, disturbances, faults, noise, aux)
-        new{T}(sys, controls, disturbances, faults, noise, aux)
+    mu::Int
+    md::Int
+    mf::Int
+    mw::Int
+    ma::Int
+    function FDIModel{T}(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int)  where T 
+        fdimodel_validation(sys, mu, md, mf, mw, ma)
+        new{T}(sys[:,1:mu+md+mf+mw+ma], mu, md, mf, mw, ma)
     end
 end
-function fdimodel_validation(sys::DescriptorStateSpace{T}, controls::Vector{Int}, disturbances::Vector{Int}, 
-                             faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T
-    m = size(sys,2) 
-    isempty(intersect(controls,disturbances)) || error("control and disturbance inputs must be distinct")
-    isempty(intersect(disturbances,faults)) || error("disturbance and fault inputs must be distinct")
-    isempty(intersect(noise,faults)) || error("noise and fault inputs must be distinct")
-     
-    any(controls .> m) && error("control inputs indices larger than the number of system inputs $m") 
-    any(disturbances .> m) && error("disturbance inputs indices larger than the number of system inputs $m") 
-    any(faults .> m) && error("fault inputs indices larger than the number of system inputs $m") 
-    any(noise .> m) && error("noise inputs indices larger than the number of system inputs $m") 
-    any(aux .> m) && error("auxiliary inputs indices larger than the number of system inputs $m") 
-end
-FDIModel(sys::DescriptorStateSpace, controls::Vector{Int}, disturbances::Vector{Int}, faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int})  = 
-           FDIModel{eltype(sys)}(sys; controls, disturbances, faults, noise, aux)
+"""
+    FDIModel(sys; mu, md, mf, mw, ma) -> sysf::FDIModel
 
+Build for a linear time-invariant descriptor system `sys = (A-λE,B,C,D)` 
+a synthesis model object `sysf::FDIModel` 
+to be used in conjunction with the analysis and synthesis functions of fault detection filters. 
+
+The resulting synthesis model object `sysf` contains the component model with partitioned inputs, 
+`sysc.sys = (A-λE,[Bu Bd Bf Bw Bv],C,[Du Dd Df Dw Dv])`, where 
+`Bu`, `Bd`, `Bf`, `Bw` and `Bv` are formed from the successive columns of `B` and are
+ the input matrices from the control inputs `u`, disturbance inputs `d`, fault inputs `f`,
+noise inputs `w` and auxiliary inputs `v`, respectively, 
+and `Du`, `Dd`, `Df`, `Dw` and `Dv` are formed from the successive columns of `D` and 
+are the feedthrough matrices from those inputs.
+The dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
+`sysf.mu`, `sysf.md`, `sysf.mf`, `sysf.mw` and `sysf.ma`, respectively.  
+
+The information on the partition of the input components 
+in control, disturbance, fault, noise and auxiliary inputs can be specified using the following keyword arguments:
+
+`mu = nu` specifies the dimension `nu` of the control input vector `u` (default: `nu = 0`)
+
+`md = nd` specifies the dimension `nd` of the disturbance input vector `d` (default: `nd = 0`)
+
+`mf = nf` specifies the dimension `nf` of the fault input vector `f` (default: `nf = 0`)
+
+`mw = nw` specifies the dimension `nw` of the noise input vector `w` (default: `nw = 0`)
+
+`ma = na` specifies the dimension `na` of the auxiliary input vector `v` (default: `na = 0`)
+"""
+function FDIModel{T}(sys::DescriptorStateSpace{T}; mu::Int = 0, md::Int = 0, mf::Int = 0, mw::Int = 0, ma::Int = 0)  where T
+    FDIModel{T}(sys, mu, md, mf, mw, ma)
+end
+function fdimodel_validation(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T
+    m = size(sys,2) 
+    mu < 0 && error("number of control inputs must be nonnegative")
+    md < 0 && error("number of disturbance inputs must be nonnegative")
+    mf < 0 && error("number of disturbance inputs must be nonnegative")
+    mw < 0 && error("number of noise inputs must be nonnegative")
+    ma < 0 && error("number of auxiliary inputs must be nonnegative")
+    mu+md+mf+mw+ma > m && error("the specified total number of inputs exceeds the number of system inputs")
+end
+function FDIModel(sys::DescriptorStateSpace, mu::Int, md::Int, mf::Int, mw::Int, ma::Int)
+    FDIModel{eltype(sys)}(sys; mu, md, mf, mw, ma)
+end
 """
     FDFilter <: AbstractFDDObject
 
 Type for fault detection filters resulted as solutions of fault detection problems.
     
 If `filter::FDFilter` is the fault detection filter object, the underlying descriptor system model
-can be obtained via `filter.sys` and the indices of output and control inputs 
-can be accessed as the integer vectors 
-contained in `filter.outputs` and `filter.controls`, respectively.
+can be obtained via `filter.sys` and the dimensions of the partitioned filter input vectors as 
+`measured outputs` and `control inputs`,  
+can be accessed as the integers contained in `filter.ny` and `filter.mu`, respectively.
+The ranges of the indices of output and control inputs 
+can be accessed as `filter.outputs` and `filter.controls`, respectively.
 """
 struct FDFilter{T} <: AbstractFDDObject where T 
     sys::DescriptorStateSpace{T}
-    outputs::Vector{Int}
-    controls::Vector{Int}
-    function FDFilter{T}(sys::DescriptorStateSpace{T}, outputs::Vector{Int}, controls::Vector{Int}) where T 
-        inpout, inpu = fdfilter_validation(sys, outputs, controls)
-        mout = length(inpout)
-        mu = length(inpu)
-        new{T}(sys[:,[inpout; inpu]], Vector(1:mout), mout .+ Vector(1:mu))
+    ny::Int
+    mu::Int
+    function FDFilter{T}(sys::DescriptorStateSpace{T}, ny::Int, mu::Int) where T 
+        ny < 0 && error("number of measured outputs must be non-negative")
+        mu < 0 && error("number of control inputs must be non-negative")
+        m = ny+mu
+        m > size(sys,2) && error("total number of inputs exceeds the number of filter inputs") 
+        new{T}(sys[:,1:m], ny, mu)
     end
 end
-function fdfilter_validation(sys::DescriptorStateSpace{T}, outputs::Vector{Int}, controls::Vector{Int}) where T
-    m = size(sys,2) 
-    isempty(intersect(controls,outputs)) || error("output and control inputs must be distinct")
-
-    inpout = unique(outputs) 
-    inpu = unique(controls)
-   
-    any(inpout .> m) && error("output inputs indices larger than the number of system inputs $m") 
-    any(inpu .> m) && error("control inputs indices larger than the number of system inputs $m") 
-
-    return inpout, inpu
-end
-FDFilter(sys::DescriptorStateSpace, outputs::Vector{Int}, controls::Vector{Int})  = FDFilter{eltype(sys)}(sys, outputs, controls)
 """
-    FDFilter(sys, p, mu) -> Q::FDFilter
+    FDFilter(sys, ny, mu) -> Q::FDFilter
 
 Build for a given linear time-invariant descriptor system model `sys = (A-λE,B,C,D)`, 
 a fault detection filter object `Q`, as determined with the synthesis functions of FDI filters. 
-`p` and `mu` are the number of measured outputs and the number of control inputs, respectively. 
+`ny` and `mu` are the number of measured outputs and the number of control inputs, respectively. 
 It is assumed that `B = [By Bu Bv]` and `D = [Dy Du Dv]` are partitioned matrices such that
-`By` and `Dy` have `p` columns, and `Bu` and `Du` have `mu` columns, 
+`By` and `Dy` have `ny` columns, and `Bu` and `Du` have `mu` columns, 
 where `By` and `Bu` are the input matrices from the measured outputs `y` and 
 control inputs `u`, `Dy` and `Du` are the feedthrough matrices from the measured outputs `y` and 
 control inputs `u`. 
 
 The resulting `Q` contains the partitioned system 
-`Q.sys = (A-λE,[By Bd],C,[Dy Du])` and the indices of inputs corresponding 
-to the measured outputs and control inputs are contained in the associated 
-integer vectors `Q.outputs` and `Q.controls`. 
+`Q.sys = (A-λE,[By Bd],C,[Dy Du])` and the dimensions of the 
+partitioned filter input vectors as 
+`measured outputs` and `control inputs`,  
+can be accessed as the integers contained in `Q.ny` and `Q.mu`, respectively. 
 """
-function FDFilter(sys::DescriptorStateSpace, p::Int, mu::Int)
-    m = size(sys,2) 
-    p < 0 && error("number of measured outputs must be non-negative")
-    mu < 0 && error("number of control inputs must be non-negative")
-    p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-    return FDFilter{eltype(sys)}(sys[:,1:p+mu], Vector(1:p), Vector(p+1:p+mu))          
-end
-function FDFilter(sys::DescriptorStateSpace{T}; outputs::VRS = Int[], controls::VRS = Int[]) where T 
-    return FDFilter{T}(sys, vec([outputs; Int[]]), vec([controls; Int[]]))          
-end
+function FDFilter(sys::DescriptorStateSpace, ny::Int, mu::Int)
+    return FDFilter{eltype(sys)}(sys, ny, mu)
+end    
 function *(filter1::FDFilter{T1}, filter2::FDFilter{T2}) where {T1,T2}
-    return FDFilter(filter1.sys*filter2.sys, length(filter2.outputs), length(filter2.controls))
+    return FDFilter(filter1.sys*filter2.sys, filter2.ny, filter2.mu)
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDFilter)
     summary(io, filter); println(io)
     display(filter.sys)
-    p = length(filter.outputs)
-    mu = length(filter.controls)
-    if p+mu > 0
+    ny = filter.ny
+    mu = filter.mu
+    if ny+mu > 0
        println(io, "Input groups:")
        println(io,          "Name      Channels")
-       p > 0 &&  println(io,"outputs   $(filter.outputs)")
-       mu > 0 && println(io,"controls  $(filter.controls)")
-   end
+       ny > 0 && println(io,"outputs   $(1:ny)")
+       mu > 0 && println(io,"controls  $(ny+1:ny+mu)")
+    end
 end
 """
     FDIFilter <: AbstractFDDObject
@@ -121,81 +133,66 @@ Type for fault detection and isolation filters resulted as solutions of fault de
     
 If `filter::FDIFilter` is the fault detection and isolation filter object, 
 the underlying `i`-th descriptor system model
-can be obtained via `filter.sys[i]` and the indices of output and control inputs 
-can be accessed as the integer vectors 
-contained in `filter.outputs` and `filter.controls`, respectively.
+can be obtained via `filter.sys[i]` and the dimensions of the partitioned filter input vectors as 
+`measured outputs` and `control inputs`,  
+can be accessed as the integers contained in `filter.ny` and `filter.mu`, respectively.
+The ranges of the indices of output and control inputs 
+can be accessed as `filter.outputs` and `filter.controls`, respectively.
 """
 struct FDIFilter{T} <: AbstractFDDObject where T 
     sys::Vector{DescriptorStateSpace{T}}
-    outputs::Vector{Int}
-    controls::Vector{Int}
-    function FDIFilter{T}(sys::Vector{DescriptorStateSpace{T}}, outputs::Vector{Int}, controls::Vector{Int}) where T 
+    ny::Int
+    mu::Int
+    function FDIFilter{T}(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T 
         N = length(sys)
         sysn = similar(sys,N)
-        inpout, inpu = fdfilter_validation(sys[1], outputs, controls)
-        sysn[1] = sys[1][:,[inpout; inpu]]
-        #sys[1] = sys[1][:,[inpout; inpu]]
+        ny < 0 && error("number of measured outputs must be non-negative")
+        mu < 0 && error("number of control inputs must be non-negative")       
+        m = ny+mu
+        m > size(sys[1],2) && error("total number of inputs exceeds the number of filter inputs") 
+        sysn[1] = sys[1][:,1:m]
         for i = 2:N
-            inpouti, inpui = fdfilter_validation(sys[i], outputs, controls)
-            (inpout == inpouti && inpu == inpui) || error("all component filters must have the same inputs from output and control inputs ")
-            sysn[i] = sys[i][:,[inpout; inpu]]
-            #sys[i] = sys[i][:,[inpout; inpu]]
+            m > size(sys[i],2) && error("total number of inputs exceeds the number of filter inputs") 
+            sysn[i] = sys[i][:,1:m]
         end
-        mout = length(inpout)
-        mu = length(inpu)
-        new{T}(sysn, Vector(1:mout), mout .+ Vector(1:mu))
-        #new{T}(sys, Vector(1:mout), mout .+ Vector(1:mu))
+        new{T}(sysn, ny, mu)
     end
 end
 """
-    FDIFilter(sys, p, mu) -> Q::FDIFilter
+    FDIFilter(sys, ny, mu) -> Q::FDIFilter
 
 Build for a vector of linear time-invariant descriptor system models `sys[i] = (Ai-λEi,Bi,Ci,Di)`
 with the same number of inputs, a fault detection and isolation filter object `Q`, 
 as determined with the synthesis functions of FDI filters. 
-`p` and `mu` are the number of measured outputs and the number of control inputs, respectively. 
+`ny` and `mu` are the number of measured outputs and the number of control inputs, respectively. 
 It is assumed that each `Bi = [Byi Bui Bvi]` and `Di = [Dyi Dui Dvi]` are partitioned matrices such that
-`Byi` and `Dyi` have `p` columns, and `Bui` and `Dui` have `mu` columns, 
+`Byi` and `Dyi` have `ny` columns, and `Bui` and `Dui` have `mu` columns, 
 where `Byi` and `Bui` are the input matrices from the measured outputs `y` and 
 control inputs `u`, `Dyi` and `Dui` are the feedthrough matrices from the measured outputs `y` and 
 control inputs `u`. 
 
 The resulting `Q` contains the vector of partitioned systems
-`Q.sys[i] = (Ai-λEi,[Byi Bdi],Ci,[Dyi Dui])` and the indices of inputs corresponding 
-to the measured outputs and control inputs are contained in the associated 
-integer vectors `Q.outputs` and `Q.controls`. 
+`Q.sys[i] = (Ai-λEi,[Byi Bdi],Ci,[Dyi Dui])` and the dimensions of the 
+partitioned filter input vectors as 
+`measured outputs` and `control inputs`,  
+can be accessed as the integers contained in `Q.ny` and `Q.mu`, respectively. 
 """
-function FDIFilter(sys::Vector{DescriptorStateSpace{T}}, p::Int, mu::Int) where T
-    m = size(sys[1],2) 
-    p < 0 && error("number of measured outputs must be non-negative")
-    mu < 0 && error("number of control inputs must be non-negative")
-    p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-    return FDIFilter{T}(sys, Vector(1:p), Vector(p+1:p+mu))          
-end
-function FDIFilter(sys::Vector{DescriptorStateSpace}, p::Int, mu::Int)
-    m = size(sys[1],2) 
-    p < 0 && error("number of measured outputs must be non-negative")
-    mu < 0 && error("number of control inputs must be non-negative")
-    p+mu > m && error("number of measured outputs and control inputs exceeds the number of filter inputs $m")
-    return FDIFilter{eltype(sys[1])}(sys, Vector(1:p), Vector(p+1:p+mu))          
-end
-
-function FDIFilter(sys::Vector{DescriptorStateSpace{T}}; outputs::VRS = Int[], controls::VRS = Int[]) where T 
-    return FDIFilter{T}(sys, vec([outputs; Int[]]), vec([controls; Int[]]))          
+function FDIFilter(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T
+    return FDIFilter{T}(sys, ny, mu)
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilter)
     summary(io, filter); println(io)
     for i = 1:length(filter.sys)
-        println(io, "Filter number $i:")
+        println(io, "Filter# $i:")
         display(filter.sys[i])
     end
-    p = length(filter.outputs)
-    mu = length(filter.controls)
-    if p+mu > 0
+    ny = filter.ny
+    mu = filter.mu
+    if ny+mu > 0
        println(io, "Input groups:")
        println(io,          "Name      Channels")
-       p > 0 &&  println(io,"outputs   $(filter.outputs)")
-       mu > 0 && println(io,"controls  $(filter.controls)")
+       ny > 0 && println(io,"outputs   $(1:ny)")
+       mu > 0 && println(io,"controls  $(ny+1:ny+mu)")
    end
 end
 
@@ -206,61 +203,27 @@ Type for the internal form of fault detection filters resulted as solutions of f
     
 If `filter::FDFilterIF` is the fault detection filter internal form object, 
 the underlying descriptor system model
-can be obtained via `filter.sys` and the indices of control, disturbance, fault, noise 
-and auxiliary inputs can be accessed as the integer vectors 
-contained in `filter.controls`, `filter.disturbances`, `filter.faults`, 
-`filter.noise` and `filter.aux`, respectively.
+can be obtained via `filter.sys` and the dimensions of the control, disturbance, fault, noise and auxiliary
+vectors are contained in the integers `filter.mu`, `filter.md`, `filter.mf`, `filter.mw` and `filter.ma`, respectively. 
+The ranges of indices of control, disturbance, fault, noise and auxiliary inputs can be accessed as
+`filter.controls`, `filter.disturbances`, `filter.faults`, `filter.noise` and `filter.aux`, respectively.
 """
 struct FDFilterIF{T} <: AbstractFDDObject where T 
     sys::DescriptorStateSpace{T}
-    controls::Vector{Int}
-    disturbances::Vector{Int}
-    faults::Vector{Int}
-    noise::Vector{Int}
-    aux::Vector{Int}
-    function FDFilterIF{T}(sys::DescriptorStateSpace{T}, controls::Vector{Int}, disturbances::Vector{Int}, 
-                           faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T 
-        inpu, inpd, inpf, inpw, inpaux = fdfilterIF_validation(sys, controls, disturbances, faults, noise, aux)
-        mu = length(inpu)
-        md = length(inpd)
-        mf = length(inpf)
-        mw = length(inpw)
-        maux = length(inpaux)
-        new{T}(sys[:,[inpu; inpd; inpf; inpw; inpaux]], Vector(1:mu), mu .+ Vector(1:md) , (mu+md) .+ Vector(1:mf), 
-               (mu+md+mf) .+ Vector(1:mw), (mu+md+mf+mw) .+ Vector(1:maux))
+    mu::Int
+    md::Int
+    mf::Int
+    mw::Int
+    ma::Int
+    function FDFilterIF{T}(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int)  where T 
+        fdimodel_validation(sys, mu, md, mf, mw, ma)
+        new{T}(sys[:,1:mu+md+mf+mw+ma], mu, md, mf, mw, ma)
     end
 end
-function fdfilterIF_validation(sys::DescriptorStateSpace{T}, controls::Vector{Int}, disturbances::Vector{Int}, 
-                             faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T
-    m = size(sys,2) 
-    isempty(intersect(controls,disturbances)) || error("control and disturbance inputs must be distinct")
-    isempty(intersect(disturbances,faults)) || error("disturbance and fault inputs must be distinct")
-    isempty(intersect(faults,noise)) || error("fault and noise inputs must be distinct")
-    isempty(intersect(noise,aux)) || error("noise and aux inputs must be distinct")
-
-    inpu = unique(controls); 
-    inpd = unique(disturbances); 
-    inpf = unique(faults); 
-    inpw = unique(noise); 
-    inpaux = unique(aux); 
-
-    isempty(intersect(inpu,inpd)) || error("control and disturbance inputs must be distinct")
-    isempty(intersect(inpd,inpf)) || error("disturbance and fault inputs must be distinct")
-    isempty(intersect(inpw,inpf)) || error("noise and fault inputs must be distinct")
-    isempty(intersect(inpw,inpaux)) || error("noise and aux inputs must be distinct")  
-   
-    any(inpu .> m) && error("control inputs indices larger than the number of system inputs $m") 
-    any(inpd .> m) && error("disturbance inputs indices larger than the number of system inputs $m") 
-    any(inpf .> m) && error("fault inputs indices larger than the number of system inputs $m") 
-    any(inpw .> m) && error("noise inputs indices larger than the number of system inputs $m") 
-    any(inpaux .> m) && error("auxiliary inputs indices larger than the number of system inputs $m") 
-
-    return inpu, inpd, inpf, inpw, inpaux
-end
-FDFilterIF(sys::DescriptorStateSpace, controls::Vector{Int}, disturbances::Vector{Int}, faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int})  = 
-           FDFilterIF{eltype(sys)}(sys, controls, disturbances, faults, noise, aux)
+FDFilterIF(sys::DescriptorStateSpace,  mu::Int, md::Int, mf::Int, mw::Int, ma::Int)  = 
+           FDFilterIF{eltype(sys)}(sys, mu, md, mf, mw, ma)
 """
-    FDFilterIF(sys, mu, md, mf, mw = 0, maux = 0; moff = 0 ) -> R::FDFilterIF
+    FDFilterIF(sys; mu = 0, md = 0, mf = 0, mw = 0, ma = 0, moff = 0) -> R::FDFilterIF
 
 Build for a given linear time-invariant descriptor system model `sys = (A-λE,B,C,D)`, 
 a fault detection filter internal form object `R`, as determined with the synthesis functions of FDI filters. 
@@ -270,37 +233,33 @@ It is assumed that `B = [Boff Bu Bd Bf Bw Bv]` and `D = [Doff Du Dd Df Dw Dv]` a
 `Bf` and `Df` have `mf` columns,  `Bw` and `Dw` have `mw` columns, and `Bv` and `Dv` have `maux` columns.   
 
 The resulting `R` contains the partitioned system 
-`R.sys = (A-λE,[Bu Bd Bf Bw Bv],C,[Du Dd Df Dw Dv])` and the indices of inputs corresponding 
-to the control, disturbance, fault, noise and auxiliary inputs are contained in the associated 
-integer vectors `R.controls`, `R.disturbances`, `R.faults`, `R.noise` and `R.aux`.  
+`R.sys = (A-λE,[Bu Bd Bf Bw Bv],C,[Du Dd Df Dw Dv])` and 
+the dimensions of control, disturbance, fault, noise and 
+auxiliary input vectors are contained in 
+`R.mu`, `R.md`, `R.mf`, `R.mw` and `R.ma`, respectively.  
 """
-function FDFilterIF(sys::DescriptorStateSpace{T}, mu::Int, md::Int, mf::Int, mw::Int = 0, maux::Int = 0; moff::Int = 0) where T
-    m = moff+mu+md+mf+mw+maux
+function FDFilterIF(sys::DescriptorStateSpace; mu::Int = 0, md::Int = 0, mf::Int = 0, mw::Int = 0, ma::Int = 0, moff::Int = 0) 
+    m = moff+mu+md+mf+mw+ma
     m > size(sys,2) && error("number of selected inputs exceeds the number of system inputs")
-    return FDFilterIF{T}(sys, moff .+ Vector(1:mu), (moff+mu) .+ Vector(1:md), (moff+mu+md) .+ Vector(1:mf), 
-                         (moff+mu+md+mf) .+  Vector(1:mw), (moff+mu+md+mf+mw) .+ Vector(1:maux))
-end
-function FDFilterIF(sys::DescriptorStateSpace{T}; controls::VRS = Int[], disturbances::VRS = Int[], 
-                faults::VRS = Int[], noise::VRS = Int[], aux::VRS = Int[]) where T 
-    return FDFilterIF{T}(sys, vec([controls; Int[]]), vec([disturbances; Int[]]), 
-                         vec([faults; Int[]]), vec([noise; Int[]]), vec([aux; Int[]]))
+    return FDFilterIF{eltype(sys)}(sys[:,moff+1:m], mu, md, mf, mw, ma)
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sysf::Union{FDIModel,FDFilterIF})
     summary(io, sysf); println(io)
     display(sysf.sys)
-    mu = length(sysf.controls)
-    md = length(sysf.disturbances)
-    mf = length(sysf.faults)
-    mw = length(sysf.noise)
-    maux = length(sysf.aux)
-    if mu+md+mf+mw+maux > 0
+    mu = sysf.mu
+    md = sysf.md
+    mf = sysf.mf
+    mw = sysf.mw
+    ma = sysf.ma
+    m = mu+md+mf+mw+ma
+    if m > 0
        println(io, "Input groups:")
-       println(io, "Name         Channels")
-       mu > 0 && println(io,"controls     $(sysf.controls)")
-       md > 0 && println(io,"disturbances $(sysf.disturbances)")
-       mf > 0 && println(io,"faults       $(sysf.faults)")
-       mw > 0 && println(io,"noise        $(sysf.noise)")
-       maux > 0 && println(io,"aux          $(sysf.aux)")
+       println(io,          "Name         Channels")
+       mu > 0 && println(io,"controls     $(1:mu)")
+       md > 0 && println(io,"disturbances $(mu+1:mu+md)")
+       mf > 0 && println(io,"faults       $(mu+md+1:mu+md+mf)")
+       mw > 0 && println(io,"noise        $(mu+md+mf+1:mu+md+mf+mw)")
+       ma > 0 && println(io,"aux          $(mu+md+mf+mw+1:m)")
     end
 end
 """
@@ -310,101 +269,86 @@ Type for the internal form of fault detection and isolation filters resulted as 
     
 If `filter::FDIFilterIF` is the fault detection and isolation filter internal form object, 
 the underlying `i`-th descriptor system model
-can be obtained via `filter.sys[i]` and the indices of control, disturbance, fault, noise 
-and auxiliary inputs can be accessed as the integer vectors 
-contained in `filter.controls`, `filter.disturbances`, `filter.faults`, 
-`filter.noise` and `filter.aux`, respectively.
+can be obtained via `filter.sys[i]` and the dimensions of the control, disturbance, fault, noise and auxiliary
+vectors are contained in the integers `filter.mu`, `filter.md`, `filter.mf`, `filter.mw` and `filter.ma`, respectively. 
+The ranges of indices of control, disturbance, fault, noise and auxiliary inputs can be accessed as
+`filter.controls`, `filter.disturbances`, `filter.faults`, `filter.noise` and `filter.aux`, respectively.
+.
 """
 struct FDIFilterIF{T} <: AbstractFDDObject where T 
     sys::Vector{DescriptorStateSpace{T}}
-    controls::Vector{Int}
-    disturbances::Vector{Int}
-    faults::Vector{Int}
-    noise::Vector{Int}
-    aux::Vector{Int}
-    function FDIFilterIF{T}(sys::Vector{DescriptorStateSpace{T}}, controls::Vector{Int}, disturbances::Vector{Int}, 
-                           faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T 
+    mu::Int
+    md::Int
+    mf::Int
+    mw::Int
+    ma::Int
+    function FDIFilterIF{T}(sys::Vector{DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T 
         N = length(sys)
         sysn = similar(sys,N)
-        inpu, inpd, inpf, inpw, inpaux = fdfilterIF_validation(sys[1], controls, disturbances, faults, noise, aux)
-        sysn[1] = sys[1][:,[inpu; inpd; inpf; inpw; inpaux]]
-        #sys[1] = sys[1][:,[inpu; inpd; inpf; inpw; inpaux]]
-        for i = 2:N
-            inpui, inpdi, inpfi, inpwi, inpauxi = fdfilterIF_validation(sys[i], controls, disturbances, faults, noise, aux)
-            (inpu == inpui && inpd == inpdi && inpf == inpfi && inpw == inpwi && inpaux == inpauxi) ||
-                 error("all component filters must have the same inputs groups")
-            sysn[i] = sys[i][:,[inpu; inpd; inpf; inpw; inpaux]]
-            #sysn[i] = sys[i][:,[inpu; inpd; inpf; inpw; inpaux]]
-            #sys[i] = sys[i][:,[inpu; inpd; inpf; inpw; inpaux]]
+        inps = 1:mu+md+mf+mw+ma
+        for i = 1:N
+            fdimodel_validation(sys[i], mu, md, mf, mw, ma)
+            sysn[i] = sys[i][:,inps]
         end
-        mu = length(inpu)
-        md = length(inpd)
-        mf = length(inpf)
-        mw = length(inpw)
-        maux = length(inpaux)
-        new{T}(sysn, Vector(1:mu), mu .+ Vector(1:md) , (mu+md) .+ Vector(1:mf), 
-               (mu+md+mf) .+ Vector(1:mw), (mu+md+mf+mw) .+ Vector(1:maux))
-        # new{T}(sys, Vector(1:mu), mu .+ Vector(1:md) , (mu+md) .+ Vector(1:mf), 
-        #        (mu+md+mf) .+ Vector(1:mw), (mu+md+mf+mw) .+ Vector(1:maux))
+        new{T}(sysn, mu, md, mf, mw, ma)
     end
 end
-function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}; controls::VRS = Int[], disturbances::VRS = Int[], 
-                     faults::VRS = Int[], noise::VRS = Int[], aux::VRS = Int[]) where T 
-    return FDIFilterIF{T}(sys, vec([controls; Int[]]), vec([disturbances; Int[]]), 
-                          vec([faults; Int[]]), vec([noise; Int[]]), vec([aux; Int[]]))
-end
-FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}, controls::Vector{Int}, disturbances::Vector{Int}, faults::Vector{Int}, noise::Vector{Int}, aux::Vector{Int}) where T  = 
-           FDIFilterIF{T}(sys, controls, disturbances, faults, noise, aux)
+FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T  = 
+           FDIFilterIF{T}(sys, mu, md, mf, mw, ma)
 """
-    FDIFilterIF(sys, mu, md, mf, mw = 0, maux = 0; moff = 0 ) -> R::FDIFilterIF
+    FDIFilterIF(sys; mu = 0, md = 0, mf = 0, mw = 0, ma = 0, moff = 0 ) -> R::FDIFilterIF
 
-Build for a a vector of linear time-invariant descriptor system models `sys[i] = (Ai-λEi,Bi,Ci,Di)` 
-with the same number of inputs, , 
+Build for a vector of linear time-invariant descriptor system models `sys[i] = (Ai-λEi,Bi,Ci,Di)`, 
 a fault detection and isolation filter internal form object `R`, as determined with the synthesis functions of FDI filters. 
-`mu`, `md`, `mf`, `mw` and `maux` are the dimensions of control, disturbance, fault, noise and auxiliary input vectors, respectively.
+`mu`, `md`, `mf`, `mw` and `ma` are the dimensions of control, disturbance, fault, noise and auxiliary input vectors, respectively.
 It is assumed that each `Bi = [Boffi Bui Bdi Bfi Bwi Bvi]` and `Di = [Doffi Dui Ddi Dfi Dwi Dvi]` are partitioned matrices such that
 `Boffi` and `Doffi` have `moff` columns, `Bui` and `Dui` have `mu` columns, `Bdi` and `Ddi` have `md` columns, 
-`Bfi` and `Dfi` have `mf` columns,  `Bwi` and `Dwi` have `mw` columns, and `Bvi` and `Dvi` have `maux` columns.   
+`Bfi` and `Dfi` have `mf` columns,  `Bwi` and `Dwi` have `mw` columns, and `Bvi` and `Dvi` have `ma` columns.   
 
 The resulting `R` contains the vector of partitioned systems 
-`R.sys[i] = (A-λE,[Bui Bdi Bfi Bwi Bvi],C,[Dui Ddi Dfi Dwi Dvi])` and the indices of inputs corresponding 
-to the control, disturbance, fault, noise and auxiliary inputs are contained in the associated 
-integer vectors `R.controls`, `R.disturbances`, `R.faults`, `R.noise` and `R.aux`.  
+`R.sys[i] = (A-λE,[Bui Bdi Bfi Bwi Bvi],C,[Dui Ddi Dfi Dwi Dvi])` and 
+the dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
+`R.mu`, `R.md`, `R.mf`, `R.mw` and `R.ma`, respectively.  
 """
-function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int = 0, maux::Int = 0; moff::Int = 0) where T
-    m = moff+mu+md+mf+mw+maux
-    m > size(sys[1],2) && error("number of selected inputs exceeds the number of system inputs")
-    return FDIFilterIF{T}(sys, moff .+ Vector(1:mu), (moff+mu) .+ Vector(1:md), (moff+mu+md) .+ Vector(1:mf), 
-                         (moff+mu+md+mf) .+  Vector(1:mw), (moff+mu+md+mf+mw) .+ Vector(1:maux))
-end
-
-function FDIFilterIF(sys::Vector{DescriptorStateSpace}, mu::Int, md::Int, mf::Int, mw::Int = 0, maux::Int = 0; moff::Int = 0) 
-    m = moff+mu+md+mf+mw+maux
-    m > size(sys[1],2) && error("number of selected inputs exceeds the number of system inputs")
-    return FDIFilterIF{eltype(sys[1])}(sys, moff .+ Vector(1:mu), (moff+mu) .+ Vector(1:md), (moff+mu+md) .+ Vector(1:mf), 
-                         (moff+mu+md+mf) .+  Vector(1:mw), (moff+mu+md+mf+mw) .+ Vector(1:maux))
+function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}; mu::Int = 0, md::Int = 0, mf::Int = 0, mw::Int = 0, ma::Int = 0, moff::Int = 0) where T
+    mu < 0 && error("number of control inputs must be nonnegative")
+    moff < 0 && error("the offset must be nonnegative")
+    md < 0 && error("number of disturbance inputs must be nonnegative")
+    mf < 0 && error("number of disturbance inputs must be nonnegative")
+    mw < 0 && error("number of noise inputs must be nonnegative")
+    ma < 0 && error("number of auxiliary inputs must be nonnegative")
+    m = moff+mu+md+mf+mw+ma
+    N = length(sys)
+    sysn = similar(sys,N)
+    inps = moff+1:m
+    for i = 1:N
+        m > size(sys[i],2) && error("the specified total number of inputs exceeds the number of system inputs")
+        sysn[i] = sys[i][:,inps]
+    end
+    return FDIFilterIF{T}(sysn, mu, md, mf, mw, ma)
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilterIF)
     summary(io, filter); println(io)
     for i = 1:length(filter.sys)
-        println(io, "Filter number $i:")
+        println(io, "Filter# $i:")
         display(filter.sys[i])
     end
-    mu = length(filter.controls)
-    md = length(filter.disturbances)
-    mf = length(filter.faults)
-    mw = length(filter.noise)
-    maux = length(filter.aux)
-    if mu+md+mf+mw+maux > 0
-       println(io, "Input groups:")
-       println(io, "Name         Channels")
-       mu > 0 && println(io,"controls     $(filter.controls)")
-       md > 0 && println(io,"disturbances $(filter.disturbances)")
-       mf > 0 && println(io,"faults       $(filter.faults)")
-       mw > 0 && println(io,"noise        $(filter.noise)")
-       maux > 0 && println(io,"aux          $(filter.aux)")
-    end
+    mu = filter.mu
+    md = filter.md
+    mf = filter.mf
+    mw = filter.mw
+    ma = filter.ma
+    m = mu+md+mf+mw+ma
+    if m > 0
+        println(io, "Input groups:")
+        println(io,          "Name         Channels")
+        mu > 0 && println(io,"controls     $(1:mu)")
+        md > 0 && println(io,"disturbances $(mu+1:mu+md)")
+        mf > 0 && println(io,"faults       $(mu+md+1:mu+md+mf)")
+        mw > 0 && println(io,"noise        $(mu+md+mf+1:mu+md+mf+mw)")
+        ma > 0 && println(io,"aux          $(mu+md+mf+mw+1:m)")
+     end
 end
 
 """
@@ -437,8 +381,8 @@ The resulting `sysf` contains the partitioned system
 `sysf.sys = (A-λE,[Bu Bd Bf Bw Bv],C,[Du Dd Df Dw Dv])`, where 
 `Bu`, `Bd`, `Bf`, `Bw` and `Bv` are the input matrices from the control inputs `u`, disturbance inputs `d`, fault inputs `f`, 
 noise inputs `w` and auxiliary inputs `v`, respectively, and `Du`, `Dd`, `Df`, `Dw` and `Dv` are the feedthrough matrices from those inputs.
-The indices of control, disturbance, fault, noise and auxiliary inputs are contained in the associated integer vectors 
-`sysf.controls`, `sysf.disturbances`, `sysf.faults`, `sysf.noise` and `sysf.aux`, respectively.
+The dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
+`sysm.mu`, `sysm.md`, `sysm.mf`, `sysm.mw` and `sysm.ma`, respectively.  
 
 _Method:_ If `G(λ)` is the `p x m` transfer function matrix of `sys`, then the resulting system `sysf` has an 
 equivalent input output form `[Gu(λ) Gd(λ) Gf(λ) Gw(λ) Gv(λ)]`, where the following relations define the component matrices:
@@ -470,20 +414,18 @@ function fdimodset(sys::DescriptorStateSpace{T};
     mf2 = length(inpfs)
     mf = mf1+mf2
     mw = length(inpw)
-    maux = length(inpaux)
+    ma = length(inpaux)
     mu == 0 || maximum(inpu) <= m || error("selected index/indices of control inputs larger than the number of system inputs $m")   
     md == 0 || maximum(inpd) <= m || error("selected index/indices of disturbance inputs larger than the number of system inputs $m")   
     mf1 == 0 || maximum(inpf1) <= m || error("selected index/indices of fault inputs larger than the number of system inputs $m")   
     mf2 == 0 || maximum(inpfs) <= p || error("selected index/indices of sensor fault inputs larger than the number of system outputs $p")   
     mw == 0 || maximum(inpw) <= m || error("selected index/indices of noise inputs larger than the number of system inputs $m")   
-    maux == 0 || maximum(inpaux) <= m || error("selected index/indices of auxiliary inputs larger than the number of system inputs $m")   
+    ma == 0 || maximum(inpaux) <= m || error("selected index/indices of auxiliary inputs larger than the number of system inputs $m")   
     Dsf = mf2 > 0 ? eye(T, p, p)[:,inpfs] : zeros(T, p, 0)
     
     Be = [sys.B[:,inpu] sys.B[:,inpd] sys.B[:,inpf1] zeros(T, nx, mf2) sys.B[:,inpw] sys.B[:,inpaux]];
     De = [sys.D[:,inpu] sys.D[:,inpd] sys.D[:,inpf1] Dsf sys.D[:,inpw] sys.D[:,inpaux]];
-    return FDIModel{T}(dss(sys.A, sys.E, Be, sys.C, De, Ts = sys.Ts),  
-            controls = Vector(1:mu), disturbances = mu .+ Vector(1:md) , faults = (mu+md) .+ Vector(1:mf), 
-            noise = (mu+md+mf) .+ Vector(1:mw), aux = (mu+md+mf+mw) .+ Vector(1:maux))          
+    return FDIModel{T}(dss(sys.A, sys.E, Be, sys.C, De, Ts = sys.Ts); mu, md, mf, mw, ma)          
 end
 function fdimodset(sys::Vector{DescriptorStateSpace}; kwargs...)
     N = length(sys)
@@ -500,7 +442,7 @@ Compute the internal form `sysR` of the fault detection filter `sysQ` applied to
 If `sysf` has the partitioned transfer function matrix `G(λ) = [ Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) ]` in accordance with
 the partitioned system inputs as `controls`, `disturbances`, `faults`, `noise` and `auxiliary` inputs, respectively,
 and `Q(λ) = [ Qy(λ) Qu(λ) ]` is the partitioned transfer function matrix of the fault detection filter `sysQ` 
-in accordance with the partitioned filter inputs as `outputs` and `controls`, then 
+in accordance with the partitioned filter inputs as `measurable outputs` and `control inputs`, then 
 the transfer function matrix `R(λ)` of the resulting internal form `sysR` is given by
      
      R(λ) = | Qy(λ)  Qu(λ) | * | Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) |
@@ -529,13 +471,11 @@ function fdIFeval(Q::FDFilter, sysf::FDIModel; minimal::Bool = false,
    #   R = Q * [ Gu Gd Gf Gw Gaux]
    #           [ I  0  0  0  0   ]
    p, m = size(sysf.sys)
-   mu = length(sysf.controls)
-   (length(Q.outputs) == p && length(Q.controls) == mu) || error("filter Q is incompatible with the given system")
-   # return fdRset(gminreal(Q.sys*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]; atol1, atol2, rtol); 
-   #               sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
+   mu = sysf.mu
+   (Q.ny == p && Q.mu == mu) || error("filter Q is incompatible with the given system")
    sysR = Q.sys*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]
    return FDFilterIF(minimal ? gminreal(sysR; atol1, atol2, rtol, fast) : sysR, 
-                 sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
+                 mu, sysf.md, sysf.mf, sysf.mw, sysf.ma) 
    
 end
 """
@@ -545,7 +485,7 @@ Compute the internal form `sysR` of the fault detection and isolation filter `sy
 If `sysf` has the partitioned transfer function matrix `G(λ) = [ Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) ]` in accordance with
 the partitioned system inputs as `controls`, `disturbances`, `faults`, `noise` and `auxiliary` inputs, respectively,
 and `Qi(λ) = [ Qyi(λ) Qui(λ) ]` is the partitioned transfer function matrix of the `i`-th filter `sysQ.sys[i]` 
-in accordance with the partitioned filter inputs as `outputs` and `controls`, then 
+in accordance with the partitioned filter inputs as `measurable outputs` and `control inputs`, then 
 the transfer function matrix `Ri(λ)` of the `i`-th filter in the resulting internal form `sysR.sys[i]` is given by
      
      Ri(λ) = | Qyi(λ)  Qui(λ) | * | Gu(λ)  Gd(λ) Gf(λ) Gw(λ) Gv(λ) |
@@ -576,16 +516,16 @@ function fdIFeval(Q::FDIFilter, sysf::FDIModel; minimal::Bool = false,
    N = length(Q.sys)
    sysR = similar(Q.sys,N)
    p, m = size(sysf.sys)
-   mu = length(sysf.controls)
-   (length(Q.outputs) == p && length(Q.controls) == mu) || error("filter Q is incompatible with the given system")
+   mu = sysf.mu
+   (Q.ny == p && Q.mu == mu) || error("filter Q is incompatible with the given system")
    for i = 1:N
        sysR[i] = minimal ? gminreal(Q.sys[i]*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]; atol1, atol2, rtol, fast) : 
                            Q.sys[i]*[sysf.sys;  I zeros(eltype(sysf.sys),mu,m-mu)]
    end
-   return FDIFilterIF{eltype(Q.sys[1])}(sysR, sysf.controls, sysf.disturbances, sysf.faults, sysf.noise, sysf.aux) 
+   return FDIFilterIF{eltype(Q.sys[1])}(sysR, mu, sysf.md, sysf.mf, sysf.mw, sysf.ma) 
 end
-gbalmr(Q::FDFilter{T}; kwargs...) where T = FDFilter(gbalmr(Q.sys; kwargs...)[1], Q.outputs, Q.controls)
-gminreal(Q::FDFilter{T}; kwargs...) where T = FDFilter(gminreal(Q.sys; kwargs...), Q.outputs, Q.controls)
+gbalmr(Q::FDFilter{T}; kwargs...) where T = FDFilter(gbalmr(Q.sys; kwargs...)[1], Q.ny, Q.mu)
+gminreal(Q::FDFilter{T}; kwargs...) where T = FDFilter(gminreal(Q.sys; kwargs...), Q.ny, Q.mu)
 function gbalmr(Q::FDIFilter{T}; kwargs...) where T 
     for i = 1:length(Q.sys)
         Q.sys[i] = gbalmr(Q.sys[i]; kwargs...)[1]
@@ -601,13 +541,41 @@ end
 gpole(Q::FDFilter{T}; kwargs...) where T = gpole(Q.sys;  kwargs...)
 gpole(Q::FDIFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
 
-# left multiplication of FD objects with descriptor system object
+# left multiplication of FD objects with descriptor system objects
 function *(sys::DescriptorStateSpace{T1}, sysr::FDFilterIF{T2}) where {T1,T2}
-    return FDFilterIF(sys*sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+    return FDFilterIF(sys*sysr.sys, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
 end
 function *(sys::DescriptorStateSpace{T1}, sysr::FDIModel{T2}) where {T1,T2}
-    return FDIModel(sys*sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+    return FDIModel(sys*sysr.sys, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
 end
 function *(sys::Vector{DescriptorStateSpace{T1}}, sysr::FDIFilterIF{T2}) where {T1,T2}
-    return FDIFilterIF(sys .* sysr.sys, sysr.controls, sysr.disturbances, sysr.faults, sysr.noise, sysr.aux) 
+    return FDIFilterIF(sys .* sysr.sys, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
 end
+function Base.getproperty(sys::Union{FDIModel,FDFilterIF,FDIFilterIF}, d::Symbol)  
+    if d === :controls
+        return 1:sys.mu
+    elseif d === :disturbances
+        return sys.mu+1:sys.mu+sys.md
+    elseif d === :faults
+        return sys.mu+sys.md+1:sys.mu+sys.md+sys.mf
+    elseif d === :noise
+        return sys.mu+sys.md+sys.mf+1:sys.mu+sys.md+sys.mf+sys.mw
+    elseif d === :aux
+        return sys.mu+sys.md+sys.mf+sys.mw+1:sys.mu+sys.md+sys.mf+sys.mw+sys.ma
+    else
+        getfield(sys, d)
+    end
+end
+Base.propertynames(sys::Union{FDIModel,FDFilterIF,FDIFilterIF}) =
+    (fieldnames(typeof(sys))..., :controls, :disturbances, :faults, :noise, :aux)
+function Base.getproperty(sys::Union{FDFilter,FDIFilter}, d::Symbol)  
+    if d === :outputs
+        return 1:sys.ny
+    elseif d === :controls
+        return sys.ny+1:sys.ny+sys.mu
+    else
+        getfield(sys, d)
+    end
+end
+Base.propertynames(sys::Union{FDFilter,FDIFilter}) =
+    (fieldnames(typeof(sys))..., :outputs, :controls)

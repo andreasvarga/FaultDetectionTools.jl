@@ -13,28 +13,28 @@ println("Test_ammsyn")
 
 p = 1; mf = 0; mw = 0;
 sysf = fdimodset(rss(1,p,mf+mw),faults = 1:mf,noise = mf.+Vector(1:mw))
-sysr = FDFilterIF(sysf.sys,0,0,mf,mw)
+sysr = FDFilterIF(sysf.sys;mf,mw)
 
 # solve an EMMP for a single reference model
 @time Q, R, info = ammsyn(sysf, sysr); info
 @test iszero(R.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == 0
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf,mw)
+sysr = FDIFilterIF([sysf.sys,sysf.sys];mf,mw)
 @time Q, R, info = ammsyn(sysf,sysr); info
 @test iszero(vcat(R.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == [0,0]
 
 ##
 p = 2; mf = 2;
 sysf = fdimodset(rss(1,p,mf,stable = true),faults = 1:mf)
-sysr = FDFilterIF(sysf.sys,0,0,mf)
+sysr = FDFilterIF(sysf.sys;mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
 @time Q, Rf, info = ammsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) < 1.e-7
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
+sysr = FDIFilterIF([sysf.sys,sysf.sys];mf)
 Q, Rf, info = ammsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
       isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
@@ -43,7 +43,7 @@ Q, Rf, info = ammsyn(sysf,sysr,atol = 1.e-7); info
 p = 3; mf = 2;
 sysf = fdimodset(rss(5,p,mf,stable=true),faults = 1:mf)
 
-sysr = FDFilterIF(sysf.sys,0,0,mf)
+sysr = FDFilterIF(sysf.sys;mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
 @time Q, Rf, info = ammsyn(sysf, sysr, atol = 1.e-7); info
@@ -57,7 +57,7 @@ R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true);
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
+sysr = FDIFilterIF([sysf.sys,sysf.sys];mf)
 @time Q, Rf, info = ammsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
       isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
@@ -65,7 +65,7 @@ sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
 ##
 p = 3; mf = 2;
 sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
-sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
+sysr = FDFilterIF(sysf.sys[1:mf,:];mf)
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
 @time Q, Rf, info = ammsyn(sysf, sysr, atol = 1.e-7, mindeg = false); info
@@ -100,7 +100,7 @@ p = 2; mu = 1; mw = 1; mf = 2;       # enter dimensions
 # setup the synthesis model 
 sysf = fdimodset(dss([Gu Gf Gw],minimal = true),c =1:mu, f = mu .+ (1:mf), n = (mu+mf) .+ (1:mw));
 
-Mr = FDFilterIF(dss(ones(1,2)),0,0,2);                 
+Mr = FDFilterIF(dss(ones(1,2)); mf);                 
 
 # call of AMMSYN with the options for stability degree -3 and the synthesis 
 # of a scalar output filter
@@ -127,7 +127,7 @@ p, mu = size(Du); mf = mu; mw = size(Dw,2);
 sysf = fdimodset(dss(A,[Bu Bw],C,[Du Dw]), c = 1:mu, n = mu .+ (1:mw),f = 1:mu); 
 
 # define Mr(s) = I
-Mr = FDFilterIF(dss(eye(mf)),0,0,mf)
+Mr = FDFilterIF(dss(eye(mf)); mf)
 
 @time Q, R, info = ammsyn(sysf,Mr; atol = 1.e-7, nullspace = false, reltol = 5.e-4, sdeg = -10, normalize = "dcgain");
 
@@ -162,7 +162,7 @@ p = 2; mu = 1; mw = 1; mf = 2;       # enter dimensions
 sysf = fdimodset(dss([Gu Gf Gw]), c = 1:mu,f = mu .+ (1:mf), n = (mu+mf) .+ (1:mw));
 
 # define Mr(s) = I
-Mr = FDFilterIF(dss(eye(mf)),0,0,mf)
+Mr = FDFilterIF(dss(eye(mf)); mf)
 
 @time Q, R, info = ammsyn(sysf,Mr; atol = 1.e-7);
 
@@ -182,7 +182,7 @@ mu = 0; mf = 1; mw = 1; p = 1; # set dimensions
 sysf = fdimodset(dss([Gf Gw]), f = 1:mf, n = mf .+ (1:mw));
 
 # define Mr(s) = 1/(s+3)
-Mr = FDFilterIF(dss(1/(s+3)),0,0,mf)
+Mr = FDFilterIF(dss(1/(s+3));mf)
 
 @time Q, R, info = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
 # check suboptimal solution
@@ -191,7 +191,7 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info.M*Mr.sy
       fdimmperf(R,info.M*Mr) ≈ info.gammasub && glinfnorm(Me-Q.sys*Ge)[1] ≈ info.gammasub
 
 
-Me1 = FDFilterIF([zeros(mf,mu) Mr.sys zeros(mf,mw)], 0, 0, mf, mw )
+Me1 = FDFilterIF([zeros(mf,mu) Mr.sys zeros(mf,mw)]; mf, mw )
 
 @time Q1, R1, info1 = ammsyn(sysf, Me1; regmin = false, atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
 @test iszero(R1.sys-Q1.sys*Ge, atol = 1.e-7) && 
@@ -211,7 +211,7 @@ mu = 0; mf = 1; mw = 1; p = 1; # set dimensions
 sysf = fdimodset(dss([Gf Gw]), f = 1:mf, n = mf .+ (1:mw));
 
 # define Mr(s) = 1/(s+3)
-Mr = FDFilterIF(dss(1/(s+3)),0,0,mf)
+Mr = FDFilterIF(dss(1/(s+3));mf)
 
 Q, R, info = ammsyn(sysf, Mr; H2syn = true, atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
 
@@ -232,7 +232,7 @@ p, mu = size(Du); mf = mu; mw = size(Dw,2);
 sysf = fdimodset(dss(A,[Bu Bw],C,[Du Dw]), c = 1:mu, n = mu .+ (1:mw),f = 1:mu); 
 
 # define Mr(s) = 10/(s+10)
-Mr = FDFilterIF(dss([10/(s+10) 0; 0 10/(s+10)]),0,0,mf)
+Mr = FDFilterIF(dss([10/(s+10) 0; 0 10/(s+10)]);mf)
 
 @time Q, R, info = ammsyn(sysf, Mr; H2syn = true, atol = 1.e-7, nullspace = false, reltol = 5.e-4, sdeg = -10, normalize = "dcgain");
 
@@ -260,7 +260,7 @@ sysf = fdimodset(dss([Gu Gf Gw]), c = 1:mu,f = mu .+ (1:mf), n = (mu+mf) .+ (1:m
 
 Q, R, info = afdisyn(sysf, SFDI; smarg =-3, sdeg = -3)
 
-Mr = FDFilterIF([R.sys[1][:,R.faults]; R.sys[2][:,R.faults]],0,0,mf);
+Mr = FDFilterIF([R.sys[1][:,R.faults]; R.sys[2][:,R.faults]];mf);
 
 @time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-5, sdeg = -3);
 
@@ -273,7 +273,7 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info1.M*Mr.s
       fdimmperf(R1,fditspec(Mr)) <= info1.gammasub
       isapprox(fdif2ngap(R1,fditspec(Mr))[1], info.gap; atol=1.e-7)
 
-Mr = FDIFilterIF([R.sys[1][:,R.faults], R.sys[2][:,R.faults]],0,0,mf);  # choose targeted reference model
+Mr = FDIFilterIF([R.sys[1][:,R.faults], R.sys[2][:,R.faults]];mf);  # choose targeted reference model
 
 @time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-3, sdeg = -3);
 
@@ -299,7 +299,7 @@ sysf = fdimodset(dss([Gu Gf Gw]; minimal = true), c = 1:mu, f = mu .+ (1:mf), n 
 
 Q1, R1, info1 = afdsyn(sysf; FDfreq = [0, 0.01], sdeg = -1)
 
-Mr = FDFilterIF(R1.sys[:,R1.faults],0,0,mf);
+Mr = FDFilterIF(R1.sys[:,R1.faults];mf);
 
 @time Q, R, info = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-5, sdeg = -1);
 
@@ -310,7 +310,7 @@ Ge = [sysf.sys; eye(mu,mu+mf+mw)]; Me = [zeros(1,mu) info.M*Mr.sys zeros(1,mw)];
 @test iszero(R2.sys-Q.sys*Ge, atol = 1.e-7) && 
       fdimmperf(R, info.M*Mr) ≈ info.gammasub && glinfnorm(Me-Q.sys*Ge)[1] ≈ info.gammasub 
 
-Mre = FDFilterIF(Me,mu,0,mf);  # choose targeted reference model
+Mre = FDFilterIF(Me;mu,mf);  # choose targeted reference model
 
 @time QM, RM, info2 = ammsyn(sysf, Mre; atol = 1.e-7, reltol = 1.e-4, sdeg = -1);
 
@@ -351,7 +351,7 @@ gammasub = fdimmperf(Rf)
 fscond = fdiscond(Rf)[1]
 @test gammasub == 0 
 
-sysr = FDFilterIF(dss([1 1]),0,0,mf);
+sysr = FDFilterIF(dss([1 1]);mf);
 
 Q1, Rf1, info1 = ammsyn(sysf,sysr, atol = 1.e-7, sdeg =-5, reltol = 1.e-5)
 
@@ -359,13 +359,13 @@ gammasub1 = fdimmperf(Rf1,info1.M*sysr)
 fscond1 = fdiscond(Rf1)[1]
 @test gammasub <= gammasub1 && fscond <= fscond1
 
-sysr2 = FDFilterIF(dss([1 0]),0,0,mf);
+sysr2 = FDFilterIF(dss([1 0]);mf);
 
 Q2, Rf2, info2 = ammsyn(sysf, sysr2, atol = 1.e-7, sdeg =-5, reltol = 1.e-5)
 
 @test fdimmperf(Rf2,info2.M*sysr2) < 1.e-7 && all(fdiscond(Rf2,fditspec(sysr2))[1] .≈ 1)
 
-sysr2 = FDFilterIF(dss([0 1]),0,0,mf);
+sysr2 = FDFilterIF(dss([0 1]);mf);
 
 Q2, Rf2, info2 = ammsyn(sysf, sysr2, atol = 1.e-7, sdeg =-5, reltol = 1.e-5)
 

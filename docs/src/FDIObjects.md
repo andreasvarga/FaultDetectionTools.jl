@@ -14,10 +14,10 @@ fdimodset
 FDFilter
 FDFilter(::DescriptorSystems.DescriptorStateSpace, ::Int, ::Int)
 FDFilterIF
-FDFilterIF(::DescriptorSystems.DescriptorStateSpace, ::Int, ::Int, ::Int)
+FDFilterIF(::DescriptorSystems.DescriptorStateSpace; mu, md, mf, mw, ma, moff)
 FDIFilter
 FDIFilter(::Array{DescriptorSystems.DescriptorStateSpace{T},1}, ::Int, ::Int) where T
 FDIFilterIF
-FDIFilterIF(::Array{DescriptorSystems.DescriptorStateSpace{T},1}, ::Int, ::Int, ::Int) where T
+FDIFilterIF(::Array{DescriptorSystems.DescriptorStateSpace{T},1}; mu, md, mf, mw, ma, moff) where T
 fdIFeval
 ```

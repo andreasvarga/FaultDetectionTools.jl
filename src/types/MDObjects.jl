@@ -160,14 +160,14 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sysm::MDMModel)
         display(sysm.sys[i])
         mdi = sysm.md[i]
         mwi = sysm.mw[i]
-        mauxi = sysm.ma[i]
-        if mu+mdi+mwi+mauxi > 0
+        mai = sysm.ma[i]
+        if mu+mdi+mwi+mai > 0
             println(io, "Input groups:")
             println(io, "Name         Channels")
             mu > 0 &&    println(io,"controls     $(1:mu)")
             mdi > 0 &&   println(io,"disturbances $(mu+1:mu+mdi)")
             mwi > 0 &&   println(io,"noise        $(mu+mdi+1:mu+mdi+mwi)")
-            mauxi > 0 && println(io,"aux          $(mu+mdi+mwi+1:mu+mdi+mwi+mauxi)")
+            mai > 0 &&   println(io,"aux          $(mu+mdi+mwi+1:mu+mdi+mwi+mai)")
          end
            
     end
@@ -198,7 +198,7 @@ The resulting `sysm` contains the vector `sysm.sys` of partitioned systems, with
 `sysm.sys[i] = (Ai-λEi,[Bui Bdi Bwi Bvi],Ci,[Dui Ddi Dwi Dvi])`, where 
 `Bui`, `Bdi`, `Bwi` and `Bvi` are the input matrices from the control inputs `u`, disturbance inputs `di`, 
 noise inputs `wi` and auxiliary inputs `vi`, respectively, and `Dui`, `Ddi`, `Dwi` and `Dvi` are the feedthrough matrices from those inputs.
-The dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
+The dimensions of control, disturbance, noise and auxiliary input vectors are contained in 
 `sysm.mu`, `sysm.md[i]`, `sysm.mw[i]` and `sysm.ma[i]`, respectively.  
 
 _Method:_ If `Gi(λ)` is the `p x mi` transfer function matrix of `sys[i]`, then the resulting component system `sysm.sys[i]` has an 
@@ -326,14 +326,15 @@ struct MDFilter{T} <: AbstractFDDObject where T
     function MDFilter{T}(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T 
         N = length(sys)
         sysn = similar(sys,N)
-        
-        mf = ny+mu
-        mf > size(sys[1],2) && error("total number of inputs exceeds the number of filter inputs $m") 
+        ny < 0 && error("number of measured outputs must be non-negative")
+        mu < 0 && error("number of control inputs must be non-negative")       
+        m = ny+mu
+        m > size(sys[1],2) && error("total number of inputs exceeds the number of filter inputs") 
    
-        sysn[1] = sys[1][:,1:mf]
-        for i = 1:N
-            mf > size(sys[i],2) && error("total number of inputs exceeds the number of filter inputs $m") 
-            sysn[i] = sys[i][:,1:mf]
+        sysn[1] = sys[1][:,1:m]
+        for i = 2:N
+            m > size(sys[i],2) && error("total number of inputs exceeds the number of filter inputs") 
+            sysn[i] = sys[i][:,1:m]
         end
         new{T}(sysn, ny, mu)
     end
@@ -344,13 +345,13 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilter)
         println(io, "Filter# $i:")
         display(filter.sys[i])
     end
-    p = filter.ny
+    ny = filter.ny
     mu = filter.mu
-    if p+mu > 0
+    if ny+mu > 0
        println(io, "Input groups:")
        println(io,          "Name      Channels")
-       p > 0 &&  println(io,"outputs   $(1:p)")
-       mu > 0 && println(io,"controls  $(p+1:p+mu)")
+       ny > 0 && println(io,"outputs   $(1:ny)")
+       mu > 0 && println(io,"controls  $(ny+1:ny+mu)")
    end
 end
 

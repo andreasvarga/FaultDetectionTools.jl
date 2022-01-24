@@ -15,28 +15,28 @@ println("Test_emmsyn")
 ##
 p = 1; mf = 0; mw = 0;
 sysf = fdimodset(rss(1,p,mf+mw),faults = 1:mf,noise = mf.+Vector(1:mw))
-sysr = FDFilterIF(sysf.sys,0,0,mf,mw)
+sysr = FDFilterIF(sysf.sys;mf,mw)
 
 # solve an EMMP for a single reference model
 @time Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(R.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == 0
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf,mw)
+sysr = FDIFilterIF([sysf.sys,sysf.sys];mf,mw)
 @time Q, R, info = emmsyn(sysf,sysr; minimal = false); info
 @test iszero(vcat(R.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && fdimmperf(R,sysr) == [0,0]
 
 ##
 p = 2; mf = 2;
 sysf = fdimodset(rss(1,p,mf,stable = true),faults = 1:mf)
-sysr = FDFilterIF(sysf.sys,0,0,mf)
+sysr = FDFilterIF(sysf.sys;mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
 @time Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) == 0
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
+sysr = FDIFilterIF([sysf.sys,sysf.sys];mf)
 Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
       isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
@@ -45,7 +45,7 @@ Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 p = 3; mf = 2;
 sysf = fdimodset(rss(5,p,mf,stable=true),faults = 1:mf)
 
-sysr = FDFilterIF(sysf.sys,0,0,mf)
+sysr = FDFilterIF(sysf.sys;mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
 @time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7); info
@@ -59,7 +59,7 @@ R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true);
 @test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) < 1.e-7
 
 # solve an EMMP for a bank of two reference models
-sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
+sysr = FDIFilterIF([sysf.sys,sysf.sys]; mf)
 @time Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
 @test iszero(vcat(Rf.sys...)-vcat(Q.sys...)*sysf.sys, atol = 1.e-7) && 
       isapprox(fdimmperf(Rf,info.M*sysr), [0,0], atol = 1.e-7)
@@ -67,7 +67,7 @@ sysr = FDIFilterIF([sysf.sys,sysf.sys],0,0,mf)
 ##
 p = 3; mf = 2;
 sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
-sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
+sysr = FDFilterIF(sysf.sys[1:mf,:];mf)
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
 @time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false); info
@@ -93,7 +93,7 @@ R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true);
 ##
 p = 3; mf = 2;
 sysf = fdimodset(rss(1,p,mf,stable=true),faults = 1:mf)
-sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf)
+sysr = FDFilterIF(sysf.sys[1:mf,:];mf)
 
 # solve an EMMP with sysr = sysf: solution Q = [I 0]
 @time Q, Rf, info = emmsyn(sysf, sysr, atol = 1.e-7, minimal = false, simple = true); info
@@ -105,14 +105,14 @@ R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true);
 ## 
 p = 3; mf = 2; mw = 2;
 sysf = fdimodset(rss(1,p,mf+mw,stable=true),faults = 1:mf,noise = mf.+Vector(1:mw))
-sysr = FDFilterIF(sysf.sys[1:mf,sysf.faults],0,0,mf)
+sysr = FDFilterIF(sysf.sys[1:mf,sysf.faults];mf)
 
 # solve an EMMP with reference model without noise input
 @time Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
 R = fdIFeval(Q, sysf; atol = 1.e-7, minimal = true); 
 @test iszero(Rfw.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(R,info.M*sysr) ≈ fdimmperf(R)
 
-sysr = FDFilterIF(sysf.sys[1:mf,:],0,0,mf,mw)
+sysr = FDFilterIF(sysf.sys[1:mf,:];mf,mw)
 
 # solve an EMMP with reference model with noise input
 @time Q, Rfw, info = emmsyn(sysf,sysr; atol = 1.e-7, minimal = false); info
@@ -151,7 +151,7 @@ atol = 1.e-7;                # tolerance for rank tests
 sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), f = (mu+md).+(1:mf))   
 
 # enter reference model
-Mr = FDFilterIF(dss([ 0 1 -1; -1 0 1; 1 -1 0]), 0, 0, mf)
+Mr = FDFilterIF(dss([ 0 1 -1; -1 0 1; 1 -1 0]); mf)
 
 # solve an exact model-matching problem using EMMSYN
 @time Q, R, info = emmsyn(sysf,Mr; atol); info
@@ -165,7 +165,7 @@ Qbar = glsol(Ge, Me; atol)[1]
 @test iszero(Q.sys-Qbar; atol)
 
 # solve an EMMP without explicit nullspace computation
-Mre = FDFilterIF([zeros(mf,mu) Mr.sys],mu,0,mf); 
+Mre = FDFilterIF([zeros(mf,mu) Mr.sys]; mu, mf); 
 
 @time Q1, R1, info1 = emmsyn(sysf,Mre; atol); info1
 Rt1 = fdIFeval(Q1, sysf; atol = 1.e-7, minimal = true); 
@@ -226,8 +226,8 @@ Qt, Rft, info = efdsyn(sysf, sdeg = -3, rdim = 1);
 
 # normalize Q and Rf to match example
 scale = evalfr(Rft.sys[1,1],Inf)[1,1];
-Q = FDFilter(Qt.sys/scale,Qt.outputs,Qt.controls);
-Rf = FDFilterIF(Rft.sys/scale,faults = Rft.faults);
+Q = FDFilter(Qt.sys/scale,Qt.ny,Qt.mu);
+Rf = FDFilterIF(Rft.sys/scale; mf = Rft.mf);
 
 #  solve an EMMP
 @time QM, RM, info = emmsyn(sysf,Rf)
