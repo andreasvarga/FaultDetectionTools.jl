@@ -54,6 +54,7 @@ gpole(Q)
       sortperm(distgap1[3,:]) == sortperm(info1.MDperf[3,:]) && 
       sortperm(distgap1[4,:]) == sortperm(info1.MDperf[4,:])
 
+@test (mdspec(R,atol = 1.e-7) .== 1) == mdsspec(R,1)
 @test all(mdsspec(R) .== 0) && (mdsspec(R,1) .== 1) == mdsspec(R,1)
 @time mdgain,fpeak,mind = mdmatch(Q,MDModel(sys2;mu))
 @test mind == 2 && argmin(mdgain) == mind

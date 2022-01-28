@@ -32,7 +32,7 @@ Qt, Rft = efdisyn(sysf, SFDI; atol, rdim = 1);
 # normalize Q and Rf to match example
 scale = sign.([ Rft.sys[1].D[1,2], Rft.sys[2].D[1,3], Rft.sys[3].D[1,1]])
 Q = FDIFilter(scale .* Qt.sys, p, mu)
-R = FDIFilterIF(scale .* Rft.sys, 0, 0, mf)
+R = FDIFilterIF(scale .* Rft.sys; mf)
 
 # check synthesis conditions: Qt*[Gu Gd;I 0] = 0 and Qt*[Gf; 0] = Rf
 Rt = fdIFeval(Qt,sysf) # form Qt*[Gu Gd Gf;I 0 0];

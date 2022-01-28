@@ -11,6 +11,7 @@ makedocs(
     "Home"   => "index.md",
     "Tutorials"   => [
       "FDDbasics.md",
+      "MDbasics.md",
       "SynthesisParadigms.md"
       ],
     "Fault Detection" => [ 

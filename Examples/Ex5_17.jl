@@ -19,7 +19,7 @@ sysf = fdimodset(dss(A,[Bu Bw],C,[Du Dw]), c = 1:mu, n = mu .+ (1:mw),f = 1:mu);
 
 # define Mr(s) = 10/(s+10)
 s = rtf("s")
-Mr = FDFilterIF(dss([10/(s+10) 0; 0 10/(s+10)]),0,0,mf)
+Mr = FDFilterIF(dss([10/(s+10) 0; 0 10/(s+10)]); mf)
 
 Q, R, info = ammsyn(sysf, Mr; H2syn = true, atol = 1.e-7, nullspace = false, reltol = 5.e-4, sdeg = -10, normalize = "dcgain");
 

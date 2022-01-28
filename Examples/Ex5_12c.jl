@@ -26,7 +26,7 @@ atol = 1.e-7;                # tolerance for rank tests
 sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), f = (mu+md).+(1:mf))   
 
 # enter reference model
-Mr = FDFilterIF(dss([ 0 1 -1; -1 0 1; 1 -1 0]), 0, 0, mf)
+Mr = FDFilterIF(dss([ 0 1 -1; -1 0 1; 1 -1 0]); mf)
 
 # solve an exact model-matching problem using EMMSYN
 Q, R, info = emmsyn(sysf,Mr; atol); info

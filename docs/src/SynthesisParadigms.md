@@ -2,8 +2,9 @@
 # Synthesis paradigms 
 
 
-The implemented computational procedures for the synthesis of fault detection filters share several computational paradigms, which are instrumental in developing generally applicable, numerically reliable and computationally efficient synthesis methods.
+The implemented computational procedures for the synthesis of fault detection filters share several computational paradigms, which are instrumental in developing generally applicable, numerically reliable and computationally efficient synthesis methods. Similar paradigms are also present in the synthesis methods of model detection filters. 
 In what follows we shortly review these paradigms and discuss their roles in the synthesis procedures.
+
 
 ## Nullspace-based synthesis
 

@@ -17,7 +17,7 @@ mu = 0; mf = 1; mw = 1; p = 1; # set dimensions
 sysf = fdimodset(dss([Gf Gw]), f = 1:mf, n = mf .+ (1:mw));
 
 # define Mr(s) = 1/(s+3)
-Mr = FDFilterIF(dss(1/(s+3)),0,0,mf)
+Mr = FDFilterIF(dss(1/(s+3)); mf)
 
 Q, R, info = ammsyn(sysf, Mr; H2syn = true, atol = 1.e-7, reltol = 1.e-5, sdeg = -1, normalize = "gain");
 

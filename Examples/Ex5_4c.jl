@@ -25,8 +25,8 @@ Qt, Rft, info = efdsyn(sysf, sdeg = -3, rdim = 1);
 
 # normalize Q and Rf to match example
 scale = evalfr(Rft.sys[1,1],Inf)[1,1];
-Q = FDFilter(Qt.sys/scale,Qt.outputs,Qt.controls);
-Rf = FDFilterIF(Rft.sys/scale,faults = Rft.faults);
+Q = FDFilter(Qt.sys/scale,Qt.ny,Qt.mu);
+Rf = FDFilterIF(Rft.sys/scale; mf = Rft.mf);
 println("Q = $(dss2rm(Q.sys, atol = 1.e-7))")
 println("Rf = $(dss2rm(Rf.sys, atol = 1.e-7))")
 

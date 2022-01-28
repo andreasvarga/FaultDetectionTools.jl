@@ -1,8 +1,12 @@
 # Release Notes
 
+## Version 1.0.0 
+
+This major release concludes the development of the package, and includes updating of documentation and example scripts. A new function is provided for the evaluation of the weak structure matrix. 
+
 ## Version 0.9.0 
 
-This minor release is breaking relying on new and simpler definitions of the fault detection related objects. All constructors have been updated accordingly. 
+This minor release is breaking and relies on new and simpler definitions of the fault detection related objects. All constructors, synthesis functions and tests have been updated accordingly. 
 
 ## Version 0.8.0 
 

@@ -59,7 +59,7 @@ for i = 1:nb
     println("Rw[$i] = $(dss2rm(Rfwt[i][:,mf+1:end], atol = 1.e-7))")
 end
 Q = FDIFilter(gminreal.(Qt; atol), p, mu)
-R = FDIFilterIF(gminreal.(Rfwt; atol), 0, 0, mf, mw)
+R = FDIFilterIF(gminreal.(Rfwt; atol); mf, mw)
 println("Q = ")
 display(Q)
 println("R = ")
