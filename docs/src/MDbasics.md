@@ -6,8 +6,8 @@
 The underlying synthesis techniques of model detection systems rely on multiple-model
 descriptions of physical fault cases. 
 The  multiple-model description represents a very general way to describe plant models with various faults. For example, _extreme_ variations of parameters representing the so-called _parametric faults_, can be easily described by multiple models.
-Since different degrees of performance degradations can be easily described via multiple models, 
-model detection techniques have potentially the capability to address certain fault identification aspects too. Two basic forms of synthesis models are used.
+Since different degrees of performance degradations of a plant behaviour can be also described via multiple models,  
+model detection techniques have potentially the capability to address certain fault identification aspects too. Two basic forms of synthesis models are described in what follows.
 
 For physically modelled faults, each fault mode leads to a distinct component model.
 Assume that we have $N$ _stable_ LTI component models describing the fault-free and faulty systems,
@@ -63,8 +63,7 @@ $r^{(i)}(t)$ (scalar or vector). The
 dimension $q_i$ of the residual vector component $r^{(i)}(t)$ can be chosen always one, but occasionally values $q_i > 1$ may provide better sensitivity to model mismatches.
 
 For decision making, an $N$-dimensional  evaluation vector $\theta$ is employed, whose $i$-th component $\theta_i$ usually represents an approximation of  $\|r^{(i)}\|_2$, the $\mathcal{L}_2$- or $\ell_2$-norm of $r^{(i)}$. Then, an $N$-dimensional decision vector $\iota$  is built, whose $i$-th component is set to 0 if $\theta_i \leq \tau_i$ and 1 otherwise, where $\tau_i$ is a suitable threshold. The $j$-th model is _detected_ if $\iota_j =0$ and $\iota_i =1$ for all $i \not = j$. It follows that model detection can be interpreted as a particular type of
-week fault isolation with $N$ signature vectors, where the $N$-dimensional $j$-th signature vector has all elements set to one, excepting the $j$-th entry which is set to zero. An alternative decision scheme can also be devised if $\theta_i$ is associated with a distance function from the current model to the $i$-th model. In this case, if $j$ is the index of least component of $\theta$, then setting $\iota_j =0$ and $\iota_i =1$ for all $i \not = j$, the above decision scheme selects that model $j$ which best fits with the current model characterized by the measured input and output data.
-
+week fault isolation with $N$ signature vectors, where the $N$-dimensional $j$-th signature vector has all elements set to one, excepting the $j$-th entry which is set to zero. An alternative decision scheme relevant for addressing multiple-model based adaptive control prooblems can also be devised if $\theta_i$ is associated with a distance function from the current model to the $i$-th model. In this case, if $j$ is the index of least component of $\theta$, then setting $\iota_j =0$ and $\iota_i =1$ for all $i \not = j$, the above decision scheme selects that model $j$ which best fits with the current model characterized by the measured input and output data. Moreover, to reduce the real-time computational burden, it is occasionally possible to use a number of filters $M$, with $M \ll N$.  For example, a single filter (i.e., $M = 1$) can be sufficient to perform model detection provided the ranges of values of $\theta_1$ for a selected class of persistent test signals correctly reflect the distances from the current model to the first component model.   
 
 Assuming $y(t) = y^{(j)}(t)$, the residual signal component $r^{(i)}(t)$ generally depends on all system inputs $u(t)$, $d^{(j)}(t)$ and $w^{(j)}(t)$
 via the system output $y^{(j)}(t)$.  The _internal form_ of the $i$-th filter driven by the $j$-th model is obtained by replacing ${\mathbf{y}}(\lambda)$ with

@@ -1,5 +1,5 @@
 """
-    amdsyn(sysm::MDMModel; rdim, nullspace = true, simple = false, minimal = true, 
+    amdsyn(sysm::MDMModel; rdim, MDSelect, nullspace = true, simple = false, minimal = true, 
                            emtest = false, normalize = false, fast = true, 
                            sdeg, smarg, poles, HDesign, MDtol, MDGainTol, MDfreq, 
                            epsreg = 0.1, sdegzer, nonstd = 1, rtolinf= 0.0001, 
@@ -55,6 +55,9 @@ The solution of the AMDP ensures that for the `i`-th filter, `Ruii(λ) = 0`, `Rd
 the achieved gaps (see description of `info.MDgap`). 
 
 Various user options can be specified via keyword arguments as follows:
+
+`MDSelect = ifilt` specifies in the vector `ifilt` the indices of the desired filters to be designed
+(default: `ifilt = 1:N`)
 
 If `minimal = true` (default), least order filter synthesis is performed to determine 
 each of the component filters
@@ -125,7 +128,8 @@ of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
 If `normalize = false` (default), the `i`-th component filter `Q.sys[i]` is scaled such that
 the minimum gain of `R.sys[i,j]` for `j = 1, ..., N`,   `j` ``\\neq`` `i`, is equal to one. 
 If `normalize = true`, the standard normalization of component filters is performed to ensure
-equal gains for `R.sys[1,j]` and `R.sys[j,1]`.  
+equal gains for `R.sys[1,j]` and `R.sys[j,1]`. 
+This option is only possible if `ifilt[1] = 1` (see `MDSelect`).
 
 `epsreg = ϵ` specifies the value of the regularization parameter `ϵ` (default: `ϵ = 0.1`)
 
@@ -211,7 +215,8 @@ _References:_
 [2] A. Varga, Least order fault and model detection using multi-models. 
        IEEE CDC'09, Shanghai, China, 2009.
 """
-function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, poles::Union{AbstractVector,Missing} = missing, 
+function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
+                      MDSelect::Vector{Int} = Vector(1:length(sysm.sys)), poles::Union{AbstractVector,Missing} = missing, 
                       sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing,  
                       nullspace::Bool = false, minimal::Bool = true, simple::Bool = false, emdtest::Bool = false,
                       MDtol::Real = 0.0001, MDGainTol::Real = 0.01, MDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
@@ -223,16 +228,19 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    N = length(sysm.sys)   
    T1 = Float64
    # check stability of input model
-   for i = 1:N
-       isstable(sysm.sys[i]) || error("Input multiple model must be stable")
-       #T1 = promote_type(T1,eltype(sysm.sys[i]))
-   end
+   isstable(sysm) || error("the input multiple model must be stable")
+
    p = size(sysm.sys[1],1);       # number of measurable outputs              
    Ts = sysm.sys[1].Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
   
    # decode options
-     
+
+   M = length(MDSelect)
+   any(MDSelect .<= 0) && error("the selected filter indices must be positive")   
+   any(MDSelect .> N) && error("the selected filter indices must be at most $N")   
+   M > 0 && MDSelect[1] != 1 && (normalize = false)
+  
    strongMD = !ismissing(MDfreq)
    strongMD && !isa(MDfreq,Vector) && (MDfreq = [MDfreq]) 
    lfreq = strongMD ? length(MDfreq) : 0
@@ -267,11 +275,11 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    # desired number of filter outputs   
    if !ismissing(rdim)
       if isa(rdim,Vector) 
-         length(rdim) == N || error("dimension of rdim must be equal to the number of models")
+         length(rdim) == M || error("dimension of rdim must be equal to the number of selected filters")
          minimum(rdim) > 0 || error("all components of rdim must be positive")
       else
          rdim > 0 || error("rdim must be positive")
-         rdim = fill(rdim, N)
+         rdim = fill(rdim, M)
       end
    end
 
@@ -281,12 +289,12 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    if !emptyHD
        if isa(HDesign,Matrix)
           size(HDesign,1) == rank(HDesign) || error("HDesign must have full row rank")
-          HDesign = fill(HDesign,N)
+          HDesign = fill(HDesign,M)
        else
-          size(HDesign,1) == N || error("number of HDesign components must be equal to the number of models $N")
+          size(HDesign,1) == M || error("number of HDesign components must be equal to the number of selected filters $M")
        end
        if !ismissing(rdim) 
-          for i = 1:N
+          for i = 1:M
               if !isempty(HDesign[i])
                  mH = size(HDesign[i],1)
                  if mH > 0
@@ -297,7 +305,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
           end
        end
    else
-      HDesign = fill(T1[],N)
+      HDesign = fill(T1[],M)
    end
 
  
@@ -311,37 +319,38 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    
    m = mu .+ (md+mw+ma)      # total number of inputs
     
-   infotcond = similar(Vector{T1},N)
-   infodegs = similar(Vector{Vector{Int}},N)
-   HDesign1 = similar(Vector{Array{T1,2}},N)
-   Qt = similar(Vector{DescriptorStateSpace{T1}},N)
-   Rt = similar(Matrix{DescriptorStateSpace{T1}},N,N)
-   distinf = fill(-1.,N,N) 
+   infotcond = similar(Vector{T1},M)
+   infodegs = similar(Vector{Vector{Int}},M)
+   HDesign1 = similar(Vector{Array{T1,2}},M)
+   Qt = similar(Vector{DescriptorStateSpace{T1}},M)
+   Rt = similar(Matrix{DescriptorStateSpace{T1}},M,N)
+   distinf = fill(-1.,M,N) 
    ismissing(rdim) ? rdimtarget = missing : rdimtarget = copy(rdim)
-   for i = 1:N
+   for i = 1:M
+      isel = MDSelect[i]
       # solve the exact MD problem for the i-th system (with noise inputs)
       # 
       # compute a minimal left nullspace basis Q1i for the i-th system
-      desc = (sysm.sys[i].E != I)
-      m2 = mw[i]+ma[i]
+      desc = (sysm.sys[isel].E != I)
+      m2 = mw[isel]+ma[isel]
       sdegNS = strongMD ? sdegdefault : missing     
-      if nullspace || simple || md[i] > 0 || (desc && rcond(sysm.sys[i].E) < 1.e-7 )
+      if nullspace || simple || md[isel] > 0 || (desc && rcond(sysm.sys[isel].E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         syse = [sysm.sys[i]; eye(mu,m[i])];
+         syse = [sysm.sys[isel]; eye(mu,m[isel])];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
          # obtain QR = [ Q R ], where R = [ Rf Rw Raux] = Q*[Gf Gw Ga;0 0 0]
          qtemp, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
          degs = info1.degs
          tcond1 = info1.tcond
-      elseif mu == 0 && md[i] == 0
+      elseif mu == 0 && md[isel] == 0
          qtemp = dss(eye(T1,p))
          degs = Int[]; tcond1 = 1.
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q R ], where R = [ Gf Gw Ga ]
-         qtemp = [ eye(p) dss(sysm.sys[i].A, sysm.sys[i].E, -sysm.sys[i].B[:,inpu],
-                   sysm.sys[i].C, -sysm.sys[i].D[:,inpu]; Ts)] 
+         qtemp = [ eye(p) dss(sysm.sys[isel].A, sysm.sys[isel].E, -sysm.sys[isel].B[:,inpu],
+                   sysm.sys[isel].C, -sysm.sys[isel].D[:,inpu]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          degs = Int[]; tcond1 = 1.
       end
@@ -380,7 +389,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
       defer = !emptyHDi && minimal
       for j = 1:N
          # check j-th model detectability
-         if i != j
+         if isel != j
             temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
             #i == 1 && (println(size(temp)))
             if strongMD
@@ -426,8 +435,8 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
          end
       end
       # determine the rank of Rwii
-      inpw = mu+md[i]+1:m[i]
-      temp = gir(Htemp*qtemp[:,1:p]*sysm.sys[i][:,inpw]; atol)
+      inpw = mu+md[isel]+1:m[isel]
+      temp = gir(Htemp*qtemp[:,1:p]*sysm.sys[isel][:,inpw]; atol)
       rwi = gnrank(temp; atol)
 
       # setup the number of filter outputs
@@ -570,7 +579,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                     notOK = false
                     for j = 1:N
                         # check j-th model detectability
-                        if i != j
+                        if isel != j
                            # dismiss design if check fails
                            temp = gir(qtest*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                            if strongMD
@@ -677,7 +686,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
       for j = 1:N
          temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
          # compute gains
-         if i != j
+         if isel != j
             if strongMD
                gains = zero(T1)
                if emdtest
@@ -698,20 +707,19 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                end
             end
          else
-            distinf[i,i] = 0
+            distinf[i,isel] = 0
          end
          Rt[i,j] = temp
       end
-
-      if normalize
+      if !normalize 
          # scale to unit minimum gains
-         scale = 1/minimum(view(distinf,i,[1:i-1; i+1:N]))
+         scale = 1/minimum(view(distinf,i,[1:isel-1; isel+1:N]))
       else
          # scale to ensure distinf(i,1) = distinf(1,i)
-         if i == 1
+         if isel == 1
             scale = 1/minimum(view(distinf,1,2:N))
          else
-            scale = distinf[1,i]/distinf[i,1]
+            scale = distinf[1,isel]/distinf[i,1]
          end
       end
       lmul!(scale,view(distinf,i,:))
@@ -724,15 +732,18 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
       HDesign1[i] = emptyHDi ? convert(Matrix{T1},h) : convert(Matrix{T1},Htemp)
    end
 
-   gaps = fill(Inf,N) 
-   nstd  =  falses(N)  
+   gaps = fill(Inf,M) 
+   nstd  =  falses(M)  
    if any(mw .> 0)
-      for i = collect(1:N)[mw .> 0]
+      for i = 1:M
+          isel = MDSelect[i]
+          mw[isel] == 0 && continue
+         
           # determine the optimal factors Q3 to minimize the i-th gap 
   
           # compute the co-outer-co-inner factorizations of 
           # Rwii = [Rwoe 0]*Rwi = Rwoe*Rwi1
-          inpw = mu+md[i]+1:m[i]
+          inpw = mu+md[isel]+1:m[isel]
           Rwi, Rwo, info1 = goifac(Rt[i,i][:,inpw]; atol1, atol2, atol3, rtol)
           rw = size(Rwo,2);  # rank of Rwii
           if rw > 0
@@ -800,7 +811,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
             for j = 1:N
                temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                # compute gains
-               if i != j
+               if isel != j
                   if strongMD
                      gains = zero(T1)
                      if emdtest
@@ -813,7 +824,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                         end
                      end
                      distinf[i,j] = gains 
-                 else
+                  else
                      if emdtest
                         distinf[i,j] = glinfnorm(temp[:,1:mu+md[j]]; rtolinf, atol1, atol2, rtol, fast, offset)[1]
                      else
@@ -821,20 +832,20 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                      end
                   end
                else
-                  distinf[i,i] = 0
+                  distinf[i,isel] = 0
                end
                Rt[i,j] = temp
-             end
+            end
 
-             if normalize
+             if !normalize
                 # scale to unit minimum gains
-                scale = 1/minimum(view(distinf,i,[1:i-1; i+1:N]))
+                scale = 1/minimum(view(distinf,i,[1:isel-1; isel+1:N]))
              else
                 # scale to ensure distinf(i,1) = distinf(1,i)
                 if i == 1
                    scale = 1/minimum(view(distinf,1,2:N))
                 else
-                   scale = distinf[1,i]/distinf[i,1]
+                   scale = distinf[1,isel]/distinf[i,1]
                 end
              end
              lmul!(scale,view(distinf,i,:))
@@ -850,9 +861,8 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
       end
    end    
    
-   Q = MDFilter{T1}(Qt, p, mu)
-   #R = fdRset(QR[:,p+mu+1:end],faults = Vector(1:mf), noise = mf .+ Vector(1:mw), aux = (mf+mw) .+ Vector(1:ma))
-   R = MDFilterIF{T1}(Rt, mu, md, mw, ma) 
+   Q = MDFilter{T1}(Qt, p, mu, MDSelect)
+   R = MDFilterIF{T1}(Rt, mu, md, mw, ma, MDSelect) 
    info = (tcond = infotcond, degs = infodegs, HDesign = HDesign1, MDperf = distinf, MDgap = gaps, nonstandard = nstd)
 
    return Q, R, info
@@ -860,7 +870,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    # end AMDSYN
 end
 """
-    emdsyn(sysm::MDMModel; rdim, nullspace = true, simple = false, minimal = true, 
+    emdsyn(sysm::MDMModel; rdim, MDSelect, nullspace = true, simple = false, minimal = true, 
                            emtest = false, normalize = false, fast = true, 
                            sdeg, smarg, poles, HDesign, MDtol, MDGainTol, MDfreq, 
                            tcond, offset, atol, atol1, atol2, atol3, rtol) 
@@ -912,6 +922,9 @@ The solution of the EMDP ensures that for the `i`-th filter, `Ruii(λ) = 0`, `Rd
 `[Ruij(λ) Rdij(λ)]` ``\\neq`` `0` for `j` ``\\neq`` `i`.
 
 Various user options can be specified via keyword arguments as follows:
+
+`MDSelect = ifilt` specifies in the vector `ifilt` the indices of the desired filters to be designed
+(default: `ifilt = 1:N`)
 
 If `minimal = true` (default), least order filter synthesis is performed to determine 
 each of the component filters
@@ -982,7 +995,8 @@ of the employed non-orthogonal transformations (default: `tcmax = 1.e4`).
 If `normalize = false` (default), the `i`-th component filter `Q.sys[i]` is scaled such that
 the minimum gain of `R.sys[i,j]` for `j = 1, ..., N`,   `j` ``\\neq`` `i`, is equal to one. 
 If `normalize = true`, the standard normalization of component filters is performed to ensure
-equal gains for `R.sys[1,j]` and `R.sys[j,1]`.  
+equal gains for `R.sys[1,j]` and `R.sys[j,1]`. 
+This option is only possible if `ifilt[1] = 1` (see `MDSelect`).
 
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
@@ -1040,7 +1054,8 @@ _References:_
 [2] A. Varga, Least order fault and model detection using multi-models. 
        IEEE CDC'09, Shanghai, China, 2009.
 """
-function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, poles::Union{AbstractVector,Missing} = missing, 
+function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
+                      MDSelect::Vector{Int} = Vector(1:length(sysm.sys)), poles::Union{AbstractVector,Missing} = missing, 
                       sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing,  
                       nullspace::Bool = false, minimal::Bool = true, simple::Bool = false, emdtest::Bool = false,
                       MDtol::Real = 0.0001, MDGainTol::Real = 0.01, MDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
@@ -1051,15 +1066,19 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    N = length(sysm.sys)   
    T1 = Float64
    # check stability of input model
-   for i = 1:N
-       isstable(sysm.sys[i]) || error("Input multiple model must be stable")
-       #T1 = promote_type(T1,eltype(sysm.sys[i]))
-   end
+   isstable(sysm) || error("the input multiple model must be stable")
+
    p = size(sysm.sys[1],1);       # number of measurable outputs              
    Ts = sysm.sys[1].Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
   
    # decode options
+
+   M = length(MDSelect)
+   any(MDSelect .<= 0) && error("the selected filter indices must be positive")   
+   any(MDSelect .> N) && error("the selected filter indices must be at most $N")   
+   M > 0 && MDSelect[1] != 1 && (normalize = false)
+
      
    strongMD = !ismissing(MDfreq)
    strongMD && !isa(MDfreq,Vector) && (MDfreq = [MDfreq]) 
@@ -1092,11 +1111,11 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    # desired number of filter outputs   
    if !ismissing(rdim)
       if isa(rdim,Vector) 
-         length(rdim) == N || error("dimension of rdim must be equal to the number of models")
+         length(rdim) == M || error("dimension of rdim must be equal to the number of selected filters $M")
          minimum(rdim) > 0 || error("all components of rdim must be positive")
       else
          rdim > 0 || error("rdim must be positive")
-         rdim = fill(rdim, N)
+         rdim = fill(rdim, M)
       end
    end
 
@@ -1106,12 +1125,12 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    if !emptyHD
        if isa(HDesign,Matrix)
           size(HDesign,1) == rank(HDesign) || error("HDesign must have full row rank")
-          HDesign = fill(HDesign,N)
+          HDesign = fill(HDesign,M)
        else
-          size(HDesign,1) == N || error("number of HDesign components must be equal to the number of models $N")
+          size(HDesign,1) == M || error("number of HDesign components must be equal to the number of selected filters $M")
        end
        if !ismissing(rdim) 
-          for i = 1:N
+          for i = 1:M
               if !isempty(HDesign[i])
                  mH = size(HDesign[i],1)
                  if mH > 0
@@ -1122,7 +1141,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
           end
        end
    else
-      HDesign = fill(T1[],N)
+      HDesign = fill(T1[],M)
    end
 
  
@@ -1136,37 +1155,38 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
    
    m = mu .+ (md+mw+ma)      # total number of inputs
     
-   infotcond = similar(Vector{T1},N)
-   infodegs = similar(Vector{Vector{Int}},N)
-   HDesign1 = similar(Vector{Array{T1,2}},N)
-   Qt = similar(Vector{DescriptorStateSpace{T1}},N)
-   Rt = similar(Matrix{DescriptorStateSpace{T1}},N,N)
-   distinf = fill(-1.,N,N) 
+   infotcond = similar(Vector{T1},M)
+   infodegs = similar(Vector{Vector{Int}},M)
+   HDesign1 = similar(Vector{Array{T1,2}},M)
+   Qt = similar(Vector{DescriptorStateSpace{T1}},M)
+   Rt = similar(Matrix{DescriptorStateSpace{T1}},M,N)
+   distinf = fill(-1.,M,N) 
    ismissing(rdim) ? rdimtarget = missing : rdimtarget = copy(rdim)
-   for i = 1:N
+   for i = 1:M
+      isel = MDSelect[i]
       # solve the exact MD problem for the i-th system (with noise inputs)
       # 
       # compute a minimal left nullspace basis Q1i for the i-th system
-      desc = (sysm.sys[i].E != I)
-      m2 = mw[i]+ma[i]
+      desc = (sysm.sys[isel].E != I)
+      m2 = mw[isel]+ma[isel]
       sdegNS = strongMD ? sdegdefault : missing     
-      if nullspace || simple || md[i] > 0 || (desc && rcond(sysm.sys[i].E) < 1.e-7 )
+      if nullspace || simple || md[isel] > 0 || (desc && rcond(sysm.sys[isel].E) < 1.e-7 )
          # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
-         syse = [sysm.sys[i]; eye(mu,m[i])];
+         syse = [sysm.sys[isel]; eye(mu,m[isel])];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
          # obtain QR = [ Q R ], where R = [ Rf Rw Raux] = Q*[Gf Gw Ga;0 0 0]
          qtemp, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
          degs = info1.degs
          tcond1 = info1.tcond
-      elseif mu == 0 && md[i] == 0
+      elseif mu == 0 && md[isel] == 0
          qtemp = dss(eye(T1,p))
          degs = Int[]; tcond1 = 1.
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
          # QR = [ Q R ], where R = [ Gf Gw Ga ]
-         qtemp = [ eye(p) dss(sysm.sys[i].A, sysm.sys[i].E, -sysm.sys[i].B[:,inpu],
-                   sysm.sys[i].C, -sysm.sys[i].D[:,inpu]; Ts)] 
+         qtemp = [ eye(p) dss(sysm.sys[isel].A, sysm.sys[isel].E, -sysm.sys[isel].B[:,inpu],
+                   sysm.sys[isel].C, -sysm.sys[isel].D[:,inpu]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          degs = Int[]; tcond1 = 1.
       end
@@ -1205,7 +1225,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
       defer = !emptyHDi && minimal
       for j = 1:N
          # check j-th model detectability
-         if i != j
+         if isel != j
             temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
             #i == 1 && (println(size(temp)))
             if strongMD
@@ -1394,7 +1414,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                        notOK = false
                        for j = 1:N
                            # check j-th model detectability
-                           if i != j
+                           if isel != j
                               # dismiss design if check fails
                               temp = gir(qtest*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                               if strongMD
@@ -1501,7 +1521,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
          for j = 1:N
            temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
            # compute gains
-           if i != j
+           if isel != j
               if strongMD
                  gains = zero(T1)
                  if emdtest
@@ -1522,21 +1542,21 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
                  end
               end
            else
-              distinf[i,i] = 0
+              distinf[i,isel] = 0
            end
            Rt[i,j] = temp
          end
      
        
-         if normalize
+         if !normalize 
             # scale to unit minimum gains
-            scale = 1/minimum(view(distinf,i,[1:i-1; i+1:N]))
+            scale = 1/minimum(view(distinf,i,[1:isel-1; isel+1:N]))
          else
             # scale to ensure distinf(i,1) = distinf(1,i)
-            if i == 1
+            if isel == 1
                scale = 1/minimum(view(distinf,1,2:N))
             else
-               scale = distinf[1,i]/distinf[i,1]
+               scale = distinf[1,isel]/distinf[i,1]
             end
          end
          lmul!(scale,view(distinf,i,:))
@@ -1550,9 +1570,8 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing, 
          HDesign1[i] = emptyHDi ? convert(Matrix{T1},h) : convert(Matrix{T1},Htemp)
    end
   
-   Q = MDFilter{T1}(Qt, p, mu)
-   #R = fdRset(QR[:,p+mu+1:end],faults = Vector(1:mf), noise = mf .+ Vector(1:mw), aux = (mf+mw) .+ Vector(1:ma))
-   R = MDFilterIF{T1}(Rt, mu, md, mw, ma) 
+   Q = MDFilter{T1}(Qt, p, mu, MDSelect)
+   R = MDFilterIF{T1}(Rt, mu, md, mw, ma, MDSelect) 
    info = (tcond = infotcond, degs = infodegs, HDesign = HDesign1, MDperf = distinf)
 
    return Q, R, info

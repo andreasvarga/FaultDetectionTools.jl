@@ -315,34 +315,39 @@ Type for model detection filters resulted as solutions of model detection proble
     
 If `filter::MDFilter` is the model detection filter object, 
 the underlying `i`-th descriptor system model
-can be obtained via `filter.sys[i]` and the dimensions of the partitioned filter input vectors as 
+can be obtained via `filter.sys[i]`, the dimensions of the partitioned filter input vectors as 
 `measured outputs` and `control inputs`,  
-can be accessed as the integers contained in `filter.ny` and `filter.mu`, respectively.
+can be accessed as the integers contained in `filter.ny` and `filter.mu`, respectively, and the
+filter indices can be accessed in the vector `filter.ifilt`.
 """
 struct MDFilter{T} <: AbstractFDDObject where T 
     sys::Vector{DescriptorStateSpace{T}}
     ny::Int
     mu::Int
-    function MDFilter{T}(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T 
-        N = length(sys)
-        sysn = similar(sys,N)
+    ifilt::Vector{Int}
+    function MDFilter{T}(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int, ifilt::Vector{Int}) where T 
+        M = length(sys)
+        sysn = similar(sys,M)
+        length(ifilt) == M || error("the number of filters must be equal to the number of selected indices")
+        any(ifilt .<= 0) && error("the selected indices must be positive")   
         ny < 0 && error("number of measured outputs must be non-negative")
-        mu < 0 && error("number of control inputs must be non-negative")       
+        mu < 0 && error("number of control inputs must be non-negative")    
+        M == 0 &&  (return new{T}(sysn, ny, mu, ifilt)) 
         m = ny+mu
         m > size(sys[1],2) && error("total number of inputs exceeds the number of filter inputs") 
    
         sysn[1] = sys[1][:,1:m]
-        for i = 2:N
+        for i = 2:M
             m > size(sys[i],2) && error("total number of inputs exceeds the number of filter inputs") 
             sysn[i] = sys[i][:,1:m]
         end
-        new{T}(sysn, ny, mu)
+        new{T}(sysn, ny, mu, ifilt)
     end
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilter)
     summary(io, filter); println(io)
     for i = 1:length(filter.sys)
-        println(io, "Filter# $i:")
+        println(io, "Filter# $i  Filter index $(filter.ifilt[i]):")
         display(filter.sys[i])
     end
     ny = filter.ny
@@ -362,9 +367,10 @@ Type for the internal form of model detection filters resulted as solutions of m
     
 If `filter::MDFilterIF` is the model detection filter internal form object, 
 the underlying `(i,j)`-th descriptor system model
-can be obtained via `filter.sys[i,j]` and the corresponding
+can be obtained via `filter.sys[i,j]`, the corresponding
 dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
-`sysm.mu`, `sysm.md[j]`, `sysm.mw[j]` and `sysm.ma[j]`, respectively.  
+`sysm.mu`, `sysm.md[j]`, `sysm.mw[j]` and `sysm.ma[j]`, respectively, and the
+filter indices can be accessed in the vector `filter.ifilt`.  
 """
 struct MDFilterIF{T} <: AbstractFDDObject where T 
     sys::Matrix{DescriptorStateSpace{T}}
@@ -372,10 +378,15 @@ struct MDFilterIF{T} <: AbstractFDDObject where T
     md::Vector{Int}
     mw::Vector{Int}
     ma::Vector{Int}
+    ifilt::Vector{Int}
     function MDFilterIF{T}(sys::Matrix{DescriptorStateSpace{T}}, mu::Int, md::Vector{Int}, 
-                           mw::Vector{Int}, ma::Vector{Int}) where T 
+                           mw::Vector{Int}, ma::Vector{Int}, ifilt::Vector{Int}) where T 
         M, N = size(sys)
         sysn = similar(sys,M,N)
+        length(ifilt) == M || error("the number of filters must be equal to the number of selected indices")
+        any(ifilt .<= 0) && error("the selected indices must be positive")   
+        any(ifilt .> N) && error("the selected indices must be at most $N")   
+        M == 0 &&  (return new{T}(sysn, mu, md, mw, ma, ifilt)) 
         for j = 1:N
             mj = mu+md[j]+mw[j]+ma[j]
             mj > size(sys[1,j],2) && error("number of inputs exceeds the number of system inputs $m") 
@@ -385,9 +396,8 @@ struct MDFilterIF{T} <: AbstractFDDObject where T
                 sysn[i,j] = sys[i,j][:,1:mj]
             end
         end
-        t = new{T}(sysn, mu, md, mw, ma)
-        return t
-    end
+        new{T}(sysn, mu, md, mw, ma, ifilt)
+     end
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilterIF)
     summary(io, filter); println(io)
@@ -397,8 +407,20 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::MDFilterIF)
         md = filter.md[j]
         mw = filter.mw[j]
         maux = filter.ma[j]
+        if M == 0
+            if mu+md+mw+maux > 0
+               println(io, "\nModel# = $j:")
+               println(io, "Input groups:")
+               println(io, "Name         Channels")
+               mu > 0 && println(io,"controls     $(1:mu)")
+               md > 0 && println(io,"disturbances $(mu+1:mu+md)")
+               mw > 0 && println(io,"noise        $(mu+md+1:mu+md+mw)")
+               maux > 0 && println(io,"aux         $(mu+md+mw+1:mu+md+mw+maux)")
+            end
+            continue
+        end
         for i = 1:M
-            println(io, "\n(Filter#,Model#) = ($i,$j):")
+            println(io, "\n(Filter#, Filter index, Model#) = ($i, $(filter.ifilt[i]), $j):")
             display(filter.sys[i,j])
             if mu+md+mw+maux > 0
                println(io, "Input groups:")
@@ -460,7 +482,7 @@ function mdIFeval(Q::MDFilter, sysm::MDMModel; minimal::Bool = false,
            sysR[i,j] = minimal ? gminreal(Q.sys[i]*sysej; atol1, atol2, rtol, fast) : Q.sys[i]*sysej
        end
    end
-   return MDFilterIF{T1}(sysR, sysm.mu, sysm.md, sysm.mw, sysm.ma) 
+   return MDFilterIF{T1}(sysR, sysm.mu, sysm.md, sysm.mw, sysm.ma, Q.ifilt) 
 end
 function gbalmr(Q::MDFilter{T}; kwargs...) where T 
     for i = 1:length(Q.sys)
@@ -476,4 +498,5 @@ function gminreal(Q::MDFilter{T}; kwargs...) where T
 end
 gpole(Q::MDFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
 isstable(Q::MDFilter{T}; kwargs...) where T = all(isstable.(Q.sys;  kwargs...))
+isstable(sysm::MDMModel; kwargs...) = all(isstable.(sysm.sys;  kwargs...))
 

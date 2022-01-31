@@ -2,7 +2,8 @@
 
 ## Version 1.0.0 
 
-This major release concludes the development of the package, and includes updating of documentation and example scripts. A new function is provided for the evaluation of the weak structure matrix. 
+This major release concludes the development of the package, and includes updating of documentation and example scripts. A new function is provided for the evaluation of the weak structure matrix. The defintions of the model detection filter objects have been redefined to accomodate with desired 
+filter index selections in the synthesis functions `emdsyn` and `amdsyn`.
 
 ## Version 0.9.0 
 

@@ -23,13 +23,14 @@ sys4 = dss(0.01*k/(s+0.01*k)); # stall load fault model
 sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu);
 
 @time Q, R, info = amdsyn(sysm; sdeg = -15, poles = [-20]); info.MDperf
+
 @time distgap, fpeak = mddist(sysm)
 @test sortperm(distgap[1,:]) == sortperm(info.MDperf[1,:]) && 
       sortperm(distgap[2,:]) == sortperm(info.MDperf[2,:]) && 
       sortperm(distgap[3,:]) == sortperm(info.MDperf[3,:]) && 
       sortperm(distgap[4,:]) == sortperm(info.MDperf[4,:])
 
-@time Q1, R1, info1 = amdsyn(sysm; sdeg = -15, poles = [-20], MDfreq = 1); info.MDperf
+@time Q1, R1, info1 = amdsyn(sysm; sdeg = -15, poles = [-20], MDfreq = 1); info1.MDperf
 @time distgap1, fpeak1 = mddist(sysm, MDfreq = 1)
 @test sortperm(distgap1[1,:]) == sortperm(info1.MDperf[1,:]) && 
       sortperm(distgap1[2,:]) == sortperm(info1.MDperf[2,:]) && 
@@ -39,6 +40,12 @@ sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu);
 @test all(mdsspec(R) .== 0) && (mdsspec(R,1) .== 1) == mdsspec(R,1)
 @time mdgain,fpeak,mind = mdmatch(Q,MDModel(sys2;mu))
 @test mind == 2 && argmin(mdgain) == mind
+
+@time Q, R, info = amdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [1]); info.MDperf
+@time Q, R, info = amdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [2]); info.MDperf 
+@time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], normalize = true); info.MDperf 
+@test info.MDperf[1,:] == info.MDperf[:,1]
+
 
 
 # Example 6.1c - Solution of a EMDP
