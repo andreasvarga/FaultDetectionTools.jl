@@ -861,8 +861,8 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       end
    end    
    
-   Q = MDFilter{T1}(Qt, p, mu, MDSelect)
-   R = MDFilterIF{T1}(Rt, mu, md, mw, ma, MDSelect) 
+   Q = MDFilter{T1}(Qt, p, mu)
+   R = MDFilterIF{T1}(Rt, mu, md, mw, ma) 
    info = (tcond = infotcond, degs = infodegs, HDesign = HDesign1, MDperf = distinf, MDgap = gaps, nonstandard = nstd)
 
    return Q, R, info
@@ -1570,8 +1570,8 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
          HDesign1[i] = emptyHDi ? convert(Matrix{T1},h) : convert(Matrix{T1},Htemp)
    end
   
-   Q = MDFilter{T1}(Qt, p, mu, MDSelect)
-   R = MDFilterIF{T1}(Rt, mu, md, mw, ma, MDSelect) 
+   Q = MDFilter{T1}(Qt, p, mu)
+   R = MDFilterIF{T1}(Rt, mu, md, mw, ma) 
    info = (tcond = infotcond, degs = infodegs, HDesign = HDesign1, MDperf = distinf)
 
    return Q, R, info

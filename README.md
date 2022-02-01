@@ -55,7 +55,7 @@ include("CS2_1.jl")
 ## About
 
 `FDITools` is a collection of Julia functions for the analysis and solution 
-of fault detection problems. The functions of this collection rely on 
+of fault detection and model detection problems. The functions of this collection rely on 
 the [DescriptorSystems](https://github.com/andreasvarga/DescriptorSystems.jl) package. 
 
 The implemented functions are based on the computational procedures described in Chapters 5, 6 and 7 of the book:
@@ -64,7 +64,7 @@ The implemented functions are based on the computational procedures described in
 
 This book describes the mathematical background of solving synthesis problems of fault detection and model detection filters and gives detailed descriptions of the underlying synthesis procedures. 
 
-The targeted functionality parallels the functionality of the MATLAB collection of tools [FDITOOLS](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
+The implemented functionality parallels the functionality of the MATLAB collection of tools [FDITOOLS](https://github.com/andreasvarga/FDITools), whose User's Guide of the version V1.0 is provided in the file [`fditoolsdoc.pdf`](https://github.com/andreasvarga/FDITools/blob/master/fditoolsdoc.pdf).  
 
 
 ## Supplementary information
