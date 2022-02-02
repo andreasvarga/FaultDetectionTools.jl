@@ -147,7 +147,8 @@ struct FDIFilter{T} <: AbstractFDDObject where T
         N = length(sys)
         sysn = similar(sys,N)
         ny < 0 && error("number of measured outputs must be non-negative")
-        mu < 0 && error("number of control inputs must be non-negative")       
+        mu < 0 && error("number of control inputs must be non-negative")  
+        N == 0 &&  (return new{T}(sysn, ny, mu))      
         m = ny+mu
         m > size(sys[1],2) && error("total number of inputs exceeds the number of filter inputs") 
         sysn[1] = sys[1][:,1:m]

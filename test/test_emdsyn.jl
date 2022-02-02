@@ -59,6 +59,9 @@ gpole(Q)
 @time mdgain,fpeak,mind = mdmatch(Q,MDModel(sys2;mu))
 @test mind == 2 && argmin(mdgain) == mind
 
+@time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = Int[]); info.MDperf
+display(Q)
+display(R)
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [1]); info.MDperf
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [2]); info.MDperf 
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], normalize = true); info.MDperf 

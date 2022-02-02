@@ -111,6 +111,9 @@ R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
 # check weak and strong fault detectability
 @test fditspec(Rf) == fdisspec(Rf) == SFDI 
 
+@time Q, Rf = efdisyn(sysf, SFDI[1:0,:]; atol = 1.e-7, rdim = 1);
+display(Q)
+display(R)
 
 ## Model Niemann 1998, Optim. Appl. Meth. 
 n = 5; mu = 2; md = 1; mf = 2; m = mu+md+mf; p = 5;
