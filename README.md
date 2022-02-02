@@ -28,7 +28,7 @@ cd(joinpath(pkgdir(FaultDetectionTools), "test"))
 include("FDIToolsDemo.jl")
 ````
 -->
-To execute all examples in Chapters 5 and 7, and case studies in Chapter 8 in the fault diagnosis book (see below), execute 
+To execute all examples in Chapters 5, 6 and 7, and case studies in Chapter 8 in the fault diagnosis book (see below), execute 
 
 ````JULIA
 using FaultDetectionTools
