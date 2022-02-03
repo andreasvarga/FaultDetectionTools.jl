@@ -1,6 +1,6 @@
 # FaultDetectionTools.jl
 
-<!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4568159.svg)](https://doi.org/10.5281/zenodo.4568159) -->
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5957950.svg)](https://doi.org/10.5281/zenodo.5957950)
 [![DocBuild](https://github.com/andreasvarga/FaultDetectionTools.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/FaultDetectionTools.jl/actions) 
 [![codecov.io](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl/coverage.svg?branch=master)](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl?branch=master)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/dev/)
