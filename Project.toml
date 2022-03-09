@@ -1,7 +1,7 @@
 name = "FaultDetectionTools"
 uuid = "fbfc5fa0-0005-11ec-19bb-b3a492551a0b"
 authors = ["Andreas Varga <varga.andreas@gmail.com>"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
@@ -16,8 +16,8 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 DescriptorSystems = "1.2"
 Combinatorics = "1"
 MatrixEquations = "2.0"
-MatrixPencils = "1.6"
-Polynomials = "2.0"
+MatrixPencils = "1.7"
+Polynomials = "2.0, 3"
 julia = "1.6"
 
 [extras]

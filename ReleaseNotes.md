@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.0.1
+
+Version bump to use Polynomials 3.0.
+
 ## Version 1.0.0 
 
 This major release concludes the development of the package, and includes updating of documentation and example scripts. A new function is provided for the evaluation of the weak structure matrix. A filter index selection option has been implemented in the synthesis functions `emdsyn` and `amdsyn`.
