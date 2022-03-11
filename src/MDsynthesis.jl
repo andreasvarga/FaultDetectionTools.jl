@@ -391,20 +391,16 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
          # check j-th model detectability
          if isel != j
             temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
-            #i == 1 && (println(size(temp)))
             if strongMD
                if emdtest
                   St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
                else
                   St = fdisspec_(temp[:,1:mu], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
                end
-               #i == 1 && (println("i= $i j = $j St = "); display(St))
                Sj = trues(size(St,1),lfreq) 
                for k = 1:lfreq
                    Sj[:,k] = any(view(St,:,:,k),dims=2)
                end
-               #i == 1 && (println("j = $j Sj = "); display(Sj))
-               #println("i = $i j = $j Sj = "); display(Sj)
                if any(maximum(Sj,dims=1)) 
                   S[:,:,j] = Sj
                else
@@ -449,7 +445,6 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       else
          rdim = min(rdimtarget[i],nvec) 
       end
-      #i == 1 && println("rdim = $rdim")
       
       # adjust rmin to be at most the rank of Rwii
       rwi > 0 && (rdim = min(rdim,rwi)) 
@@ -472,8 +467,6 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
              # filter with rdim outputs:
              # basesel(i,:) contains the indices of candidate basis vectors;
              # ordsel(i)    contains the presumably achievable least orders
-             #println("i = $i degs = $degs rdim = $rdim nout = $nout simple = $simple S = ")
-             #i == 1 && display(S)
              basesel, ordsel = emdbasesel(S, degs, rdim, nout, simple) 
              #
              # update the synthesis using the selections of candidate vector(s),
@@ -547,7 +540,6 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                                 @warn "amdsyn: expected reduced order not achieved"
                              end
                              h = Htemp[ip[1:rdim],:]
-                             #i == 1 && println("h = $h")
                           else
                              qtest, _, info2 = glmcover1([Htemp; eye(nvec)]*qtemp[ip,:], rdim; atol1, atol2, rtol)
                           end
@@ -593,15 +585,12 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                                   Sj[:,k] = any(view(St,:,:,k),dims=2)
                               end
                               notOK = !any(maximum(Sj,dims=1)) 
-                              #i == 1 && println("Sj = $Sj")
-                              #notOK = lfreq == 1 ? !any(St) : !all([any(view(St,:,:,k)) for k = 1:lfreq]) 
                            else
                               if emdtest
                                  Sj = fditspec_(temp[:,1:mu+md[j]]; atol1, atol2, rtol, FDtol = MDtol)
                               else
                                  Sj = fditspec_(temp[:,1:mu]; atol1, atol2, rtol, FDtol = MDtol)
                               end
-                              #println("j = $j Sj = $Sj")
                               notOK = !any(Sj) 
                            end
                         end
@@ -1145,7 +1134,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
    end
 
  
-  
    # decode input information
    mu = sysm.mu  
    inpu = 1:mu 
@@ -1223,24 +1211,20 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       end
       #strongMD && (qtemp = glcf(qtemp; atol1, atol2, rtol, fast, sdeg = sdegNS)[1])
       defer = !emptyHDi && minimal
-      for j = 1:N
+       for j = 1:N
          # check j-th model detectability
          if isel != j
             temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
-            #i == 1 && (println(size(temp)))
             if strongMD
                if emdtest
                   St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
                else
                   St = fdisspec_(temp[:,1:mu], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
                end
-               #i == 1 && (println("i= $i j = $j St = "); display(St))
                Sj = trues(size(St,1),lfreq) 
                for k = 1:lfreq
                    Sj[:,k] = any(view(St,:,:,k),dims=2)
                end
-               #i == 1 && (println("j = $j Sj = "); display(Sj))
-               #println("i = $i j = $j Sj = "); display(Sj)
                if any(maximum(Sj,dims=1)) 
                   S[:,:,j] = Sj
                else
@@ -1270,10 +1254,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
             end
          end
       end
-      #i == 1 && println("i = $i S = ")
-      #display(S)
-      #i == 1 && println("rdimtarget = $rdimtarget")
-      # setup the number of filter outputs
       if ismissing(rdimtarget)
          if emptyHDi 
             rdim = minimal ? 1 : nvec   
@@ -1283,7 +1263,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       else
          rdim = min(rdimtarget[i],nvec) 
       end
-      #i == 1 && println("rdim = $rdim")
       
           
       # Step 2): compute admissible Q2 to reduce the order of Q2*Q;  
@@ -1307,8 +1286,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                 # filter with rdim outputs:
                 # basesel(i,:) contains the indices of candidate basis vectors;
                 # ordsel(i)    contains the presumably achievable least orders
-                #println("i = $i degs = $degs rdim = $rdim nout = $nout simple = $simple S = ")
-                #i == 1 && display(S)
                 basesel, ordsel = emdbasesel(S, degs, rdim, nout, simple) 
                 #
                 # update the synthesis using the selections of candidate vector(s),
@@ -1382,7 +1359,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                                    @warn "emdsyn: expected reduced order not achieved"
                                 end
                                 h = Htemp[ip[1:rdim],:]
-                                #i == 1 && println("h = $h")
                              else
                                 qtest, _, info2 = glmcover1([Htemp; eye(nvec)]*qtemp[ip,:], rdim; atol1, atol2, rtol)
                              end
@@ -1428,15 +1404,12 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                                      Sj[:,k] = any(view(St,:,:,k),dims=2)
                                  end
                                  notOK = !any(maximum(Sj,dims=1)) 
-                                 #i == 1 && println("Sj = $Sj")
-                                 #notOK = lfreq == 1 ? !any(St) : !all([any(view(St,:,:,k)) for k = 1:lfreq]) 
                               else
                                  if emdtest
                                     Sj = fditspec_(temp[:,1:mu+md[j]]; atol1, atol2, rtol, FDtol = MDtol)
                                  else
                                     Sj = fditspec_(temp[:,1:mu]; atol1, atol2, rtol, FDtol = MDtol)
                                  end
-                                 #println("j = $j Sj = $Sj")
                                  notOK = !any(Sj) 
                               end
                            end
@@ -1494,7 +1467,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                Qt[i] = Htemp*qtemp 
             end
          end
-         
+        
          # compute Q3i such that Q3i*Q[i] has a desired stability degree;  
          # update Q[i] <- Q3i*Qi[i] 
          k = 1;
@@ -1619,7 +1592,7 @@ function emdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple
     (rdim >=1 && rdim <= nvec) || error("ndim must have a positive value not exceeding $nvec")
     (nout >=rdim && nout <= nvec) || error("nout must have a value at least $rdim and at most $nvec")
     
-    nvec == 1 && (return [1], nodegs ? Int[] : degs )
+    nvec == 1 && (return [[1]], nodegs ? Int[] : degs )
     
     # find rdim combinations of nout vectors which solve the EFDP 
     seli = collect(combinations(Vector(1:nvec),nout))

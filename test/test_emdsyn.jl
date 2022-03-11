@@ -8,8 +8,9 @@ using Random
 using Test
 
 # Testing examples for EMDSYN 
+println("Test_emdsyn")
 @testset "emdsyn" begin
-#rand()
+rand()
 
 ## Actuator faults
 s = rtf('s');
@@ -60,15 +61,12 @@ gpole(Q)
 @test mind == 2 && argmin(mdgain) == mind
 
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = Int[]); info.MDperf
-display(Q)
-display(R)
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [1]); info.MDperf
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], MDSelect = [2]); info.MDperf 
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20], normalize = true); info.MDperf 
 @test info.MDperf[1,:] == info.MDperf[:,1]
 
 sysc1=MDModel(rss(3,2,6,stable = true); mu = 2, md = 1,mw = 2, ma = 1)
-display(sysc1)
 sysc2=MDModel(rss(3,2,6,stable = true); mu = 2, md = 2, mw = 1)
 sysm = mdmodset([sysc1,sysc2])
 @test mddist2c([sysc1,sysc2],[sysc1,sysc2])[1] == mddist2c([sysc1,sysc2],sysm)[1] == mddist2c(sysm,[sysc1,sysc2])[1]
@@ -87,6 +85,23 @@ sysm = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu,
 sysm1 = mdmodset([sys1, sys2, sys3, sys4], controls = 1:mu, 
         disturbances = [mu .+ (1:md[1]), mu .+ (1:md[2]),mu .+ (1:md[3]),mu .+ (1:md[4])]);
 sysm2 = MDMModel([sys1, sys2, sys3, sys4]; mu, md);
+
+@time distgap, fpeak = mddist(sysm, distance = "Inf")
+@time distgap1, fpeak1 = mddist(sysm, distance = "Inf", MDfreq = fpeak[:])
+@test distgap ≈ distgap1 && fpeak ≈ fpeak1
+
+@time distgapd, fpeakd = mddist(sysm, distance = "Inf", cdinp = true)
+@time distgapd1, fpeakd1 = mddist(sysm, distance = "Inf", cdinp = true, MDfreq = fpeakd[:])
+@test distgapd ≈ distgapd1 && fpeakd ≈ fpeakd1 && all(abs.(distgapd-distgap+1.e-7*I) .>= 0)
+
+@time distgapc, fpeakc = mddist2c(sysm,sysm, distance = "Inf")
+@time distgapc1, fpeakc1 = mddist2c(sysm, sysm, distance = "Inf", MDfreq = fpeakc[:])
+@test norm(distgapc-distgapc1,Inf) < 1.e-7 
+
+@time distgapcd, fpeakcd = mddist2c(sysm,sysm, cdinp = true, distance = "Inf")
+@time distgapcd1, fpeakcd1 = mddist2c(sysm, sysm, cdinp = true, distance = "Inf", MDfreq = fpeakcd[:])
+@test norm(distgapcd-distgapcd1,Inf) < 1.e-7 && all(abs.(distgapcd-distgapc+1.e-7*I) .>= 0)
+
 
 @test all(iszero.(sysm.sys .- sysm1.sys,atol=1.e-7)) && sysm.mu == sysm1.mu &&
       sysm.md == sysm1.md && sysm.mw == sysm1.mw && sysm.ma == sysm1.ma
@@ -161,13 +176,11 @@ end
 # setup synthesis model
 sysm = mdmodset(sysu, controls = 1:mu);
 
-
 # call of EMDSYN with the options for stability degree -1 and pole -1 for
 # the filters, tolerance and a design matrix H to form a linear combination
 # of the left nullspace basis vectorsH = [ 0.7645 0.8848 0.5778 0.9026 ];
 H = [ 0.7645 0.8848 0.5778 0.9026 ];
 @time Q, R, info = emdsyn(sysm, sdeg = -1, poles = [-1], HDesign = H); 
-display(Q)
 R1 = mdIFeval(Q, sysm, atol=1.e-7, minimal = true)
 @test norm(diag(info.MDperf)) < 1.e-7 && all(iszero.(R.sys .- R1.sys,atol=1.e-7))
 
@@ -175,7 +188,6 @@ R1 = mdIFeval(Q, sysm, atol=1.e-7, minimal = true)
 R11 = mdIFeval(Q1, sysm, atol=1.e-7, minimal = true)
 @test norm(info.MDperf-info1.MDperf) < 1.e-7 && all(iszero.(Q.sys .- Q1.sys,atol=1.e-7)) &&
 all(iszero.(R.sys .- R11.sys,atol=1.e-7))
-
 
 @time Q, R, info = emdsyn(sysm, nullspace = true, sdeg = -1, poles = [-1], HDesign = H); 
 R1 = mdIFeval(Q, sysm, atol=1.e-7, minimal = true)

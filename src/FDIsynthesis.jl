@@ -386,7 +386,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
                        h = [ hbase zeros(T, rdim, nvec-nout) ]
                        h = h[:,ip]  # permute columns to match unpermuted QR 
                     end
-                 else
+                  else
                     if rdim == nout
                        if emptyHD 
                           h = Htemp[ip[1:rdim],:]
@@ -401,7 +401,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
                        h = [ hbase zeros(T, rdim, nvec-nout) ] 
                        h = h[:,ip]  # permute columns to match unpermuted QR 
                     end
-                 end
+                  end
               else
                  if minimal
                     if rdim == nout
@@ -618,7 +618,7 @@ function efdbasesel(S::BitArray, degs::Vector{Int}, rdim::Int, nout::Int, simple
    (rdim >=1 && rdim <= nvec) || error("ndim must have a positive value not exceeding $nvec")
    (nout >=rdim && nout <= nvec) || error("nout must have a value at least $rdim and at most $nvec")
    
-   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   nvec == 1 && (return [[1]], nodegs ? Int[] : degs )
    
    # find rdim combinations of nout vectors which solve the EFDP 
    seli = collect(combinations(Vector(1:nvec),nout))
@@ -1080,7 +1080,7 @@ function afdbasesel(S::BitArray, rwgain::Matrix, degs::Vector{Int}, rdim::Int, n
    (rdim >=1 && rdim <= nvec) || error("ndim must have a positive value not exceeding $nvec")
    (nout >=rdim && nout <= nvec) || error("nout must have a value at least $rdim and at most $nvec")
    
-   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   nvec == 1 && (return [[1]], nodegs ? Int[] : degs )
    
    # determine rank of rwgain
    if size(rwgain,2) > 0 
@@ -2942,7 +2942,7 @@ function emmbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, a
    (rdim >=1 && rdim <= nvec) || error("mf must have a positive value not exceeding $nvec")
    (nout >=rdim && nout <= nvec) || error("nout must have a value at least $rdim and at most $nvec")
    
-   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   nvec == 1 && (return [[1]], nodegs ? Int[] : degs )
    
 
    # find rdim combinations of nout vectors which solve the AFDP 
@@ -3834,7 +3834,7 @@ function ammbasesel(rgain::Matrix, degs::Vector{Int}, nout::Int, simple::Bool, a
    nodegs || length(degs) == nvec || error("the dimension of degs must be equal to the number of rows of rgain")
    nout <= min(mr,nvec) || error("nout must have a value at most $(min(mr,nvec))")
    
-   nvec == 1 && (return [1], nodegs ? Int[] : degs )
+   nvec == 1 && (return [[1]], nodegs ? Int[] : degs )
    
 
    # find nout combinations of nvec vectors which solve the AMMP 
