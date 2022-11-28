@@ -1,7 +1,8 @@
 # Generation of Fig6_3 with CairoMakie for Ex6_2
 # The required inputs are: 
 #    R    - residual internal form
-using CairoMakie, LaTeXStrings
+using Makie, CairoMakie, LaTeXStrings
+Makie.inline!(false)
 using LinearAlgebra
 
 N, M = size(R.sys)

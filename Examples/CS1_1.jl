@@ -137,7 +137,7 @@ y = [stepresp(Rtot[i][:,indf],10)[1] for i in 1:N];
 include("Fig8_3.jl")
 Fig8_3 = f
 
-export Fig8_2, Fig8_3
+#export Fig8_2, Fig8_3
 
 end  # module
 
