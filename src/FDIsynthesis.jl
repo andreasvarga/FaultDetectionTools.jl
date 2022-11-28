@@ -163,8 +163,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    Ts = sysf.sys.Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
    
-   # decode options
-      
+   # decode options     
    strongFD = !ismissing(FDfreq)
    strongFD && !isa(FDfreq,Vector) && (FDfreq = [FDfreq]) 
    strongFD && (lfreq = length(FDfreq))
@@ -979,7 +978,8 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
          # obtain QR = [ Q1 R1 ], where R1 = [Rf1 Rw1 Raux1] = Q*[Gf Gw Gaux;0 0 0]
-         QR, info1 = glnull(syse, m2; atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
+         #QR, info1 = glnull(syse, m2; atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
+         QR, info1 = glnull(syse, m2; atol1, atol2, rtol, fast, offset) 
          tcond0 = info1.tcond
       elseif mu == 0 && md == 0
          # compute minimal basis as Q = Q1 = I  and set

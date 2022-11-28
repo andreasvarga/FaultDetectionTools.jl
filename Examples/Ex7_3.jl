@@ -1,8 +1,5 @@
 module Ex7_3
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using DescriptorSystems, LinearAlgebra
 
 # Example 7.3 - Nullspace-based synthesis 
 # Uses only DescriptorSystems.jl 
@@ -32,3 +29,4 @@ println("Rf = $(dss2rm(Rf))")
 println("M = $(dss2rm(M))")
 
 end # module
+using Main.Ex7_3

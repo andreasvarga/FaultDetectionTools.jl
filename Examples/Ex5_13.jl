@@ -1,9 +1,5 @@
 module Ex5_13
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 5.13 - Solution of an EMMP 
 println("Example 5.13")
@@ -68,3 +64,4 @@ G = dss([Gu Gf;eye(mu,mu+mf)]); F = [zeros(mf,mu) M*Mr];
 @test iszero(Q*G-F; atol)
 
 end # module
+using Main.Ex5_13

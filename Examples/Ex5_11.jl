@@ -1,9 +1,5 @@
 module Ex5_11
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 5.11 - Solution of an AFDIP 
 println("Example 5.11")
@@ -11,11 +7,11 @@ println("Example 5.11")
 # define s as an improper transfer function
 s = rtf('s');
 # define Gu(s), Gf(s) and Gw(s)
-Gu = [(s+1)/(s+2); (s+2)/(s+3)];     # enter Gu(s)
-Gw = [1/(s+2); 0];                   # enter Gw(s)
-Gf = [(s+1)/(s+2) 0; 0 1];           # enter Gf(s)
-p = 2; mu = 1; mw = 1; mf = 2;       # enter dimensions
-S = eye(mf) .> 0
+Gu = [(s+1)/(s+2); (s+2)/(s+3)];  # enter Gu(s)
+Gw = [1/(s+2); 0];                # enter Gw(s)
+Gf = [(s+1)/(s+2) 0; 0 1];        # enter Gf(s)
+p = 2; mu = 1; mw = 1; mf = 2;    # enter dimensions
+S = eye(mf) .> 0                  # set desired structure matrix
 
 # Procedure AFDI
 
@@ -51,8 +47,8 @@ for i = 1:nb
    
     # adjust denominator M to unit infinity norm to match example
     Mnorm = ghinfnorm(M)[1]
-    Qt[i] = (scale[i]/Mnorm)*Qi_Rfi_Rwi[:,1:p+mu]
-    Rfwt[i] = (scale[i]/Mnorm)*Qi_Rfi_Rwi[:,p+mu+1:end]
+    Qt[i] = (scale[i]/Mnorm)*dss2ss(Qi_Rfi_Rwi[:,1:p+mu])[1]
+    Rfwt[i] = (scale[i]/Mnorm)*dss2ss(Qi_Rfi_Rwi[:,p+mu+1:end])[1]
 
     println("Q[$i] = $(dss2rm(Qt[i], atol = 1.e-7))")
     println("Rf[$i] = $(dss2rm(Rfwt[i][:,1:mf], atol = 1.e-7))")
@@ -60,10 +56,8 @@ for i = 1:nb
 end
 Q = FDIFilter(gminreal.(Qt; atol), p, mu)
 R = FDIFilterIF(gminreal.(Rfwt; atol); mf, mw)
-println("Q = ")
-display(Q)
-println("R = ")
-display(R)
-println("gap = $(fdif2ngap(R,S)[1])")
+println("Q = "); display(Q)
+println("R = "); display(R)
+@test fdif2ngap(R,S)[1] ≈ [3,Inf]     # check gap
    
 end # module

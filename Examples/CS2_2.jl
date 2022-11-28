@@ -1,49 +1,52 @@
 module CS2_2
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
-using JLD2
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, 
+      JLD2, Polynomials, Test
 
 ## CS2_2  - Case-study example: Monitoring air data sensor faults
 #           Robust least order LPV synthesis
 println("Case study CS2_2")
 
 ## Part 1 - Model setup
-# load matrices of the aircraft multiple-model SYSACM, actuator model ACT,
-# output-feedback gain K, percentages of mass variations massi
+# load matrices of the aircraft multiple-model SYSACM 
+# and percentages of mass variations massi
 
 cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
-@load "cs2data.jld2"
+SYSACSM, massi = load("cs2data.jld2", "SYSACSM","massi")
 
-N = size(SYSACSM,1)
-p, m = size(SYSACSM[1].D)
+N = size(SYSACSM,1)        # number of models
+p, m = size(SYSACSM[1].D)  # output and input dimensions
+n = order(SYSACSM[1])      # state dimension
+nom = 7;                   # index of nominal system 
+atol = 1.e-6               # absolute tolerance
+maxdeg = 4                 # maximum interpolation order
 T = Float64
 
-# build minimal realizations of AC-models with actuator faults
-# set dimensions
-nom = 7;             # nominal system 
-# set sensor indices and set dimensions of inputs
+# set sensor indices and set system dimensions of inputs
 #     [ AoA VCAS ]
 sen = [  2,    4  ]; 
-md = 2; mu = m-md; mf = length(sen); n = maximum(order.(SYSACSM));
+md = 2; mu = m-md; mf = length(sen); 
 
-idm = eye(T,p);
-
+# build minimal realizations of AC-models with sensor faults
+idm = eye(p);
 syssen = similar(Vector{DescriptorStateSpace},N)
 for i = 1:N
     syssen[i] = [ SYSACSM[i] idm[:,sen]]
 end
 
-syssenf = fdimodset(syssen; c = Vector(1:mu), d = mu .+ Vector(1:md), f = (mu+md) .+ (1:mf));
-
+# build synthesis models with sensor faults
+syssenf = fdimodset(syssen; c = Vector(1:mu), 
+                    d = mu .+ Vector(1:md), f = (mu+md) .+ (1:mf));
 
 ## Part 2 - Setup of the synthesis specifications
 
-# compute the achievable strong specifications for constant faults
-S_strong = fdigenspec(syssenf[nom], atol = 1.e-6, atol3 = 1.e-6, FDtol = 1.e-5, FDGainTol = 0.001, FDfreq = 0, sdeg = -0.05);
+# compute achievable strong specifications for constant faults
+FDtol = 1.e-5      # weak fault detection threshold
+FDGainTol = 0.0001  # strong fault detection threshold
+FDfreq = 0         # frequency for strong detectability checks 
+S_strong = fdigenspec(syssenf[nom]; atol, FDtol, FDGainTol, 
+                      FDfreq, sdeg = -0.05);
 
+# check number of maximum possible specifications
 @test size(S_strong,1) == 2^mf-1
 
 ## Part 3 - LPV synthesis using up to 4th order polynomial gain interpolation
@@ -59,29 +62,35 @@ for i = 1:N
     D[:,:,i] = Dref/cde
 end     
 
-N4 = similar(Matrix{Float64},N,5)
+Nintp = similar(Matrix{T},N,maxdeg+1)
 Qpol = Polynomial.(zeros(T,mf,p+mu))
-for deg = 0:4
+y = []
+for deg = 0:maxdeg
     for i = 1:mf
         for j = 1:p+mu
             Qpol[i,j] = fit(view(massi,:), view(D,i,j,:), deg)
         end
     end
     for i = 1:N
-        rezi = (massi[i] .|> Qpol)*syse[i] - [zeros(mf,mu+md) eye(2)]
-        N4[i,deg+1]  = glinfnorm(rezi)[1]
+        Ri = (massi[i] .|> Qpol)*syse[i]
+        rezi = Ri - [zeros(mf,mu+md) eye(2)]
+        Nintp[i,deg+1]  = glinfnorm(rezi)[1]
+        deg == maxdeg && push!(y,stepresp(Ri,10)[1])
     end     
 end
-@test all(maximum(N4,dims = 1) .> [545.  138.  16.  0.88  0.12])
+@test all(maximum(Nintp,dims = 1) .> [545.  138.  16.  0.88  0.12 0.022 0.002][:,1:maxdeg+1])
 
 println(" Table 8.5  Robustness analysis results of interpolation based approximations")
-println(" N0        N1         N2         N3         N4")
-display(N4)
+println(prod([" N$k        " for k = 0:maxdeg]))
+display(Nintp)
 
-## Part 4 - LPV synthesis using 3rd order polynomial gain interpolation
-#  setup of the LPV synthesis similar to using MATLAB's SYSTUNE (to be implemented)
+tout = Vector(0:0.1:10.)
+include("Fig8_8.jl")
+Fig8_8 = f
 
+export Fig8_8
 
 end  # module
+using Main.CS2_2
 
  

@@ -1,9 +1,5 @@
 module Ex2_4
-using FaultDetectionTools
-using Measurements
-using DescriptorSystems
-using LinearAlgebra
-using Test
+using FaultDetectionTools, DescriptorSystems, Measurements, LinearAlgebra, Test
 
 # Example 2.4 - Generation of a synthesis model with noise inputs from a LPV uncertain model 
 println("Example 2.4")
@@ -37,3 +33,4 @@ sysf = fdimodset(dss(getfield.(A,:val),[Bu Bw],C,[Du Dw]), c = 1:mu, n = mu .+ (
 display(sysf)
 
 end # module
+using Main.Ex2_4

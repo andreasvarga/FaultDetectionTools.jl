@@ -10,7 +10,7 @@ using Test
 # Testing examples for EFDISYN 
 println("Test_efdisyn")
 @testset "efdisyn" begin
-rand()
+#rand()
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
@@ -341,8 +341,8 @@ nb = size(SFDI,1)
 # check synthesis conditions: Q*[Gu Gd;I 0] = 0 and Q*[Gf; 0] = Rf
 R = fdIFeval(Q,sysf); # form Q*[Gu Gd Gf;I 0 0];
 @test iszero(vcat(R.sys...)[:,[R.controls;R.disturbances]],atol=1.e-7) &&
-      iszero(vcat(R.sys...)[:,R.faults]-vcat(Rf.sys...),atol=1.e-7) &&
-      order.(Q.sys) == [2, 2, 1, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] &&
+      iszero(vcat(R.sys...)[:,R.faults]-vcat(Rf.sys...),atol=1.e-7) 
+@test order.(Q.sys) == [2, 2, 1, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] &&
       order(vcat(Q.sys...)) == 32 && order(gbalmr(vcat(Q.sys...),atol=1.e-7)[1]) == 6 &&
       count(ghanorm(vcat(Q.sys...))[2] .> 1.e-7) == 6 &&
       fditspec(Rf) == SFDI

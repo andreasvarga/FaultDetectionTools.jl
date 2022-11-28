@@ -1,9 +1,5 @@
 module Ex6_2
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-#using Plots
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.2 - Solution of an AMDP
 println("Example 6.2")

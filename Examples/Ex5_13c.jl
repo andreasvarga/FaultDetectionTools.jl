@@ -1,11 +1,7 @@
 module Ex5_13c
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, Test
 
-# Example 5.13c - Solution of an EMMP using EMMSYN
+# Example 5.13c - Solution of an EMMP 
 println("Example 5.13c")
 
 # define s as an improper transfer function
@@ -27,14 +23,16 @@ atol = 1.e-7                # tolerance for rank tests
 sdeg = -1                   # set stability degree
 
 # solve an exact model-matching problem using EMMSYN
-Q, R, info = emmsyn(sysf, Mr; atol, sdeg, minimal = false); info
+Q, R, info = emmsyn(sysf, Mr; atol, sdeg, minimal = false); 
 
 # display results
-println("Q = $(dss2rm(Q.sys, atol = 1.e-7))")
-println("M = $(dss2rm(info.M, atol = 1.e-7))")
+println("Q = $(dss2rm(Q.sys; atol))")
+println("M = $(dss2rm(info.M; atol))")
 
-# check solution
-G = [sysf.sys; eye(mu,mu+mf)]; F = [zeros(mf,mu) info.M*Mr.sys];
-@test iszero(Q.sys*G-F; atol)
+# check synthesis conditions: Q*[Gu Gd;I 0] = 0 and Q*[Gf; 0] = M*Mr
+Rt = fdIFeval(Q, sysf; atol) # form Q*[Gu Gd Gf;I 0 0];
+@test iszero(Rt.sys[:,[Rt.controls;Rt.disturbances]]; atol) &&
+      iszero(Rt.sys[:,Rt.faults]-info.M*Mr.sys; atol)
 
 end # module
+using Main.Ex5_13c

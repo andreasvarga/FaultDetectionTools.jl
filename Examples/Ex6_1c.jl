@@ -1,9 +1,5 @@
 module Ex6_1c
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.1c - Solution of an EMDP
 println("Example 6.1c")
@@ -35,9 +31,23 @@ sysm = mdmodset(sysu, controls = 1:mu);
 # of the left nullspace basis vectorsH = [ 0.7645 0.8848 0.5778 0.9026 ];
 H = [ 0.7645 0.8848 0.5778 0.9026 ];
 Q, R, info = emdsyn(sysm, sdeg = -1, poles = [-1], HDesign = H); 
-info.MDperf
+distinf = info.MDperf
+
+# check model detectability 
+@test all(diag(distinf) .< 1.e-7) && all(distinf.+eps(2.)+I .>= 1)
 
 println("Norms of final residual models")
-display(info.MDperf)
+display(distinf)
 
-end # module
+# plot distance mappings 
+include("Fig6_1.jl")
+Fig6_1 = fig1
+
+# plot residual responses
+include("Fig6_2.jl")
+Fig6_2 = fig2
+
+export Fig6_1, Fig6_2
+
+end
+using Main.Ex6_1c

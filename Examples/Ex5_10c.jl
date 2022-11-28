@@ -1,9 +1,5 @@
 module Ex5_10c
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, Test
 
 # Example 5.10c - Solution of an EFDIP
 println("Example 5.10c")
@@ -22,11 +18,12 @@ Gf = eye(3);                 # enter Gf(s) for sensor faults
 atol = 1.e-7;                # tolerance for rank tests
 
 # build model with faults
-sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), f = (mu+md).+(1:mf))       
+sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), 
+                 f = (mu+md).+(1:mf))       
 
-SFDI = [ 0 1 1; 1 0 1; 1 1 0] .> 0; # enter structure matrix
+SFDI = [ 0 1 1; 1 0 1; 1 1 0] .> 0; # set structure matrix
 
-# 
+# call of EFDISYN with the option for synthesis of scalar output filters 
 Qt, Rft = efdisyn(sysf, SFDI; atol, rdim = 1);
 
 # normalize Q and Rf to match example
@@ -36,16 +33,14 @@ R = FDIFilterIF(scale .* Rft.sys; mf)
 
 # check synthesis conditions: Qt*[Gu Gd;I 0] = 0 and Qt*[Gf; 0] = Rf
 Rt = fdIFeval(Qt,sysf) # form Qt*[Gu Gd Gf;I 0 0];
-@test iszero(vcat(Rt.sys...)[:,[Rt.controls;Rt.disturbances]],atol=1.e-7) &&
-      iszero(vcat(Rt.sys...)[:,Rt.faults]-vcat(Rft.sys...),atol=1.e-7)
+@test iszero(vcat(Rt.sys...)[:,[Rt.controls;Rt.disturbances]]; atol) &&
+      iszero(vcat(Rt.sys...)[:,Rt.faults]-vcat(Rft.sys...); atol)
 
 # check weak and strong fault detectability
-@test fditspec(Rft) == fdisspec(Rft) 
+@test fditspec(Rft) == fdisspec(Rft) == SFDI
 
-println("Q = ")
-display(Q)
-println("R = ")
-display(R)
-
+println("Q = "); display(Q)
+println("R = "); display(R)
 
 end # module
+using Main.Ex5_10c

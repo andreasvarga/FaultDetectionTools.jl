@@ -1,9 +1,5 @@
 module Ex5_10
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 5.10 - Solution of an EFDIP
 println("Example 5.10")
@@ -21,8 +17,7 @@ Gd = ones(3,1)*rss(nd,1,md); # enter Gd(s) in state-space form
 Gf = eye(3);                 # enter Gf(s) for sensor faults
 atol = 1.e-7;                # tolerance for rank tests
 
-# build model with faults
-#sysf = [Gu Gd Gf]
+# build model with faults: sysf = [Gu Gd Gf]
 sysf = fdimodset([Gu Gd Gf], c = 1:mu, d = mu.+(1:md), f = (mu+md).+(1:mf))       
 
 S = [ 0 1 1; 1 0 1; 1 1 0] .> 0;  # enter structure matrix
@@ -58,5 +53,7 @@ end
 scale = sign.([ Rft[1].D[1,2], Rft[2].D[1,3], Rft[3].D[1,1]])
 Q = FDIFilter(scale .* Qt, p, mu)
 R = FDIFilterIF(scale .* Rft; mf)
-println("gap = $(fdif2ngap(R,S)[1])")
+
+# check all gaps are infinite
+@test all(fdif2ngap(R,S)[1] .== Inf)
 end # module

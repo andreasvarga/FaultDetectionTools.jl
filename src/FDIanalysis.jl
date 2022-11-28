@@ -195,7 +195,7 @@ generated candidate filters, such that the real parts of
 filters poles must be less than or equal to `β`, in the continuous-time case, and 
 the magnitudes of filter poles must be less than or
 equal to `β`, in the discrete-time case. If `sdeg = missing` then no then no stabilization is performed if and `FDFreq = missing`.
-If `sdeg = missing` and `FDFreq = freq`, then the fllowing default values are employed : `β = -0.05`, in continuous-time case, and  `β = 0.95`, 
+If `sdeg = missing` and `FDFreq = freq`, then the following default values are employed : `β = -0.05`, in continuous-time case, and  `β = 0.95`, 
 in discrete-time case. 
 
 The rank determinations in the performed reductions

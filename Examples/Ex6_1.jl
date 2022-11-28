@@ -1,9 +1,5 @@
 module Ex6_1
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-#using Plots
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.1 - Solution of an EMDP
 println("Example 6.1")
@@ -41,7 +37,6 @@ atol = 1.e-7;                     # set tolerance
 Q = similar(Vector{DescriptorStateSpace},N)
 for i = 1:N
   Q[i] = glmcover1([h;eye(p)]*Q1[i],1; atol)[1];  
-  #Q[i] = glcf(Q[i]; atol, sdeg = -1); 
 end
 
 # compute Rij and their norms
@@ -77,20 +72,7 @@ end
 println("Norms of initial residual models")
 display(distinf0)
 
-
 println("Norms of final residual models")
 display(distinf1)
-
-# display(surface(distinf0, xlim = (0,10), ylim = (0,10), 
-#                 title = "Norms of initial residual models",
-#                 xlabel = "Model numbers", 
-#                 ylabel = "Residual numbers"))
-
-#display(contour(distinf0, fill=true))
-
-# display(surface(distinf1, xlim = (0,10), ylim = (0,10), 
-#                 title = "Norms of final residual models",
-#                 xlabel = "Model numbers", 
-#                 ylabel = "Residual numbers"))
 
 end # module

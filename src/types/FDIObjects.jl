@@ -143,7 +143,7 @@ struct FDIFilter{T} <: AbstractFDDObject where T
     sys::Vector{DescriptorStateSpace{T}}
     ny::Int
     mu::Int
-    function FDIFilter{T}(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T 
+    function FDIFilter{T}(sys::Vector{<:DescriptorStateSpace{T}}, ny::Int, mu::Int) where T 
         N = length(sys)
         sysn = similar(sys,N)
         ny < 0 && error("number of measured outputs must be non-negative")
@@ -178,7 +178,7 @@ partitioned filter input vectors as
 `measured outputs` and `control inputs`,  
 can be accessed as the integers contained in `Q.ny` and `Q.mu`, respectively. 
 """
-function FDIFilter(sys::Vector{DescriptorStateSpace{T}}, ny::Int, mu::Int) where T
+function FDIFilter(sys::Vector{<:DescriptorStateSpace{T}}, ny::Int, mu::Int) where {T}
     return FDIFilter{T}(sys, ny, mu)
 end
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilter)
@@ -283,7 +283,7 @@ struct FDIFilterIF{T} <: AbstractFDDObject where T
     mf::Int
     mw::Int
     ma::Int
-    function FDIFilterIF{T}(sys::Vector{DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T 
+    function FDIFilterIF{T}(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T 
         N = length(sys)
         sysn = similar(sys,N)
         inps = 1:mu+md+mf+mw+ma
@@ -294,7 +294,7 @@ struct FDIFilterIF{T} <: AbstractFDDObject where T
         new{T}(sysn, mu, md, mf, mw, ma)
     end
 end
-FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T  = 
+FDIFilterIF(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T  = 
            FDIFilterIF{T}(sys, mu, md, mf, mw, ma)
 """
     FDIFilterIF(sys; mu = 0, md = 0, mf = 0, mw = 0, ma = 0, moff = 0 ) -> R::FDIFilterIF
@@ -311,7 +311,7 @@ The resulting `R` contains the vector of partitioned systems
 the dimensions of control, disturbance, fault, noise and auxiliary input vectors are contained in 
 `R.mu`, `R.md`, `R.mf`, `R.mw` and `R.ma`, respectively.  
 """
-function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}; mu::Int = 0, md::Int = 0, mf::Int = 0, mw::Int = 0, ma::Int = 0, moff::Int = 0) where T
+function FDIFilterIF(sys::Vector{<:DescriptorStateSpace{T}}; mu::Int = 0, md::Int = 0, mf::Int = 0, mw::Int = 0, ma::Int = 0, moff::Int = 0) where T
     mu < 0 && error("number of control inputs must be nonnegative")
     moff < 0 && error("the offset must be nonnegative")
     md < 0 && error("number of disturbance inputs must be nonnegative")
@@ -319,14 +319,10 @@ function FDIFilterIF(sys::Vector{DescriptorStateSpace{T}}; mu::Int = 0, md::Int 
     mw < 0 && error("number of noise inputs must be nonnegative")
     ma < 0 && error("number of auxiliary inputs must be nonnegative")
     m = moff+mu+md+mf+mw+ma
+    any(m .> size.(sys,2)) && error("the specified total number of inputs exceeds the number of system inputs")
     N = length(sys)
-    sysn = similar(sys,N)
     inps = moff+1:m
-    for i = 1:N
-        m > size(sys[i],2) && error("the specified total number of inputs exceeds the number of system inputs")
-        sysn[i] = sys[i][:,inps]
-    end
-    return FDIFilterIF{T}(sysn, mu, md, mf, mw, ma)
+    return FDIFilterIF{T}([sys[i][:,inps] for i in 1:N], mu, md, mf, mw, ma)
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilterIF)

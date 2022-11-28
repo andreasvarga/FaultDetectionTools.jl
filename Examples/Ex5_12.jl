@@ -1,9 +1,5 @@
 module Ex5_12
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, Test
 
 # Example 5.12 - Solution of an EMMP 
 println("Example 5.12")

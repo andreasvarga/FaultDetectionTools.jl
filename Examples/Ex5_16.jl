@@ -1,9 +1,5 @@
 module Ex5_16
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 5.16 - Solution of an H∞ AMMP 
 println("Example 5.16")

@@ -1,9 +1,6 @@
 module Ex6_2c
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-#using Plots
-using Test
+
+using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.2c - Solution of an AMDP
 println("Example 6.2c")
@@ -36,12 +33,20 @@ sysm = mdmodset(sysuw, controls = 1:mu, noise = mu+1:mu+mw);
 # use nonminimal design with  AMDSYN
 Q, R, info = amdsyn(sysm,sdeg = -1, poles = [-1], minimal = false); 
 
+distinf = info.MDperf
+@test all(diag(distinf) .< 1.e-7) && all(distinf.+eps(2.)+I .>= 1)
+
 println("Norms of final residual models")
-display(info.MDperf)
+display(distinf )
 
 println("Resulting gaps")
 display(info.MDgap)
 
-@test norm(diag(info.MDperf)) < 1.e-7
+# plot residual responses
+include("Fig6_3.jl")
+Fig6_3 = fig
 
-end # module
+export Fig6_3
+
+end
+using Main.Ex6_2c

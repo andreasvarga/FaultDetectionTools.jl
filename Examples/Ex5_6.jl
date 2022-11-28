@@ -1,9 +1,5 @@
 module Ex5_6
-using FaultDetectionTools
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using DescriptorSystems, LinearAlgebra, Test
 
 # Example 5.6 - Solution of an AFDP 
 println("Example 5.6")
@@ -54,7 +50,7 @@ if minimum(maximum(abs.(evalfr(Rf,rand())),dims=1)) > 0.01
         println("Q = $(dss2rm(Q, atol = 1.e-7))")
         println("Rf = $(dss2rm(Rf, atol = 1.e-7))")
         println("Rw = $(dss2rm(Rw, atol = 1.e-7))")
-        gap = fdhinfminus(Rf)[1]
+        gap = minimum([ghinfnorm(Rf[:,j])[1] for j in 1:mf])
         println("gap = $gap")
     end
 else

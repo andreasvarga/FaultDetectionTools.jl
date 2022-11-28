@@ -1,6 +1,4 @@
-module RunExamples
-
-using Test, FaultDetectionTools
+using FaultDetectionTools
 
 @testset "Examples" begin
 # LPV to noise inputs
@@ -41,10 +39,9 @@ include("Ex6_1c.jl")
 include("Ex6_2.jl")
 include("Ex6_2c.jl")
 # synthesis paradigms: nullspace and least order synthesis
+include("Ex7_1.jl")
+include("Ex7_1a.jl")
 include("Ex7_3.jl")
 include("Ex7_3c.jl")
 include("Ex7_4.jl")
 include("Ex7_4c.jl")
-end
-
-end

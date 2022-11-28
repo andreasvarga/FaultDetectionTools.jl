@@ -1,8 +1,5 @@
 module Ex7_4
-using DescriptorSystems
-using LinearAlgebra
-using Polynomials
-using Test
+using DescriptorSystems, Test
 
 # Example 7.4 - Nullspace-based synthesis 
 # Uses only DescriptorSystems.jl 
@@ -33,23 +30,28 @@ Q2_Rf2 = glmcover1([-1 1;eye(2)]*Q_Rf,1)[1];    #  [Q2 Rf2]
 # compute stable left coprime factorizations
 Q1_Rf1 = glcf(Q1_Rf1, sdeg=-1, smarg = -1)[1];
 # choose poles to meet example
-Q2_Rf2 = glcf(Q2_Rf2, evals = [-1.0000 + 0.3992im, -1.0000 - 0.3992im], sdeg = -1, smarg = -1)[1];
+Q2_Rf2 = glcf(Q2_Rf2, evals = [-1. + 0.3992im, -1. - 0.3992im], 
+              sdeg = -1, smarg = -1)[1];
 
-# compute Q1 and Rf1; check admissibility, i.e., finite reciprocal sensitivity condition 
+# check admissibility
+# compute Q1 and Rf1; 
 Q1 = Q1_Rf1[:,1:p+mu]; Rf1 = Q1_Rf1[:,p+mu+1:end];
+# compute reciprocal sensitivity condition
 g1 = abs.(evalfr(Rf1,im)); rscond1 = maximum(g1)/minimum(g1)
-# compute Q2 and Rf2; check admissibility, i.e., finite reciprocal sensitivity condition 
+# compute Q2 and Rf2;  
 Q2 = Q2_Rf2[:,1:p+mu]; Rf2 = Q2_Rf2[:,p+mu+1:end];
+# compute reciprocal sensitivity condition
 g2 = abs.(evalfr(Rf2,im)); rscond2 = maximum(g2)/minimum(g2)
 println("|Rf1(im)| = $g1")
 println("rscond1 = $rscond1 ")
 println("|Rf2(im)| = $g2")
 println("rscond2 = $rscond2")
-@test !isinf(rscond1) && !isinf(rscond1)
-
+# check finite reciprocal sensitivity conditions
+@test !isinf(rscond1) && !isinf(rscond2)
 
 # display results
 println("Q1 = $(dss2rm(Q1))")
 println("Q2 = $(dss2rm(Q2))")
 
 end # module
+using Main.Ex7_4

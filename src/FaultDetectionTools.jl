@@ -5,6 +5,7 @@ using MatrixEquations
 using MatrixPencils
 using DescriptorSystems
 using Polynomials
+using Combinatorics
 using Random
 
 abstract type AbstractFDDObject end
