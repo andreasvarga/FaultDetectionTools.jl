@@ -2,7 +2,7 @@ module Ex6_1c
 using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.1c - Solution of an EMDP
-println("Example 6.1c")
+println("Example 6.1c with Fig6.1 and Fig6.2")
 
 # Lateral aircraft model without faults
 A = [-.4492 0.046 .0053 -.9926;
@@ -47,7 +47,7 @@ Fig6_1 = fig1
 include("Fig6_2.jl")
 Fig6_2 = fig2
 
-export Fig6_1, Fig6_2
-
 end
 using Main.Ex6_1c
+Ex6_1c.Fig6_1
+Ex6_1c.Fig6_2

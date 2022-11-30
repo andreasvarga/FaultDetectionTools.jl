@@ -1,7 +1,7 @@
 module Ex7_3
 using DescriptorSystems, LinearAlgebra
 
-# Example 7.3 - Nullspace-based synthesis 
+# Example 7.3 - Illustrating nullspace-based synthesis paradigm
 # Uses only DescriptorSystems.jl 
 println("Example 7.3")
 

@@ -4,7 +4,7 @@ using FaultDetectionTools, DescriptorSystems, LinearAlgebra,
 
 ## CS2_2  - Case-study example: Monitoring air data sensor faults
 #           Robust least order LPV synthesis
-println("Case study CS2_2")
+println("Case study CS2_2 with Fig8.8")
 
 ## Part 1 - Model setup
 # load matrices of the aircraft multiple-model SYSACM 
@@ -88,9 +88,8 @@ tout = Vector(0:0.1:10.)
 include("Fig8_8.jl")
 Fig8_8 = f
 
-export Fig8_8
-
 end  # module
 using Main.CS2_2
+CS2_2.Fig8_8 
 
  

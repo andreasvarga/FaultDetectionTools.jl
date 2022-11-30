@@ -2,7 +2,7 @@ module Ex5_16c
 using FaultDetectionTools, DescriptorSystems, Measurements, Test
 
 # Example 5.16c - Solution of an H∞ AMMP 
-println("Example 5.16c")
+println("Example 5.16c with Fig5.2")
 
 # define system with control, noise and actuator fault inputs 
 A = [-.8 0 0; 0 -.5 .6; 0 -.6 -.5]
@@ -56,8 +56,6 @@ yl = y .- yerr; yu = y .+ yerr  # lower and upper bounds
 include("Fig5_2.jl")
 Fig5_2 = f
 
-export Fig5_2
-
 end
 using Main.Ex5_16c
-
+Ex5_16c.Fig5_2

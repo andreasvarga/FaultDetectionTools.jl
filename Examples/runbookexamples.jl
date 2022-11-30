@@ -14,6 +14,6 @@ include("Ex6_1c.jl")  # solving EMDP
 include("Ex6_2c.jl")  # solving AMDP
 # Chapter 7
 include("Ex7_1.jl")   # Example for high sensitivity of polynomial poles
-include("Ex7_1a.jl")  # Example for high sensitivity of polynomial poles
-include("Ex7_3.jl")
-include("Ex7_4.jl")
+include("Ex7_1a.jl")  # Example for high precision pole computation
+include("Ex7_3.jl")   # Illustrating nullspace-based synthesis paradigm
+include("Ex7_4.jl")   # Illustrating least-order synthesis paradigm

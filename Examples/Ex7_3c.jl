@@ -34,3 +34,4 @@ println("Q = $(dss2rm(Q.sys))")
 println("Rf = $(dss2rm(Rf.sys))")
 
 end # module
+using Main.Ex7_3c

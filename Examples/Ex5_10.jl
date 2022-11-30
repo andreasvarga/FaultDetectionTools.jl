@@ -57,3 +57,4 @@ R = FDIFilterIF(scale .* Rft; mf)
 # check all gaps are infinite
 @test all(fdif2ngap(R,S)[1] .== Inf)
 end # module
+using Main.Ex5_10

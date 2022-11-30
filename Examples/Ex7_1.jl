@@ -1,7 +1,12 @@
 module Ex7_1
-# Generation of Fig7_1 with CairoMakie for Ex7_1
+
 using Makie, CairoMakie, LaTeXStrings
 using DescriptorSystems, Polynomials
+Makie.inline!(false)
+
+# Example 7.1 - Illustrating polynomial root sensitivity 
+println("Example 7.1 with Fig7_1")
+
 
 Makie.inline!(false)
 pexact = Vector(-25.:1.:-1.)
@@ -25,12 +30,10 @@ axislegend()
 
 Fig7_1 = fig     
 
-export Fig7_1
-
-
 # comment out next line to save plot
 #save("Fig7_1.pdf", fig, resolution = (600, 600))
 
 end
 using Main.Ex7_1
+Ex7_1.Fig7_1
 

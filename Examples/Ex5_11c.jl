@@ -44,3 +44,4 @@ indfn = [Rt.faults;Rt.noise]
       iszero(vcat(Rt.sys...)[:,indfn]-vcat(R.sys...); atol) &&
       fdif2ngap(R,SFDI)[1] ≈ info.gap ≈ [3,Inf]
 end # module
+using Main.Ex5_11c

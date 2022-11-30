@@ -1,9 +1,13 @@
 module Ex7_1a
-# Generation of Fig7_1a with CairoMakie for Ex7_1
+
 using Makie, CairoMakie, LaTeXStrings
+using DescriptorSystems, Polynomials, GenericLinearAlgebra
 Makie.inline!(false)
 
-using DescriptorSystems, Polynomials, GenericLinearAlgebra
+
+# Example 7.1 - Illustrating high precision polynomial root computation 
+println("Example 7.1 with alternative Fig7_1a")
+
 
 pexact = BigFloat.(Vector(-25.:1.:-1.))
 g = rtf(1,Polynomial(fromroots(pexact),:s))
@@ -20,16 +24,13 @@ h2 = scatter!(ax, real(poles), imag(poles), color = :red, label = "Perturbed pol
 h2.marker = :star6
 xlims!.(ax, low = -30, high = 0) 
 ylims!.(ax, low = -15, high =15) 
-
 axislegend()
 
-
 Fig7_1a = fig     
-
-export Fig7_1a
 
 # comment out next line to save plot
 #save("Fig7_1a.pdf", fig, resolution = (600, 600))
 
 end
 using Main.Ex7_1a
+Ex7_1a.Fig7_1a

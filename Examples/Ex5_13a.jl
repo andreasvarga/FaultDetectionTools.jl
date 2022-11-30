@@ -1,4 +1,4 @@
-module Ex5_13
+module Ex5_13a
 using FaultDetectionTools
 using DescriptorSystems
 using LinearAlgebra
@@ -68,3 +68,4 @@ G = dss([Gu Gf;eye(mu,mu+mf)]); F = [zeros(mf,mu) M*Mr];
 @test iszero(Q*G-F; atol)
 
 end # module
+using Main.Ex5_13a

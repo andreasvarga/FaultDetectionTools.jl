@@ -58,3 +58,4 @@ else
 end
    
 end # module
+using Main.Ex5_6

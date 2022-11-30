@@ -71,3 +71,4 @@ err_opt = glinfnorm(Qopt*G-F)[1]
 @test err_sub-err_opt < 0.002
 
 end # module
+using Main.Ex5_16

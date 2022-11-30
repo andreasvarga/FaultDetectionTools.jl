@@ -71,3 +71,4 @@ println("Resulting gaps")
 display(gap)
 
 end # module
+using Main.Ex6_2

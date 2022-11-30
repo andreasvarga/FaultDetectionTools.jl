@@ -1,6 +1,5 @@
 using FaultDetectionTools
 
-@testset "Examples" begin
 # LPV to noise inputs
 include("Ex2_4.jl")
 # solving EFDP

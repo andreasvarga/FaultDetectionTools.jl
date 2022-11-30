@@ -76,3 +76,4 @@ println("Norms of final residual models")
 display(distinf1)
 
 end # module
+using Main.Ex6_1

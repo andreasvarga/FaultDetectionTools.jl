@@ -4,7 +4,7 @@ using JLD2
 
 ## CS1_2 - Case-study example: Monitoring flight actuator faults
 #          Local measurements of control surface angles are used
-println("Case study CS1_2")
+println("Case study CS1_2 with Fig8.4")
 
 ## Part 1 - Model setup
 # load matrices of the aircraft multiple-model SYSACM, 
@@ -123,8 +123,6 @@ tout = Vector(0:0.02:2.)
 include("Fig8_4.jl")
 Fig8_4 = f
 
-export Fig8_4
-
 end  # module
 using Main.CS1_2
- 
+CS1_2.Fig8_4 

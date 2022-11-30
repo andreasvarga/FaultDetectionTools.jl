@@ -38,3 +38,4 @@ println("rscond1 = $rscond1 ")
 println("rscond2 = $rscond2")
 
 end # module
+using Main.Ex7_4c

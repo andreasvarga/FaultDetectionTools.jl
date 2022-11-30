@@ -34,3 +34,4 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info.M*Mr.sy
 
 
 end # module
+using Main.Ex5_17

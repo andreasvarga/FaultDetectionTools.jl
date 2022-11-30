@@ -3,7 +3,7 @@ module Ex6_2c
 using FaultDetectionTools, DescriptorSystems, LinearAlgebra, Test
 
 # Example 6.2c - Solution of an AMDP
-println("Example 6.2c")
+println("Example 6.2c with Fig6.3")
 
 # Lateral aircraft model without faults
 A = [-.4492 0.046 .0053 -.9926;
@@ -46,7 +46,6 @@ display(info.MDgap)
 include("Fig6_3.jl")
 Fig6_3 = fig
 
-export Fig6_3
-
 end
 using Main.Ex6_2c
+Ex6_2c.Fig6_3

@@ -61,3 +61,4 @@ println("R = "); display(R)
 @test fdif2ngap(R,S)[1] ≈ [3,Inf]     # check gap
    
 end # module
+using Main.Ex5_11

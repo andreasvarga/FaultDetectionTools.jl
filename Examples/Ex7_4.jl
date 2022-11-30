@@ -1,7 +1,7 @@
 module Ex7_4
 using DescriptorSystems, Test
 
-# Example 7.4 - Nullspace-based synthesis 
+# Example 7.4 - Illustrating least-order synthesis paradigm 
 # Uses only DescriptorSystems.jl 
 println("Example 7.4")
 
