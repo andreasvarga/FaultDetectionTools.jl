@@ -239,6 +239,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
    M = length(MDSelect)
    any(MDSelect .<= 0) && error("the selected filter indices must be positive")   
    any(MDSelect .> N) && error("the selected filter indices must be at most $N")   
+   allunique(MDSelect) || error("the selected filter indices must be unique")
    M > 0 && MDSelect[1] != 1 && (normalize = false)
   
    strongMD = !ismissing(MDfreq)
@@ -335,22 +336,22 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       m2 = mw[isel]+ma[isel]
       sdegNS = strongMD ? sdegdefault : missing     
       if nullspace || simple || md[isel] > 0 || (desc && rcond(sysm.sys[isel].E) < 1.e-7 )
-         # form [ Gu Gd Gf Gw Gaux; I 0 0 0 0] 
+         # form [ Gu Gd Gw Ga; I 0 0 0] 
          syse = [sysm.sys[isel]; eye(mu,m[isel])];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
-         # obtain QR = [ Q R ], where R = [ Rf Rw Raux] = Q*[Gf Gw Ga;0 0 0]
+         # obtain QR = [ Q R ], where R = [ Rw Raux] = Q*[Gw Ga;0 0]
          qtemp, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
          degs = info1.degs
          tcond1 = info1.tcond
       elseif mu == 0 && md[isel] == 0
-         qtemp = dss(eye(T1,p))
+         qtemp = m2 == 0 ? dss(eye(T1,p); Ts) : [eye(T1,p) sysm.sys[isel]]
          degs = Int[]; tcond1 = 1.
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
-         # QR = [ Q R ], where R = [ Gf Gw Ga ]
-         qtemp = [ eye(p) dss(sysm.sys[isel].A, sysm.sys[isel].E, -sysm.sys[isel].B[:,inpu],
-                   sysm.sys[isel].C, -sysm.sys[isel].D[:,inpu]; Ts)] 
+         # QR = [ Q R ], where R = [ Gw Ga ]
+         qtemp = [ eye(T1,p) dss(sysm.sys[isel].A, sysm.sys[isel].E, [-sysm.sys[isel].B[:,inpu] sysm.sys[isel].B[:,mu+1:mu+m2]],
+                   sysm.sys[isel].C, [-sysm.sys[isel].D[:,inpu] sysm.sys[isel].D[:,mu+1:mu+m2]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          degs = Int[]; tcond1 = 1.
       end
@@ -367,7 +368,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
 
       if emptyHDi
          S = trues(nvec,max(1,lfreq),N)
-         Htemp = eye(nvec)
+         Htemp = eye(T1,nvec)
          noutmax = nvec
       else
          mh, nh = size(HDesign[i])
@@ -390,7 +391,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       for j = 1:N
          # check j-th model detectability
          if isel != j
-            temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
+            temp = gir(Htemp*qtemp[:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
             if strongMD
                if emdtest
                   St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
@@ -573,7 +574,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                         # check j-th model detectability
                         if isel != j
                            # dismiss design if check fails
-                           temp = gir(qtest*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
+                           temp = gir(qtest[:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                            if strongMD
                               if emdtest
                                  St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast)[1]
@@ -673,7 +674,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
       end
       
       for j = 1:N
-         temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
+         temp = gir(Qt[i][:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
          # compute gains
          if isel != j
             if strongMD
@@ -798,7 +799,7 @@ function amdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
             end
          
             for j = 1:N
-               temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
+               temp = gir(Qt[i][:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                # compute gains
                if isel != j
                   if strongMD
@@ -1142,7 +1143,6 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
    ma = sysm.ma 
    
    m = mu .+ (md+mw+ma)      # total number of inputs
-    
    infotcond = similar(Vector{T1},M)
    infodegs = similar(Vector{Vector{Int}},M)
    HDesign1 = similar(Vector{Array{T1,2}},M)
@@ -1163,18 +1163,20 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
          syse = [sysm.sys[isel]; eye(mu,m[isel])];
          #
          # compute a left nullspace basis Q = Q1 of G1 = [Gu Gd; I 0] = 0 and
-         # obtain QR = [ Q R ], where R = [ Rf Rw Raux] = Q*[Gf Gw Ga;0 0 0]
+         # obtain QR = [ Q R ], where R = [ Rw Ra] = Q*[Gw Ga;0 0 0]
          qtemp, info1 = glnull(syse, m2; simple, atol1, atol2, rtol, fast, sdeg = sdegNS, offset) 
          degs = info1.degs
          tcond1 = info1.tcond
       elseif mu == 0 && md[isel] == 0
-         qtemp = dss(eye(T1,p))
+         # compute minimal basis as Q = Q1 = [ I ] and set
+         # QR = [ Q R ], where R = [ Gw Ga ]
+         qtemp = m2 == 0 ? dss(eye(T1,p); Ts) : [eye(T1,p) sysm.sys[isel]]
          degs = Int[]; tcond1 = 1.
       else
          # compute minimal basis as Q = Q1 = [ I -Gu] and set
-         # QR = [ Q R ], where R = [ Gf Gw Ga ]
-         qtemp = [ eye(p) dss(sysm.sys[isel].A, sysm.sys[isel].E, -sysm.sys[isel].B[:,inpu],
-                   sysm.sys[isel].C, -sysm.sys[isel].D[:,inpu]; Ts)] 
+         # QR = [ Q R ], where R = [ Gw Ga ]
+         qtemp = [ eye(T1,p) dss(sysm.sys[isel].A, sysm.sys[isel].E, [-sysm.sys[isel].B[:,inpu] sysm.sys[isel].B[:,mu+1:mu+m2]],
+                   sysm.sys[isel].C, [-sysm.sys[isel].D[:,inpu] sysm.sys[isel].D[:,mu+1:mu+m2]]; Ts)] 
          # perform stabilization if strong detectability has to be enforced
          degs = Int[]; tcond1 = 1.
       end
@@ -1209,12 +1211,13 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
             end
          end
       end
+
       #strongMD && (qtemp = glcf(qtemp; atol1, atol2, rtol, fast, sdeg = sdegNS)[1])
       defer = !emptyHDi && minimal
        for j = 1:N
          # check j-th model detectability
          if isel != j
-            temp = gir(Htemp*qtemp*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
+            temp = gir(Htemp*qtemp[:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol)
             if strongMD
                if emdtest
                   St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast, stabilize = false)[1]
@@ -1392,7 +1395,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
                            # check j-th model detectability
                            if isel != j
                               # dismiss design if check fails
-                              temp = gir(qtest*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
+                              temp = gir(qtest[:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
                               if strongMD
                                  if emdtest
                                     St = fdisspec_(temp[:,1:mu+md[j]], MDfreq; FDGainTol = MDGainTol, atol1, atol2, rtol = 0, fast)[1]
@@ -1492,7 +1495,7 @@ function emdsyn(sysm::MDMModel; rdim::Union{Vector{Int},Int,Missing} = missing,
          end
      
          for j = 1:N
-           temp = gir(Qt[i]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
+           temp = gir(Qt[i][:,1:p+mu]*[sysm.sys[j]; eye(T1,mu,m[j])]; atol1, atol2, rtol)
            # compute gains
            if isel != j
               if strongMD
