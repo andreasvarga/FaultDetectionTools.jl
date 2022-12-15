@@ -250,7 +250,7 @@ sysf = fdimodset(rss(1,p,mf+mw,stable=true),noise = 1:mw, faults = mw+1:mw+mf);
 
 R = fdIFeval(Q2*Q1, sysf);
 @test iszero(Rfw.sys[:,Rfw.faults]-R.sys[:,R.faults],atol=1.e-7) &&  
-      info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0]  && 
+      (info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0] || info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0])  && 
       info.gap ≈ fdif2ngap(R)[1]
 
 # solve an EFDP with noise inputs as an exact AFDP: rdim = 2
@@ -259,7 +259,7 @@ R = fdIFeval(Q2*Q1, sysf);
 
 R = fdIFeval(Q2*Q1, sysf);
 @test iszero(Rfw.sys[:,Rfw.faults]-R.sys[:,R.faults],atol=1.e-7) &&  
-      info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0] && 
+      (info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0] || info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0])  && 
       info.gap ≈ fdif2ngap(R)[1]
 
 # Example 5.6c - Solution of an AFDP using AFDSYN
