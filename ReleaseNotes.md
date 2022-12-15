@@ -1,8 +1,12 @@
 # Release Notes
 
+## Version 1.1.1
+
+Version bump to use Makie 0.19. Bugs fixed in MDObjects.jl.
+
 ## Version 1.1.0
 
-Version bump to use DescriptorSystems 1.3. The book examples have enhanced and 
+Version bump to use DescriptorSystems 1.3. The book examples have been enhanced and 
 extended with scripts to generate plots with CairoMakie.
 
 ## Version 1.0.1

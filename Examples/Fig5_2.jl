@@ -31,7 +31,7 @@ for row in 1:p
     end
 end
 
-Label(f[0, :], text = "Step Responses",  textsize = 20, 
+Label(f[0, :], text = "Step Responses",  fontsize = 20, 
                font = "TeX Gyre Heros Bold", valign = :bottom, 
                padding = (0, 0, -10, 0))
 Label(f[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",

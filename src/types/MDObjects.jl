@@ -246,7 +246,7 @@ function mdmodset(sys::Vector{<:DescriptorStateSpace};
             inpdi = unique([disturbances[i];d[i]])
         elseif vecn
             inpdi = unique([disturbances;d[i]])
-        elseif vecnooise
+        elseif vecnoise
             inpdi = unique([disturbances[i];d])
         else
             inpdi = unique([disturbances;d])
@@ -256,7 +256,7 @@ function mdmodset(sys::Vector{<:DescriptorStateSpace};
             inpwi = unique([noise[i];n[i]])
         elseif vecn
             inpwi = unique([noise;n[i]])
-        elseif vecnooise
+        elseif vecnoise
             inpwi = unique([noise[i];n])
         else
             inpwi = unique([noise;n])

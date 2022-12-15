@@ -69,7 +69,7 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`MDFilterIF`](@ref)**  Model detection filter internal form object.
 * **[`mdIFeval`](@ref)**  Evaluation of the internal forms of model detection filters. 
 
-**Analysis of model reduction synthesis models**
+**Analysis of model detection synthesis models**
 
 * **[`mddist`](@ref)**  Computation of distances between component models.
 * **[`mddist2c`](@ref)**  Computation of pairwise distances between two sets of component models.

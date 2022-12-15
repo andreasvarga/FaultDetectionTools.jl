@@ -240,7 +240,7 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
       strongFD  && (QR = glcf(QR; atol1, atol2, atol3, rtol, fast)[1]) 
       degs = Int[]; tcond1 = 1.
    end
-   infodegs = degs
+   infodegs = copy(degs)
    
    nvec = size(QR,1);   # number of basis vectors
    # check solvability conditions
@@ -553,7 +553,7 @@ end
                            tcond, offset, atol, atol1, atol2, atol3, rtol, fast = true) 
                            -> (Q::FDFilter, R::FDFilterIF, info)
 
-Solve the _exact fault detection isolation problem_ (EFDIP) for a given synthesis model
+Solve the _exact fault detection and isolation problem_ (EFDIP) for a given synthesis model
 `sysf` with additive faults and a given binary structure vector `S`. 
 The computed stable and proper filter objects `Q` and `R` contain the 
 fault detection filter, representing the solution of the EFDIP, and its internal form, respectively, and are determined such that
@@ -3293,7 +3293,7 @@ function emmsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       nvec == 0 && error("emmsyn: empty nullspace basis - the EMMP is not solvable")
       # degs = info1.degs
       # tcond1 = info1.tcond
-      infodegs = degs
+      infodegs = copy(degs)
 
       indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
       indfwa = (p+mu) .+ Vector(1:mf+mw+ma)  # input indices of [ Rf1 Rw1 Raux1] in QR
@@ -4257,7 +4257,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
       nvec = size(QR,1);   # number of basis vectors
       # check solvability conditions
       nvec == 0 && error("ammsyn: empty nullspace basis - the nullspace-based approach to solve the AMMP is not applicable")
-      infodegs = degs
+      infodegs = copy(degs)
 
       indf = (p+mu) .+ Vector(1:mf)            # input indices of Rf1 in QR
       indfwa = (p+mu) .+ Vector(1:mf+mw+ma)  # input indices of [ Rf1 Rw1 Raux1] in QR
