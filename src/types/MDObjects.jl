@@ -244,9 +244,9 @@ function mdmodset(sys::Vector{<:DescriptorStateSpace};
         i == 1 || p == size(sys[i],1) || error("all systems must have the same number of outputs")
         if vecdist && vecd
             inpdi = unique([disturbances[i];d[i]])
-        elseif vecn
+        elseif vecd
             inpdi = unique([disturbances;d[i]])
-        elseif vecnoise
+        elseif vecdist
             inpdi = unique([disturbances[i];d])
         else
             inpdi = unique([disturbances;d])
