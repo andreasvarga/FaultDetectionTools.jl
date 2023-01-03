@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.2.0
+
+New analysis function `mdgenspec` and changed functionality and improvements in `mdsspec` and `mdspec`.  
+
 ## Version 1.1.1
 
 Version bump to use Makie 0.19. Bugs fixed in MDObjects.jl.

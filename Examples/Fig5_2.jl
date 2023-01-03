@@ -4,15 +4,16 @@
 #    yl   - the lower bounds of step responses
 #    yu   - the upper bounds of step responses 
 #    tout - the time samples  
-using CairoMakie, LaTeXStrings
+using Makie, CairoMakie, LaTeXStrings
+Makie.inline!(false)
 
 title_u = [ latexstring("From: \$f_1\$")  latexstring("From: \$f_2\$")  latexstring("From: \$u_1\$")  latexstring("From: \$u_2\$")]
 ylabel_r = [ latexstring("To: \$r_1\$")  latexstring("To: \$r_2\$") ]
 
 ns, p, m = size(y)
-f = Figure(resolution = (800, 600))
+fig = Figure(resolution = (800, 600))
 
-axs = [Axis(f[row, col]) for row in 1:p, col in 1:m]
+axs = [Axis(fig[row, col]) for row in 1:p, col in 1:m]
 
 for row in 1:p
     for col in 1:m
@@ -31,17 +32,17 @@ for row in 1:p
     end
 end
 
-Label(f[0, :], text = "Step Responses",  fontsize = 20, 
+Label(fig[0, :], text = "Step Responses",  fontsize = 20, 
                font = "TeX Gyre Heros Bold", valign = :bottom, 
                padding = (0, 0, -10, 0))
-Label(f[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
+Label(fig[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
                    valign = :top,padding = (0, 0, 5, -10))
-Label(f[0:end, 0], text = "Residuals", font = "TeX Gyre Heros Bold", rotation = pi/2, 
+Label(fig[0:end, 0], text = "Residuals", font = "TeX Gyre Heros Bold", rotation = pi/2, 
                    valign = :center, padding = (0, -20, 0, 0))
 axs[1,1].yticks = [0,0.5,1,1.5]
 axs[2,1].yticks = [0,0.5,1,1.5]
 
-f
+fig
 
 # comment out next line to save plot
-# save("Fig5_2.pdf", f, resolution = (800, 600))
+# save("Fig5_2.pdf", fig, resolution = (800, 600))

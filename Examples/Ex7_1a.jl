@@ -6,7 +6,7 @@ Makie.inline!(false)
 
 
 # Example 7.1 - Illustrating high precision polynomial root computation 
-println("Example 7.1 with alternative Fig7_1a")
+println("Example 7.1 with alternative Fig7.1a")
 
 
 pexact = BigFloat.(Vector(-25.:1.:-1.))

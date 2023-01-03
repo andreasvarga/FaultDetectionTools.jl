@@ -194,7 +194,7 @@ The keyword argument `sdeg = β` specifies a prescribed stability degree `β` fo
 generated candidate filters, such that the real parts of
 filters poles must be less than or equal to `β`, in the continuous-time case, and 
 the magnitudes of filter poles must be less than or
-equal to `β`, in the discrete-time case. If `sdeg = missing` then no then no stabilization is performed if and `FDFreq = missing`.
+equal to `β`, in the discrete-time case. If `sdeg = missing` then no stabilization is performed if `FDFreq = missing`.
 If `sdeg = missing` and `FDFreq = freq`, then the following default values are employed : `β = -0.05`, in continuous-time case, and  `β = 0.95`, 
 in discrete-time case. 
 

@@ -121,7 +121,7 @@ display([NormRu NormRd NormRfmRfnom])
 y = [stepresp(Rtot[i][:,indf],2)[1] for i in 1:N];
 tout = Vector(0:0.02:2.)
 include("Fig8_4.jl")
-Fig8_4 = f
+Fig8_4 = fig
 
 end  # module
 using Main.CS1_2

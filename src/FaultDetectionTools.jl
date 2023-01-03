@@ -22,7 +22,7 @@ export efdsyn, efdisyn, efdbasesel, afdsyn, afdredsyn, afdisyn, afdbasesel, emms
 export fdhinfminus, fdhinfmax, binmat2dec, dec2binmat, fditspec_, fdisspec_, fdiscond_
 
 export MDMModel, MDModel, mdmodset, MDFilter, MDFilterIF, mdIFeval
-export mddist, mddist2c
+export mdgenspec, mddist, mddist2c
 export mdspec, mdsspec, mdperf, mdmatch, mdgap
 export emdsyn, amdsyn, emdbasesel
 

@@ -262,7 +262,7 @@ Q, R, info = afdisyn(sysf, SFDI; smarg =-3, sdeg = -3)
 
 Mr = FDFilterIF([R.sys[1][:,R.faults]; R.sys[2][:,R.faults]];mf);
 
-@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-5, sdeg = -3);
+@time QM, RM, info1 = ammsyn(sysf, Mr; atol = 1.e-7, reltol = 1.e-4, sdeg = -3);
 
 R1 = fdIFeval(QM,sysf); # form Q*[Gu Gd Gf;I 0 0];
 

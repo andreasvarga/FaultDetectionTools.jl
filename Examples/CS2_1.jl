@@ -5,7 +5,7 @@ using FaultDetectionTools, DescriptorSystems, LinearAlgebra,
 
 ## CS2_1  - Case-study example: Monitoring air data sensor faults
 #           Robust least order LTI synthesis
-println("Case study CS2_1 with Fig8.5, Fig8.6 and Fig8.7")
+println("Case study CS2_1 with Fig8.5(fig1), Fig8.6(fig2) and Fig8.7(fig3)")
 
 ## Part 1 - Model setup
 # load matrices of the aircraft multiple-model SYSACSM and 
@@ -81,7 +81,7 @@ end
 
 tout = Vector(0:0.1:10.)
 include("Fig8_5.jl")
-Fig8_5 = f
+Fig8_5 = fig1
 
 ##  Part 5 - Assesment of synthesis results for nominal synthesis
 
@@ -99,7 +99,7 @@ end
 
 tout = Vector(0:0.1:10.)
 include("Fig8_6.jl")
-Fig8_6 = f
+Fig8_6 = fig2
 
 
 ##  Part 6 - Assesment of synthesis results for mean value gains
@@ -196,7 +196,7 @@ display(norms)
 
 tout = Vector(0:0.1:10.)
 include("Fig8_7.jl")
-Fig8_7 = f
+Fig8_7 = fig3
 
 end  # module
 using Main.CS2_1

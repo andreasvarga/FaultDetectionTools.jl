@@ -32,12 +32,9 @@ function mdspec(sysR::MDFilterIF{T};  cdinp::Bool = false,
     mu = sysR.mu
     cdinp && (md = sysR.md)
     for j = 1:N
+        inpj = cdinp ? (1:mu+md[j]) : (1:mu)
         for i = 1:M
-            if cdinp 
-               S[i,j] = !iszero(sysR.sys[i,j][:,1:mu+md[j]]; atol1, atol2, rtol)
-            else
-               S[i,j] = !iszero(sysR.sys[i,j][:,1:mu]; atol1, atol2, rtol)
-            end
+            S[i,j] = !iszero(sysR.sys[i,j][:,inpj]; atol1, atol2, rtol)
         end         
     end
     return S
@@ -67,8 +64,8 @@ Let the `(i,j)`-th component filter `sysR.sys[i,j]` have the input-output form
 with the Laplace- or Z-transformed residual output `rij`, control inputs `u`, 
 disturbance inputs `dj`, noise inputs `wj`, and auxiliary inputs `vj`,  
 and with `Ruij(λ)`, `Rdij(λ)`, `Rwij(λ)` and `Rvij(λ)`, the corresponding transfer function matrices. 
-Then, `S[i,j] = 1` if `Ruij(λs)` is nonzero for all `λs ∈ Ω` and `cdinp = false` (default), or
-if `[Ruij(λs) Rdij(λs)]` is nonzero for all `λs ∈ Ω` and `cdinp = true`. Otherwise, `S[i,j] = 0`.
+Then, `S[i,j] = 1` if `Ruij(λs)` is nonzero for any `λs ∈ Ω` and `cdinp = false` (default), or
+if `[Ruij(λs) Rdij(λs)]` is nonzero for any `λs ∈ Ω` and `cdinp = true`. Otherwise, `S[i,j] = 0`.
 
 `MDGainTol = tol` specifies an absolute  threshold `tol` for the nonzero magnitudes of 
 the frequency response gains (default: `tol = 0.01`). 
@@ -90,19 +87,14 @@ function mdsspec(sysR::MDFilterIF{T}, freq::Union{AbstractVector{<:Real},Real} =
                   MDGainTol::Real = 0.01, atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
                   rtol::Real = 0, fast::Bool = true) where T
     isa(freq,Vector) ? tfreq = freq : tfreq = [freq] 
-    lfreq = length(tfreq);
     M, N = size(sysR.sys)
     S = trues(M,N)
     mu = sysR.mu
     cdinp && (md = sysR.md)
     for j = 1:N
+        inpj = cdinp ? (1:mu+md[j]) : (1:mu)
         for i = 1:M
-            if cdinp 
-               Sc = fdisspec_(sysR.sys[i,j][:,1:mu+md[j]], tfreq; FDGainTol = MDGainTol, block = true, atol1, atol2, rtol, fast)[1]
-            else
-               Sc = fdisspec_(sysR.sys[i,j][:,1:mu], tfreq; FDGainTol = MDGainTol, block = true, atol1, atol2, rtol, fast)[1]
-            end
-            S[i,j] = lfreq == 1 ? any(Sc) : all([any(view(Sc,:,:,k)) for k = 1:lfreq])  
+            S[i,j] = any(fdisspec_(sysR.sys[i,j][:,inpj], tfreq; FDGainTol = MDGainTol, block = true, atol1, atol2, rtol, fast)[1])
         end         
     end
     return S

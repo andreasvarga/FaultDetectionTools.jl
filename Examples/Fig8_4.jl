@@ -9,9 +9,9 @@ N = length(y)
 title_u = reshape([ latexstring("From: \$f_$i\$")  for i in 1:mf],1,mf)
 ylabel_r = reshape([ latexstring("To: \$r_$i\$")  for i in 1:mf],1,mf)
 ns, pp, mm = size(y[1])
-f = Figure(resolution = (800, 600))
+fig = Figure(resolution = (800, 600))
 
-axs = [Axis(f[row, col]) for row in 1:pp, col in 1:mm]
+axs = [Axis(fig[row, col]) for row in 1:pp, col in 1:mm]
 
 for row in 1:pp
     for col in 1:mm
@@ -34,10 +34,10 @@ for row in 1:pp
     end
 end
 
-Label(f[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
+Label(fig[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
                    valign = :top,padding = (0, 0, 5, -10))
 
-f
+fig
 
 # comment out next line to save plot
-# save("Fig8_4.pdf", f, resolution = (800, 600))
+# save("Fig8_4.pdf", fig, resolution = (800, 600))

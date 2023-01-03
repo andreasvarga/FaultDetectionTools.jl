@@ -491,3 +491,15 @@ gpole(Q::MDFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
 isstable(Q::MDFilter{T}; kwargs...) where T = all(isstable.(Q.sys;  kwargs...))
 isstable(sysm::MDMModel; kwargs...) = all(isstable.(sysm.sys;  kwargs...))
 
+
+function Base.getproperty(sys::MDFilter, d::Symbol)  
+    if d === :outputs
+        return 1:sys.ny
+    elseif d === :controls
+        return sys.ny+1:sys.ny+sys.mu
+    else
+        getfield(sys, d)
+    end
+end
+Base.propertynames(sys::MDFilter) =
+    (fieldnames(typeof(sys))..., :outputs, :controls)

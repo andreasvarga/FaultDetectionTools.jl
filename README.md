@@ -51,7 +51,7 @@ using FaultDetectionTools
 cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
 include("CS2_1.jl")
 ````
-_Note:_ For the execution of the test examples and case study examples, the packages **Measurements**, **Makie**, **CairoMakie**, **LaTeXStrings**, **JLD2** and **Optim** are also required and must be additionally installed. 
+_Note:_ For the execution of the test examples and case study examples, the packages **Measurements**, **GenericLinearAlgebra**, **Makie**, **CairoMakie**, **LaTeXStrings**, **JLD2** and **Optim** are also required and must be additionally installed. 
 
 ## About
 

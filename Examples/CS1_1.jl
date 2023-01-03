@@ -4,7 +4,7 @@ using JLD2
 
 ## CS1_1  - Case-study example: Monitoring flight actuator faults
 #           No measurements of control surface angles are used
-println("Case study CS1_1 with Fig8.2 and Fig8.3")
+println("Case study CS1_1 with Fig8.2(fig1) and Fig8.3(fig2)")
 
 ## Part 1 - Model setup
 # load matrices of the aircraft multiple-model SYSACM, 
@@ -132,11 +132,11 @@ display([NormRu NormRd NormRfmRfnom])
 # generate figures
 y, tout, x = stepresp(Rftilde,10);
 include("Fig8_2.jl")
-Fig8_2 = f
+Fig8_2 = fig1
 
 y = [stepresp(Rtot[i][:,indf],10)[1] for i in 1:N];
 include("Fig8_3.jl")
-Fig8_3 = f
+Fig8_3 = fig2
 
 end  # module
 

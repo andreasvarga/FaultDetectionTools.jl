@@ -5,7 +5,7 @@ using DescriptorSystems, Polynomials
 Makie.inline!(false)
 
 # Example 7.1 - Illustrating polynomial root sensitivity 
-println("Example 7.1 with Fig7_1")
+println("Example 7.1 with Fig7.1")
 
 
 Makie.inline!(false)

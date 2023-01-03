@@ -40,6 +40,12 @@ display(sysm)
 @time distgap3c, fpeak3c = mddist2c(sysm, sysm, distance = "Inf")
 @test norm(distgap3-distgap3c,Inf) < 1.e-7 
 
+@time S = mdgenspec(sysm)
+@test S == ([0  1  1  1; 1  0  1  1; 1  1  0  1; 1  1  1  0] .> 0)
+@time S0 = mdgenspec(sysm,MDfreq = 0)
+@test all(S0 .== false)
+@test S == mdgenspec(sysm,MDfreq = [0,1])
+
 @time Q, R, info = emdsyn(sysm; sdeg = -15, poles = [-20]); info.MDperf
 display(Q)
 display(R)

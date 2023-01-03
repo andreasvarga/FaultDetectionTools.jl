@@ -9,9 +9,9 @@ N = length(y)
 title_u = [ L"From: $f_1$"  L"From: $f_2$"  L"From: $u_1$"  L"From: $u_2$" L"From: $u_3$" L"From: $d_1$"  L"From: $d_2$"]
 ylabel_r = [ latexstring("To: \$r_1\$")  latexstring("To: \$r_2\$") ]
 ns, pp, mm = size(y[1])
-f = Figure(resolution = (800, 500))
+fig = Figure(resolution = (800, 500))
 
-axs = [Axis(f[row, col]) for row in 1:pp, col in 1:mm]
+axs = [Axis(fig[row, col]) for row in 1:pp, col in 1:mm]
 inputs = [mu+md .+ (1:mf); 1:mu+md]
 for row in 1:pp
     for col in 1:mm
@@ -34,10 +34,10 @@ for row in 1:pp
     end
 end
 
-Label(f[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
+Label(fig[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
                    valign = :top,padding = (0, 0, 5, -10))
 
-f
+fig
 
 # comment out next line to save plot
-# save("Fig8_8.pdf", f, resolution = (800, 500))
+# save("Fig8_8.pdf", fig, resolution = (800, 500))
