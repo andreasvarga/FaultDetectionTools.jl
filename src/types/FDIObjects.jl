@@ -548,6 +548,22 @@ end
 function *(sys::Vector{DescriptorStateSpace{T1}}, sysr::FDIFilterIF{T2}) where {T1,T2}
     return FDIFilterIF(sys .* sysr.sys, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
 end
+# multiplication of FD filter objects with numbers
+function *(s::Number, sysr::FDFilterIF{T}) where {T}
+    return FDFilterIF(s*sysr.sys, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
+end
+function *(s::Number, sysr::FDFilter{T}) where {T}
+    return FDFilter(s*sysr.sys, sysr.ny, sysr.mu) 
+end
+function *(sysr::FDFilterIF{T},s::Number) where {T}
+    return FDFilterIF(sysr.sys*s, sysr.mu, sysr.md, sysr.mf, sysr.mw, sysr.ma) 
+end
+function *(sysr::FDFilter{T},s::Number) where {T}
+    return FDFilter(sysr.sys*s, sysr.ny, sysr.mu)  
+end
+/(sysr::FDFilterIF{T}, n::Number) where {T} = sysr*(1/n)
+/(sysr::FDFilter{T}, n::Number) where {T} = sysr*(1/n)
+
 function Base.getproperty(sys::Union{FDIModel,FDFilterIF,FDIFilterIF}, d::Symbol)  
     if d === :controls
         return 1:sys.mu

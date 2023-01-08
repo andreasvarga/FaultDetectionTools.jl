@@ -13,7 +13,7 @@ abstract type AbstractFDDObject end
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex
 import DescriptorSystems: DescriptorStateSpace, chess, rcond, gbalmr, gminreal, gpole, isstable
 import Combinatorics: combinations
-import Base: +, -, *
+import Base: +, -, *, /
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval, gbalmr
 export fditspec, fdisspec, fdiscond, fdif2ngap, fdimmperf

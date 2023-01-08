@@ -22,11 +22,10 @@ Qt, Rft, info = efdsyn(sysf, sdeg = -3, rdim = 1);
 
 # normalize Q and Rf to match example
 scale = evalfr(Rft.sys[1,1],Inf)[1,1];
-Q = FDFilter(Qt.sys/scale,Qt.ny,Qt.mu);
-Rf = FDFilterIF(Rft.sys/scale; mf = Rft.mf);
+Q = Qt/scale;
+Rf = Rft/scale;
 println("Q = $(dss2rm(Q.sys; atol))")
 println("Rf = $(dss2rm(Rf.sys; atol))")
-
 
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol)

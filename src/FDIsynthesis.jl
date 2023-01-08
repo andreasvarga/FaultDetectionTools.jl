@@ -539,7 +539,6 @@ function efdsyn(sysf::FDIModel{T}; rdim::Union{Int,Missing} = missing, poles::Un
    QR = gss2ss(QR; atol1, atol2, rtol)[1]
    
    Q = FDFilter(QR, p, mu)
-   #R = fdRset(QR[:,p+mu+1:end],faults = Vector(1:mf), noise = mf .+ Vector(1:mw), aux = (mf+mw) .+ Vector(1:ma))
    R = FDFilterIF(QR; mf, mw, ma, moff = p+mu)
    info = (tcond = tcond1, degs = infodegs, S = S, HDesign = convert(Matrix{Float64},Htemp))
 
@@ -565,7 +564,7 @@ function efdsyn(sysf::FDIModel{T}, SFDI::Union{BitVector,Vector{Bool}}; kwargs..
    md = length(sysf.disturbances) 
    mf = length(sysf.faults)
    mw = length(sysf.noise) 
-   ma = length(sysf.noise)  
+   ma = length(sysf.aux)  
    mf == length(SFDI) || error("number of faults must be equal to the length dimension of SFDI")
    indd = Vector(1:mf)[SFDI .== false] 
    indf = Vector(1:mf)[SFDI .== true] 

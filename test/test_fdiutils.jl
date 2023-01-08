@@ -23,6 +23,7 @@ display(sysf)
 filter = rss(3,1,3)
 Q = FDFilter(filter,1,2)
 display(Q)
+@test iszero((Q*0.5).sys-(Q/2).sys) && iszero((0.5*Q).sys-(Q/2).sys)
 
 # tests FDIFilter
 filter = [rss(3,1,3), rss(2,2,3)]
@@ -33,6 +34,7 @@ display(Q)
 filteri = rss(3,1,6)
 R = FDFilterIF(filteri,2,1,1,1,1);
 display(R)
+@test iszero((R*0.5).sys-(R/2).sys) && iszero((0.5*R).sys-(R/2).sys)
 
 R1 = FDFilterIF(filteri; mu = 2, md = 1, mf = 1, mw = 1, ma = 1);
 @test iszero(R1.sys-R.sys,atol=1.e-7)

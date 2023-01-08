@@ -29,18 +29,18 @@ sysf = fdimodset(rss(1,p,mf+mu),controls = 1:mu, faults = mu+1:mu+mf);
 # solve an EFDP using the nullspace based approach
 @time Q, Rf, info = efdsyn(sysf; FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2); info
 R = fdIFeval(Q, sysf);
-@test iszero(Rf.sys-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
+@test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
       info.S == Bool[1 1; 1 1; 1 1] && info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
 # solve using observer based nullspace
 @time Q, Rf, info = efdsyn(sysf; nullspace = false, atol3 = 1.e-7, minimal = false, rdim = 2); info
 R = fdIFeval(Q, sysf);
-@test iszero(Rf.sys-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
+@test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
       info.S == Bool[1 1; 1 1; 1 1] && info.HDesign == [1.0 0.0 0.0; 0.0 1.0 0.0]
 
 @time Q, Rf, info = efdsyn(sysf; nullspace = false, atol3 = 1.e-7, minimal = true, rdim = 1); info
 R = fdIFeval(Q, sysf);
-@test iszero(Rf.sys-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
+@test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) && iszero(R.sys[:,R.controls],atol=1.e-7) &&
       info.S == Bool[1 1; 1 1; 1 1] && info.HDesign == [1.0 0.0 0.0]
 
 
@@ -65,7 +65,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 # the same results  must result using the resulting design matrix H
@@ -78,7 +78,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1:2);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2]; block = false) == Bool[0 1; 0 0] &&
       fdisspec(Rf, [0]; block = false) == Bool[1 1; 0 0] &&
       fdisspec(Rf, [2]; block = false) == Bool[0 1; 1 0] &&
@@ -100,7 +100,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001, simple = true, HDesign = info.HDesign); info1 
@@ -121,7 +121,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001, HDesign = info.HDesign); info1 
@@ -139,7 +139,7 @@ Gf = [1/s; 1/(s^2+4)]; # enter Gf(s)
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, rdim = 1, FDfreq = [0, 2], FDGainTol = 0.001, simple = true, HDesign = info.HDesign); info1 
@@ -161,7 +161,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], HDesign = info.HDesign); info1 
@@ -172,7 +172,7 @@ Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], 
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], HDesign = info.HDesign); info1 
@@ -194,7 +194,7 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 Q1, Rf1, info1 = efdsyn(sysf; sdeg = -3, smarg = -3, rdim = 1, FDfreq = [0, 2], simple = true, HDesign = info.HDesign); info1 
@@ -243,14 +243,14 @@ sysf = fdimodset(dss([Gu Gd]),c =1,d = 2,f = 1,fs = 2);
 @time Q, Rf, info = efdsyn(sysf, smarg =-3, sdeg = -3, rdim = 1); 
 
 # normalize Q and Rf to match example
-scale = evalfr(Rf.sys[1,1],Inf)[1,1];
+scale = evalfr(Rf.sys[1,Rf.mu+Rf.md+1],Inf)[1,1];
 dss2rm(Q.sys/scale, atol = 1.e-7)
 dss2rm(Rf.sys/scale, atol = 1.e-7) 
 
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0]) == Bool[1 1] 
 
 
@@ -279,7 +279,7 @@ dss2rm(Rf.sys/scale, atol = 1.e-7)
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
 @test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) && 
+      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
       fdisspec(Rf, [0]) == Bool[1 1] 
 
 @test iszero(gbalmr(Q; balance = true).sys-Q.sys, atol=1.e-7) 
@@ -366,7 +366,7 @@ Q1, Rfw1, info1 = efdsyn(sysf; atol3 = 1.e-7, minimal = false, simple = false, H
 @test iszero(Q.sys-Q1.sys, atol = 1.e-7) && iszero(Rfw.sys-Rfw1.sys, atol = 1.e-7)
 
 
-## special cases which require forming rdim combinations of nout vecotors, with nout > rdim  
+## special cases which require forming rdim combinations of nout vectors, with nout > rdim  
 
 # Gf = [ I;0]
 p = 4; mf = 2;
