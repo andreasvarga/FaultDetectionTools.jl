@@ -7,7 +7,8 @@ Makie.inline!(false)
 
 title_u = reshape([ latexstring("From: \$f_$i\$")  for i in 1:mf],1,mf)
 ylabel_r = reshape([ latexstring("To: \$r_$i\$")  for i in 1:6],1,6)
-yticks = [[-20,0,20],[-20,0,20],[-20,0,20],[0,10,20],[0,1,2],[0,1,2]]
+yticks = [[-20,0,20],[-20,0,20],[-20,0,20],[0,10,20],["   0","   1","   2"],["   0","   1","   2"]]
+yticks = [[-20,0,20],[-20,0,20],[-20,0,20],["   0","  10","  20"],["   0","   1","   2"],["   0","   1","   2"]]
 yhighs = [20,20,20,20,2,2]
 ylows = [-20,-20,-20,-1,-0.1,-0.1]
 ns, p, m = size(y)
@@ -22,8 +23,11 @@ for row in 1:p
         axs[row,col].yminorgridvisible = false       
         axs[row,col].title = row == 1 ? title_u[col] : "" 
         axs[row,col].ylabel = col == 1 ? ylabel_r[row] : "" 
+        # col > 1 ? hideydecorations!(axs[row,col], label = false, grid = false) :
+        #           axs[row, col].yticks = yticks[row]
         col > 1 ? hideydecorations!(axs[row,col], label = false, grid = false) :
-                  axs[row, col].yticks = yticks[row]
+                  (row < 4 ? axs[row, col].yticks = yticks[row] : 
+                             (row < 5 ? axs[row, col].yticks = ([0,10,20],yticks[row]) : axs[row, col].yticks = ([0,1,2],yticks[row]))) 
         row < 6 ? hidexdecorations!.(axs[row,col], label = false, grid = false) :
                   axs[row, col].xticks = [0,5.,10]; 
         #band!(axs[row, col], tout, yl[:,row,col],  yu[:,row,col], color = :skyblue)

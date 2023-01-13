@@ -1,7 +1,7 @@
 name = "FaultDetectionTools"
 uuid = "fbfc5fa0-0005-11ec-19bb-b3a492551a0b"
 authors = ["Andreas Varga <varga.andreas@gmail.com>"]
-version = "1.2.1"
+version = "1.2.2"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"

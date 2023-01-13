@@ -82,7 +82,7 @@ end
 tout = Vector(0:0.1:10.)
 include("Fig8_5.jl")
 Fig8_5 = fig1
-display(CS2_1.Fig8_5)
+#display(CS2_1.Fig8_5)
 
 ##  Part 5 - Assesment of synthesis results for nominal synthesis
 
@@ -101,7 +101,7 @@ end
 tout = Vector(0:0.1:10.)
 include("Fig8_6.jl")
 Fig8_6 = fig2
-display(CS2_1.Fig8_6)
+#display(CS2_1.Fig8_6)
 
 
 ##  Part 6 - Assesment of synthesis results for mean value gains
@@ -199,7 +199,7 @@ display(norms)
 tout = Vector(0:0.1:10.)
 include("Fig8_7.jl")
 Fig8_7 = fig3
-display(CS2_1.Fig8_7)
+#display(CS2_1.Fig8_7)
 
 
 end  # module

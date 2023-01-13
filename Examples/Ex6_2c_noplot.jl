@@ -45,7 +45,7 @@ display(info.MDgap)
 # plot residual responses
 include("Fig6_3.jl")
 Fig6_3 = fig
-display(Ex6_2c.Fig6_3)
+#display(Ex6_2c.Fig6_3)
 
 end
 using Main.Ex6_2c

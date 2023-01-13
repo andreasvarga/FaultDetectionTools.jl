@@ -133,14 +133,14 @@ display([NormRu NormRd NormRfmRfnom])
 y, tout, x = stepresp(Rftilde,10);
 include("Fig8_2.jl")
 Fig8_2 = fig1
+display(CS1_1.Fig8_2)
 
 y = [stepresp(Rtot[i][:,indf],10)[1] for i in 1:N];
 include("Fig8_3.jl")
 Fig8_3 = fig2
+display(CS1_1.Fig8_3)
 
 end  # module
 
 using Main.CS1_1
-CS1_1.Fig8_2
-CS1_1.Fig8_3
  

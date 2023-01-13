@@ -55,7 +55,7 @@ yl = y .- yerr; yu = y .+ yerr  # lower and upper bounds
 # plot step responses
 include("Fig5_2.jl")
 Fig5_2 = fig
-display(Ex5_16c.Fig5_2)
+#display(Ex5_16c.Fig5_2)
 
 end
 using Main.Ex5_16c

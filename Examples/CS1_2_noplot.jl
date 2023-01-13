@@ -122,7 +122,7 @@ y = [stepresp(Rtot[i][:,indf],2)[1] for i in 1:N];
 tout = Vector(0:0.02:2.)
 include("Fig8_4.jl")
 Fig8_4 = fig
-display(Fig8_4)
+#display(Fig8_4)
 
 end  # module
 using Main.CS1_2

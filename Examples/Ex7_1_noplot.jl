@@ -29,7 +29,7 @@ axislegend()
 
 
 Fig7_1 = fig  
-display(Fig7_1)
+#display(Fig7_1)
   
 
 # comment out next line to save plot

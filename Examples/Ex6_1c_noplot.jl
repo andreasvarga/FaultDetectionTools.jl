@@ -46,8 +46,8 @@ Fig6_1 = fig1
 # plot residual responses
 include("Fig6_2.jl")
 Fig6_2 = fig2
-display(Ex6_1c.Fig6_1)
-display(Ex6_1c.Fig6_2)
+#display(Ex6_1c.Fig6_1)
+#display(Ex6_1c.Fig6_2)
 
 end
 using Main.Ex6_1c

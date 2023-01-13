@@ -1,7 +1,7 @@
 using FaultDetectionTools
 
 # case studies
-include("CS1_1.jl")
-include("CS1_2.jl")
-include("CS2_1.jl")
-include("CS2_2.jl")
+include("CS1_1_noplot.jl")
+include("CS1_2_noplot.jl")
+include("CS2_1_noplot.jl")
+include("CS2_2_noplot.jl")

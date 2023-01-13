@@ -87,7 +87,7 @@ display(Nintp)
 tout = Vector(0:0.1:10.)
 include("Fig8_8.jl")
 Fig8_8 = fig
-display(CS2_2.Fig8_8) 
+#display(CS2_2.Fig8_8) 
 
 end  # module
 using Main.CS2_2

@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.2.2
+
+Patch release with updated examples.  
+
 ## Version 1.2.1
 
 Patch release with minor enhancements and bug fixes.  

@@ -1,13 +1,15 @@
-module Ex7_1
+module Ex7_1a
 
 using Makie, CairoMakie, LaTeXStrings
-using DescriptorSystems, Polynomials
+using DescriptorSystems, Polynomials, GenericLinearAlgebra
 Makie.inline!(false)
 
-# Example 7.1 - Illustrating polynomial root sensitivity 
-println("Example 7.1 with Fig7.1")
 
-pexact = Vector(-25.:1.:-1.)
+# Example 7.1 - Illustrating high precision polynomial root computation 
+println("Example 7.1 with alternative Fig7.1a")
+
+
+pexact = BigFloat.(Vector(-25.:1.:-1.))
 g = rtf(1,Polynomial(fromroots(pexact),:s))
 poles = gpole(g)
 println(" Exact poles  Computed poles") 
@@ -24,17 +26,13 @@ h2 = scatter!(ax, real(poles), imag(poles), color = :red, label = "Perturbed pol
 h2.marker = :star6
 xlims!.(ax, low = -30, high = 0) 
 ylims!.(ax, low = -15, high =15) 
-
 axislegend()
 
-
-Fig7_1 = fig  
-display(Fig7_1)
-  
+Fig7_1a = fig     
+#display(Fig7_1a)
 
 # comment out next line to save plot
-#save("Fig7_1.pdf", fig, resolution = (600, 600))
+#save("Fig7_1a.pdf", fig, resolution = (600, 600))
 
 end
-using Main.Ex7_1
-
+using Main.Ex7_1a
