@@ -2,6 +2,7 @@ module Ex7_1a
 
 using Makie, CairoMakie, LaTeXStrings
 using DescriptorSystems, Polynomials, GenericLinearAlgebra
+
 Makie.inline!(false)
 
 
