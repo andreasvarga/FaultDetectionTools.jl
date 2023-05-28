@@ -341,8 +341,8 @@ sysf = fdimodset(dss(Gf; minimal = true, atol = 1.e-7),faults = 1);
 
 # check synthesis results
 R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
-@test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys) 
+@test iszero(R.sys[:,[R.controls;R.disturbances]]) &&
+      iszero(R.sys[:,R.faults]-Rf.sys, atol = 1.e-7) 
 @test fdisspec(Rf, [0, 2])[:] == Bool[1] 
 
 # the same results  must result using the resulting design matrix H
