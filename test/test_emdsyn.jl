@@ -94,6 +94,8 @@ sysm2 = MDMModel([sys1, sys2, sys3, sys4]; mu, md);
 
 @time distgap, fpeak = mddist(sysm, distance = "Inf")
 @time distgap1, fpeak1 = mddist(sysm, distance = "Inf", MDfreq = fpeak[:])
+println("distgap = $distgap distgap1 = $distgap1")
+println("fpeak = $fpeak fpeak1 = $fpeak1")
 @test distgap ≈ distgap1 && fpeak ≈ fpeak1
 
 @time distgapd, fpeakd = mddist(sysm, distance = "Inf", cdinp = true)
