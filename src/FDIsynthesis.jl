@@ -840,10 +840,10 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
                       sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
                       nullspace::Bool = true, minimal::Bool = true, simple::Bool = false, separate::Bool = false, 
                       FDtol::Real = 0.0001, FDGainTol::Real = 0.01, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
-                      tcond::Real = 1.e4, HDesign::Union{Vector{Matrix{T1}},Missing} = missing,
+                      tcond::Real = 1.e4, HDesign::Union{Vector{Matrix{<:Real}},Missing} = missing,
                       offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
                       rtol::Real = ((size(sysf.sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
-                      fast::Bool = true) where {T, T1 <: Real}
+                      fast::Bool = true) where {T}
    Ts = sysf.sys.Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
    
@@ -2669,11 +2669,11 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
                       sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
                       nullspace::Bool = true, minimal::Bool = true, simple::Bool = false, separate::Bool = false, 
                       FDtol::Real = 0.0001, FDGainTol::Real = 0.01, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
-                      tcond::Real = 1.e4, HDesign::Union{Vector{Matrix{T1}},Missing} = missing, HDesign2::Union{Vector{Matrix{T2}},Missing} = missing,
+                      tcond::Real = 1.e4, HDesign::Union{Vector{Matrix{<: Real}},Missing} = missing, HDesign2::Union{Vector{Matrix{<: Real}},Missing} = missing,
                       offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
                       rtol::Real = ((size(sysf.sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
                       fast::Bool = true, exact::Bool = false, gamma::Real = 1, epsreg::Real = 0.1, 
-                      sdegzer::Union{Real,Missing} = missing, nonstd::Int = 1, freq::Real = rand(), scale2::Union{Vector{Real},Missing} = missing) where {T, T1 <: Real, T2 <: Real}
+                      sdegzer::Union{Real,Missing} = missing, nonstd::Int = 1, freq::Real = rand(), scale2::Union{Vector{Real},Missing} = missing) where {T}
    Ts = sysf.sys.Ts                  
    disc = (Ts != 0);  # system type (continuous- or discrete-time)
    
