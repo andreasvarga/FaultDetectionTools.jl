@@ -2669,7 +2669,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
                       sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
                       nullspace::Bool = true, minimal::Bool = true, simple::Bool = false, separate::Bool = false, 
                       FDtol::Real = 0.0001, FDGainTol::Real = 0.01, FDfreq::Union{AbstractVector{<:Real},Real,Missing} = missing, 
-                      tcond::Real = 1.e4, HDesign::Vector{<:AbstractMatrix{<:Real}} = missing, HDesign2::Vector{<:AbstractMatrix{<:Real}} = missing,
+                      tcond::Real = 1.e4, HDesign::Union{Missing, Vector{<:AbstractMatrix{<:Real}}} = missing, HDesign2::Union{Missing, Vector{<:AbstractMatrix{<:Real}}} = missing,
                       offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
                       rtol::Real = ((size(sysf.sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
                       fast::Bool = true, exact::Bool = false, gamma::Real = 1, epsreg::Real = 0.1, 
