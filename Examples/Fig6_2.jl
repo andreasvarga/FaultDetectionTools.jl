@@ -9,7 +9,7 @@ N, M = size(R.sys)
 titles = [ "Model $i" for i in 1:M]
 ylabelr = [ latexstring("\$r^{($i)}\$") for i in 1:N]
 
-fig2 = Figure(resolution = (1200, 800))
+fig2 = Figure(size = (1200, 800))
 
 axs = [Axis(fig2[row, col], yticks = WilkinsonTicks(3)) for row in 1:N, col in 1:M]
 y = zeros(101,1,2); tout = zeros(101);
@@ -36,4 +36,4 @@ Label(fig2[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
 fig2                   
 
 # comment out next line to save plot
-# save("Fig6_2.pdf", fig2, resolution = (1200, 800))
+# save("Fig6_2.pdf", fig2, size = (1200, 800))

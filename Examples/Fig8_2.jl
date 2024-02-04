@@ -12,7 +12,7 @@ yticks = [[-20,0,20],[-20,0,20],[-20,0,20],["   0","  10","  20"],["   0","   1"
 yhighs = [20,20,20,20,2,2]
 ylows = [-20,-20,-20,-1,-0.1,-0.1]
 ns, p, m = size(y)
-fig1 = Figure(resolution = (800, 600))
+fig1 = Figure(size = (800, 600))
 
 axs = [Axis(fig1[row, col]) for row in 1:p, col in 1:m]
 
@@ -43,4 +43,4 @@ Label(fig1[end+1, :], text = "Time (seconds)", font = "TeX Gyre Heros Bold",
 fig1
 
 # comment out next line to save plot
-#save("Fig8_2.pdf", fig1, resolution = (800, 600))
+#save("Fig8_2.pdf", fig1, size = (800, 600))

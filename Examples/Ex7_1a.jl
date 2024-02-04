@@ -15,7 +15,7 @@ poles = gpole(g)
 println(" Exact poles  Computed poles") 
 display([pexact poles])
 
-fig = Figure(;font = "CMU Serif", fontsize=14, resolution = (600, 600))
+fig = Figure(;font = "CMU Serif", fontsize=14, size = (600, 600))
 ax = Axis(fig[1, 1], title = "Poles of 1/((s+1)(s+2)...(s+25))",
            ylabel = "Imaginary Axis",
            xlabel = "Real Axis")

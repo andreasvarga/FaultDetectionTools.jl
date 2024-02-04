@@ -11,7 +11,7 @@ title_u = [ latexstring("From: \$f_1\$")  latexstring("From: \$f_2\$")  latexstr
 ylabel_r = [ latexstring("To: \$r_1\$")  latexstring("To: \$r_2\$") ]
 
 ns, p, m = size(y)
-fig = Figure(resolution = (800, 600))
+fig = Figure(size = (800, 600))
 
 axs = [Axis(fig[row, col]) for row in 1:p, col in 1:m]
 
@@ -45,4 +45,4 @@ axs[2,1].yticks = [0,0.5,1,1.5]
 fig
 
 # comment out next line to save plot
-# save("Fig5_2.pdf", fig, resolution = (800, 600))
+# save("Fig5_2.pdf", fig, size = (800, 600))

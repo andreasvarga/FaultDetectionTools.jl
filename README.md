@@ -61,7 +61,7 @@ the [DescriptorSystems](https://github.com/andreasvarga/DescriptorSystems.jl) pa
 
 The implemented functions are based on the computational procedures described in Chapters 5, 6 and 7 of the book:
 
-**Andreas Varga**, [Solving Fault Diagnosis Problems, Linear Synthesis Techniques](https://www.springer.com/us/book/9783319515588), vol. 84 of Studies in Systems, Decision and Control, Springer International Publishing, 2017.
+**Andreas Varga**, [Solving Fault Diagnosis Problems - Linear Synthesis Techniques with Julia Code Examples](https://link.springer.com/book/10.1007/978-3-031-35767-1), vol. 482 of Studies in Systems, Decision and Control, Springer International Publishing, 2024.
 
 This book describes the mathematical background of solving synthesis problems of fault detection and model detection filters and gives detailed descriptions of the underlying synthesis procedures. 
 

@@ -20,7 +20,7 @@ ylabelr = [ latexstring("\$\\theta_$i\$") for i in 1:N]
 # ind = [2, 4, 5, 9]
 # ylabelr[ind] = [ L"\theta_$i\newline" for i in ind]
 
-fig = Figure(;font = "CMU Serif", fontsize=14, resolution = (1200, 800))
+fig = Figure(;font = "CMU Serif", fontsize=14, size = (1200, 800))
 
 axs = [Axis(fig[row, col], yticks = WilkinsonTicks(3)) for row in 1:N, col in 1:M]
 nr = size(R.sys[1,1],1)
@@ -55,4 +55,4 @@ rowgap!(fig.layout, 15)
 fig                   
 
 # comment out next line to save plot
-#save("Fig6_3.pdf", fig, resolution = (1200, 800))
+#save("Fig6_3.pdf", fig, size = (1200, 800))
