@@ -7,7 +7,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/stable/)
 [![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/LICENSE.md)
 
-## FDITools - Fault Detection and Isolation Tools in Julia
+## Fault Detection and Isolation Tools in Julia
 
 ## Compatibility
 
@@ -55,7 +55,7 @@ _Note:_ For the execution of the test examples and case study examples, the pack
 
 ## About
 
-`FDITools` is a collection of Julia functions for the analysis and solution 
+`FaultDetectionTools` is a collection of Julia functions for the analysis and solution 
 of fault detection and model detection problems. The functions of this collection rely on 
 the [DescriptorSystems](https://github.com/andreasvarga/DescriptorSystems.jl) package. 
 

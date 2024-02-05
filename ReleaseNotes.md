@@ -1,5 +1,13 @@
 # Release Notes
 
+## Version 1.3.1
+
+Patch release with updated examples to comply with new Makie functionality.  
+
+## Version 1.3.0
+
+Version bump to use Julia 1.8 and higher.
+
 ## Version 1.2.2
 
 Patch release with updated examples.  
