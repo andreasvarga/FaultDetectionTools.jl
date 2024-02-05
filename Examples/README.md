@@ -9,7 +9,6 @@ This collection contains the Julia scripts which allow to execute all computatio
 
 | Examples | Description |
 | :--- | :--- |
-| **[`lyapc`](@ref)**  | Solution of the continuous Lyapunov equations |
 | **Ex2_4**  |         Example 2.4 - Conversion of a LPV model to LTI form |
 | **Ex5_4**  |         Example 5.4 - Solution of an exact fault detection problem (EFDP) |
 | **Ex5_4c**  |      Compact version of script Ex5_4 using the function efdsyn of FaultDetectionTools |
