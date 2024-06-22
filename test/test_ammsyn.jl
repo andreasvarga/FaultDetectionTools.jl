@@ -171,7 +171,7 @@ Ge = [sysf.sys[:,[sysf.faults;sysf.noise]]; zeros(mu,mf+mw)]; Me = [info.M*Mr.sy
 @test iszero(R.sys-Q.sys*Ge, atol = 1.e-7) && 
       fdimmperf(R,info.M*Mr) ≈ info.gammasub && glinfnorm(Me-Q.sys*Ge)[1] ≈ info.gammasub
 
-#fails
+
 # Example 5.14 of (V,2017)
 s = rtf('s'); # define the Laplace variable s
 Gf = 1/(s+1);        # enter $G_f(s)$

@@ -1000,7 +1000,7 @@ function efdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
    
       # Step 2): of Procedure EFDI 
       # initialize overall filters Q and R
-      QRt = similar(Vector{typeof(QR)},nb)
+      QRt = similar(Vector{DescriptorStateSpace{T}},nb)
       for i = 1:nb
           indd = Vector(1:mf)[SFDI[i,:] .== false] 
           indf = Vector(1:mf)[SFDI[i,:] .== true] 
@@ -2859,7 +2859,7 @@ function afdisyn(sysf::FDIModel{T}, SFDI::Union{BitMatrix,BitVector,Array{Bool,2
    
       # Step 2): of Procedure EFDI 
       # initialize overall filters Q and R
-      QRt = similar(Vector{typeof(QR)},nb)
+      QRt = similar(Vector{DescriptorStateSpace{T}},nb)
       for i = 1:nb
           indd = Vector(1:mf)[SFDI[i,:] .== false] 
           indf = Vector(1:mf)[SFDI[i,:] .== true] 
@@ -4433,7 +4433,7 @@ function ammsyn(sysf::FDIModel{T1}, sysr::Union{FDFilterIF{T2},FDIModel{T2}}; po
          end
             
          # form explicitly Rref = [ Mrf 0 ]
-         Rref = [ sysr.sys[:,sysr.faults] zeros(rdim,mw)];
+         Rref = [ sysr.sys[:,sysr.faults] zeros(T,rdim,mw)];
        
          # compute F = [ F1 F2 ] =  Rref*Gi'
          F = Rref*Ri';

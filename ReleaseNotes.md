@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.2
+
+Patch release to comply with the new definition of `DescriptorStateSpace` object in v1.4.2 of `DescriptorSystems`.  
+
 ## Version 1.3.1
 
 Patch release with updated examples to comply with new Makie functionality.  

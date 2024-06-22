@@ -283,7 +283,7 @@ struct FDIFilterIF{T} <: AbstractFDDObject where T
     mf::Int
     mw::Int
     ma::Int
-    function FDIFilterIF{T}(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T 
+    function FDIFilterIF{T}(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where {T} 
         N = length(sys)
         sysn = similar(sys,N)
         inps = 1:mu+md+mf+mw+ma
@@ -294,7 +294,7 @@ struct FDIFilterIF{T} <: AbstractFDDObject where T
         new{T}(sysn, mu, md, mf, mw, ma)
     end
 end
-FDIFilterIF(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where T  = 
+FDIFilterIF(sys::Vector{<:DescriptorStateSpace{T}}, mu::Int, md::Int, mf::Int, mw::Int, ma::Int) where {T}  = 
            FDIFilterIF{T}(sys, mu, md, mf, mw, ma)
 """
     FDIFilterIF(sys; mu = 0, md = 0, mf = 0, mw = 0, ma = 0, moff = 0 ) -> R::FDIFilterIF
@@ -321,8 +321,12 @@ function FDIFilterIF(sys::Vector{<:DescriptorStateSpace{T}}; mu::Int = 0, md::In
     m = moff+mu+md+mf+mw+ma
     any(m .> size.(sys,2)) && error("the specified total number of inputs exceeds the number of system inputs")
     N = length(sys)
+    sysn = similar(sys,N)
     inps = moff+1:m
-    return FDIFilterIF{T}([sys[i][:,inps] for i in 1:N], mu, md, mf, mw, ma)
+    for i = 1:N
+       sysn[i] = sys[i][:,inps]
+    end 
+    return FDIFilterIF{T}(sysn, mu, md, mf, mw, ma)
 end
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilterIF)

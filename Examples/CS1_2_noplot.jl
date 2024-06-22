@@ -54,8 +54,7 @@ println("sdeg_cloop = $sdeg_cloop")
 FDtol = 1.e-5      # weak fault detection threshold
 FDGainTol = 0.001  # strong fault detection threshold
 FDfreq = 0         # frequency for strong detectability checks 
-S_strong = fdigenspec(sysactf[nom]; atol, FDtol, FDGainTol, 
-                      FDfreq, sdeg = -0.05)
+S_strong = fdigenspec(sysactf[nom]; atol, FDtol, FDGainTol, FDfreq, sdeg = -0.01)
 # check resulting specifications
 @test size(S_strong,1) == 2^mf-1
 

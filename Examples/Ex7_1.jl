@@ -33,7 +33,7 @@ display(Fig7_1)
   
 
 # comment out next line to save plot
-#save("Fig7_1.pdf", fig, resolution = (600, 600))
+#save("Fig7_1.pdf", fig, size = (600, 600))
 
 end
 using Main.Ex7_1
