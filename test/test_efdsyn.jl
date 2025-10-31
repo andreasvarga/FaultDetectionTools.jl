@@ -229,23 +229,6 @@ catch err
   @test true
 end
 
-## Recursive (real-time) computations based fault identification
-# 1. Initialize the running mean and count
-running_mean = 0.0
-running_sig = 0.0
-running_var = 0.0
-count = 0
-mincount = 5 
-
-# 2. Process data points one-by-one
-
-for x in commands_withd_jamming[indf:end]
-    #global running_mean, count
-    running_mean, running_sig, count = FaultDetectionTools.update_mean_var(running_mean, running_sig, count, x)
-    running_var = running_sig/count
-    println("After $count samples, mean is: $running_mean  variance is: $running_var")
-    count > mincount && running_var < 1.e-2 && break
-end
 
 # Example 5.4c - Solution of an EFDP using EFDSYN
 
