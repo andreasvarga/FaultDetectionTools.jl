@@ -7,7 +7,7 @@ using DescriptorSystems
 using Polynomials
 using Combinatorics
 using Random
-using Statistics
+#using Statistics
 
 abstract type AbstractFDDObject end
 
