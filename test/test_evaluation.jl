@@ -353,7 +353,7 @@ SFDI = fdigenspec(sysf, atol = 1.e-7)
 
 @time Q, R, info = efdisyn(sysf, SFDI; nullspace = false, atol = 1.e-7, minimal = true); info
 
-@test iszero(vcat(R.sys...)-vcat(R.sys...)[:,Rf.faults],atol=1.e-7) && iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) &&
+@test iszero(vcat(R.sys...)-vcat(R.sys...)[:,R.faults],atol=1.e-7) && iszero(vcat(R.sys...)[:,R.controls],atol=1.e-7) &&
       info.HDesign == [[0.0 1.0 0.0], [0.0 1.0], [0.0 1.0]] &&
       fditspec(R, FDtol = 1.e-6) == SFDI  && fdisspec(R, FDGainTol = 1.e-3) == SFDI
 
