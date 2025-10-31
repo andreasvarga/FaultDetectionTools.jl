@@ -6,7 +6,7 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
-using Plots
+#using Plots
 
 
 # Testing examples for EFDSYN 
