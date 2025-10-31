@@ -17,6 +17,8 @@ include("test_ammsyn.jl")
 # test model detection functions
 include("test_emdsyn.jl")
 include("test_amdsyn.jl")
+# residual evaluation
+include("test_evaluation.jl")
 end
 
 end

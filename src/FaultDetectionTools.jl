@@ -7,6 +7,7 @@ using DescriptorSystems
 using Polynomials
 using Combinatorics
 using Random
+using Statistics
 
 abstract type AbstractFDDObject end
 
@@ -16,6 +17,7 @@ import Combinatorics: combinations
 import Base: +, -, *, /
 
 export FDIModel, fdimodset, FDFilter, FDFilterIF, FDIFilter, FDIFilterIF, fdIFeval, gbalmr
+export FDSystem, FDISystem, MDSystem, tstep!
 export fditspec, fdisspec, fdiscond, fdif2ngap, fdimmperf
 export fdigenspec, fdichkspec
 export efdsyn, efdisyn, efdbasesel, afdsyn, afdredsyn, afdisyn, afdbasesel, emmsyn, emmbasesel, ammsyn, ammbasesel
@@ -38,4 +40,6 @@ include("types/MDObjects.jl")
 include("MDanalysis.jl")
 include("MDperformance.jl")
 include("MDsynthesis.jl")
+include("types/ResidualEvaluationObjects.jl")
+include("ResidualEvaluationTools.jl")
 end

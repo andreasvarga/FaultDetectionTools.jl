@@ -10,7 +10,7 @@ println("Case study CS1_1 with Fig8.2(fig1) and Fig8.3(fig2)")
 # load matrices of the aircraft multiple-model SYSACM, 
 # actuator model ACT and output-feedback gain K
 cd(joinpath(pkgdir(FaultDetectionTools), "Examples"))
-SYSACM, K, ACT = load("cs1data.jld2", "SYSACM", "K", "ACT")
+SYSACM, K, ACT = load("cs1data.jld2", "SYSACM", "K", "ACT");
 
 # set dimensions
 N = size(SYSACM,1)        # number of models

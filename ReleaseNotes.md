@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.4.0
+
+Minor release with new FDD system objects and new functions for step-wise residual evaluation. 
+
 ## Version 1.3.2
 
 Patch release to comply with the new definition of `DescriptorStateSpace` object in v1.4.2 of `DescriptorSystems`.  

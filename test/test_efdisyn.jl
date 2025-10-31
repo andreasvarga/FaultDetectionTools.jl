@@ -6,6 +6,7 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
+using Plots
 
 # Testing examples for EFDISYN 
 println("Test_efdisyn")
@@ -14,7 +15,7 @@ println("Test_efdisyn")
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
-sysf = fdimodset(rss(1,p,mf),faults = 1:mf);
+sysf = fdimodset(rss(1,p,mf,stable = true),faults = 1:mf);
 
 
 # solve an EFDIP using the nullspace based approach
@@ -25,6 +26,28 @@ R = fdIFeval(Q, sysf)
 @time Q, Rf, info = efdisyn(sysf; atol = 1.e-7, minimal = false, rdim = [2], separate = true); info
 R = fdIFeval(Q, sysf)
 @test iszero(Rf.sys[1][:,Rf.faults]-R.sys[1][:,R.faults],atol=1.e-7) && info.HDesign[1] == [0.0 1.0 0.0; 0.0 0.0 1.0]
+
+t = 0:0.01:1; ns = length(t); 
+commands = sin.(2pi*t).*ones(ns,0); disturbances = randn(ns,0); faults = 0.5*[zeros(5,2); ones(ns-5,2)]
+
+inputs = [commands disturbances faults]
+y, tout, x = timeresp(sysf.sys, inputs, t; state_history = true); 
+
+Qd = c2d(Q,0.01)
+SFDI = fditspec(Rf)
+fdisys = FDISystem(Qd,SFDI; α = 15*ones(3), β = .5*ones(3), γ = .8*ones(3))
+nsys = length(Qd.sys);
+theta = zeros(ns,nsys);
+isig = zeros(Int,ns,nsys);
+for i = 1:ns
+    tstep!(fdisys, y[i,:], commands[i,:])
+    theta[i,:] = fdisys.θ
+    isig[i,:] = fdisys.isig
+end
+plot(t,y)
+plot!(t,theta)
+plot!(t,isig)
+
 
 
 ## Example without disturbance inputs

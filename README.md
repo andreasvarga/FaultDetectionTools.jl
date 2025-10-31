@@ -5,13 +5,14 @@
 [![codecov.io](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl/coverage.svg?branch=master)](https://codecov.io/gh/andreasvarga/FaultDetectionTools.jl?branch=master)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/dev/)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://andreasvarga.github.io/FaultDetectionTools.jl/stable/)
+[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-Article-informational?style=flat&logo=linkedin&logoColor=white&color=0D76A8)](https://www.linkedin.com/pulse/faultdetectiontools-julia-package-model-based-fault-diagnosis-varga-osr6e/?trackingId=xcVaQcjNQ8uY2%2FqCFcxRTQ%3D%3D)
 [![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/FaultDetectionTools.jl/blob/main/LICENSE.md)
 
 ## Fault Detection and Isolation Tools in Julia
 
 ## Compatibility
 
-Julia 1.8 and higher.
+Julia 1.10 and higher.
 
 ## How to install
 

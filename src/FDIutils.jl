@@ -276,9 +276,9 @@ function fdisspec_(sysrf::DescriptorStateSpace{T}, freq::Union{AbstractVector{<:
    p, mf = size(sysrf) 
    isa(freq,Vector) || (freq = [freq]) 
    lfreq = length(freq);
-   w = im*freq;                   # w = j*freq
+   w = im*freq;     
    Ts = abs(sysrf.Ts);
-   Ts > 0 && ( w = exp(Ts*w))     # w = exp(j*Ts*freq)
+   Ts > 0 && ( w = exp.(Ts*w))     # w = exp(j*Ts*freq)
 
    ispole = false
    n = size(sysrf.A,1)

@@ -8,7 +8,8 @@ Pages = [ "FDIObjects.md",
           "FDIutils.md",
           "MDObjects.md",
           "MDsynthesis.md",
-          "MDperformance.md"]
-Module = ["FaultDetectionTools"]
+          "MDperformance.md",
+          "FDDsystems.md"]
+Modules = [FaultDetectionTools]
 Order = [:type, :function]
 ```

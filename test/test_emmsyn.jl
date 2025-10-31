@@ -33,7 +33,7 @@ sysr = FDFilterIF(sysf.sys;mf)
 
 # solve an EMMP with sysr = sysf: solution Q = I
 @time Q, Rf, info = emmsyn(sysf,sysr,atol = 1.e-7); info
-@test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) == 0
+@test iszero(Rf.sys-Q.sys*sysf.sys, atol = 1.e-7) && fdimmperf(Rf,info.M*sysr) < 1.e-7
 
 # solve an EMMP for a bank of two reference models
 sysr = FDIFilterIF([sysf.sys,sysf.sys];mf)

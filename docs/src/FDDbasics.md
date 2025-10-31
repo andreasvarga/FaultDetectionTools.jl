@@ -74,9 +74,11 @@ is to indicate the presence  or absence of faults, and therefore the residual $r
 close) to zero in the absence of faults and significantly different
 from zero after a fault occurs.
 
+![Fault detection and diagnosis system](varga_Fig3.1_FDDSystem2.jpg)
+
 For decision-making when solving fault detection problems, a suitable measure of the residual magnitude is generated in a scalar _evaluation signal_ $\theta$  (e.g., $\theta = \|r\|$), which is then used to set a _decision variable_, say  $\iota$, as follows: $\iota= 1$, if $\theta > \tau$ for a detected fault, and $\iota= 0$ if $\theta \leq \tau$,  for the lack of faults, where $\tau$ is a given detection threshold.
 
-For decision-making when solving faul isolation problems, $r(t)$ is generally a structured vector with, say $n_b$ components $r^{(i)}(t)$, $i = 1, \ldots, n_b$, and  $\theta$ and $\iota$ are $n_b$-dimensional vectors, with $\theta_i$ representing a measure of the magnitude of the $i$-th residual component (e.g., $\theta_i = -\|r^{(i)}\|$). The $i$-th component of the binary signature vector $\iota$ is set $\iota_i = 1$ or $\iota_i = 0$ corresponding to a fired (i.e, $\theta_i > \tau$) or not fired (i.e., $\theta_i \leq \tau$)  component $r^{(i)}(t)$, respectively.
+For decision-making when solving faul isolation problems, $r(t)$ is generally a structured vector with, say $n_b$ components $r^{(i)}(t)$, $i = 1, \ldots, n_b$, and  $\theta$ and $\iota$ are $n_b$-dimensional vectors, with $\theta_i$ representing a measure of the magnitude of the $i$-th residual component (e.g., $\theta_i = \|r^{(i)}\|$). The $i$-th component of the binary signature vector $\iota$ is set $\iota_i = 1$ or $\iota_i = 0$ corresponding to a fired (i.e, $\theta_i > \tau$) or not fired (i.e., $\theta_i \leq \tau$)  component $r^{(i)}(t)$, respectively.
 
 A linear residual generator employed in a FDD system  has the input-output form
 ```math

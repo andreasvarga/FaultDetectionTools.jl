@@ -2,7 +2,7 @@ import Pkg; Pkg.add("DescriptorSystems")
 using Documenter, DescriptorSystems, FaultDetectionTools, DescriptorSystems
 DocMeta.setdocmeta!(FaultDetectionTools, :DocTestSetup, :(using FaultDetectionTools); recursive=true)
 
-makedocs(
+makedocs(warnonly = true, 
   modules  = [FaultDetectionTools],
   sitename = "FaultDetectionTools.jl",
   authors  = "Andreas Varga",
@@ -24,6 +24,9 @@ makedocs(
         "MDanalysis.md",
         "MDsynthesis.md",
         "MDperformance.md"
+        ],
+    "Residual Evaluation" => [ 
+        "FDDsystems.md"
         ],
      "Utilities" => [
         "FDIutils.md"

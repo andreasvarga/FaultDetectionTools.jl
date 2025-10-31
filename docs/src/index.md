@@ -88,6 +88,14 @@ The available functions in the current version of the `FaultDetectionTools.jl` p
 * **[`mdmatch`](@ref)**  Computation of the distance-matching performace to a component model.
 * **[`mdgap`](@ref)**  Computation of the noise gaps.
 
+**Building fault detection and diagnosis systems**
+
+* **[`FDSystem`](@ref)**  FDD system for fault detection or fault detection and isolation.
+* **[`FDISystem`](@ref)**  FDD system for fault detection and isolation.
+* **[`MDSystem`](@ref)**  FDD system for model detection.
+* **[`tstep!`](@ref)**  Time step on the FDD system.
+
+
 **Computational utilities**
 
 * **[`fdhinfminus`](@ref)**  Evaluation of the `H∞-` index of the transfer function matrix of a descriptor system model.  

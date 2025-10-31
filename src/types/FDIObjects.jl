@@ -126,6 +126,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDFilter)
        mu > 0 && println(io,"controls  $(ny+1:ny+mu)")
     end
 end
+
 """
     FDIFilter <: AbstractFDDObject
 
@@ -352,6 +353,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, filter::FDIFilterIF
      end
 end
 
+
 """
     fdimodset(sys; controls, c, disturbances, d, faults, f, fa, faults_sen, fs, noise, n, aux) -> sysf::FDIModel
 
@@ -539,6 +541,7 @@ function gminreal(Q::FDIFilter{T}; kwargs...) where T
     end
     return Q
 end
+gpole(sysf::FDIModel{T}; kwargs...) where T = gpole(sysf.sys;  kwargs...)
 gpole(Q::FDFilter{T}; kwargs...) where T = gpole(Q.sys;  kwargs...)
 gpole(Q::FDIFilter{T}; kwargs...) where T = gpole.(Q.sys;  kwargs...)
 
@@ -596,3 +599,15 @@ function Base.getproperty(sys::Union{FDFilter,FDIFilter}, d::Symbol)
 end
 Base.propertynames(sys::Union{FDFilter,FDIFilter}) =
     (fieldnames(typeof(sys))..., :outputs, :controls)
+
+function DescriptorSystems.c2d(sysr::FDFilter{T},Ts::Real, meth::String = "zoh"; kwargs...) where {T}
+   return FDFilter(c2d(sysr.sys,Ts,meth;kwargs...)[1], sysr.ny, sysr.mu)  
+end
+function DescriptorSystems.c2d(sysr::FDIFilter{T},Ts::Real, meth::String = "zoh"; kwargs...) where {T}
+    sysrd = deepcopy(sysr)
+    for i = 1:length(sysr.sys)
+        sysrd.sys[i] = c2d(sysr.sys[i],Ts,meth;kwargs...)[1]
+    end
+   return sysrd 
+end
+

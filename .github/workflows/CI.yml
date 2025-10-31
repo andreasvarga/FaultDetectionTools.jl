@@ -3,10 +3,24 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/TagBot.yml'
+      - '.github/workflows/Documentation.yml'
+      - 'docs/*'
   push:
     branches:
       - master
     # tags: '*'
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/TagBot.yml'
+      - '.github/workflows/Documentation.yml'
+      - 'docs/*'
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   test:
     name: Tests, Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
@@ -16,8 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          # - '1.8' 
-          # - '1.9' 
+          - 'lts' 
           - '1' 
           #- 'nightly' 
         os:

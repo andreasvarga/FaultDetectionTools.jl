@@ -503,3 +503,11 @@ function Base.getproperty(sys::MDFilter, d::Symbol)
 end
 Base.propertynames(sys::MDFilter) =
     (fieldnames(typeof(sys))..., :outputs, :controls)
+
+function DescriptorSystems.c2d(sysr::MDFilter{T},Ts::Real, meth::String = "zoh"; kwargs...) where {T}
+    sysrd = deepcopy(sysr)
+    for i = 1:length(sysr.sys)
+        sysrd.sys[i] = c2d(sysr.sys[i],Ts,meth;kwargs...)[1]
+    end
+   return sysrd 
+end

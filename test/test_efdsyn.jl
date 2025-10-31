@@ -6,6 +6,8 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
+using Plots
+
 
 # Testing examples for EFDSYN 
 println("Test_efdsyn")
@@ -14,7 +16,7 @@ Random.seed!(2123)
 
 ## Example without control and disturbance inputs
 p = 3; mf = 2;
-sysf = fdimodset(rss(1,p,mf),faults = 1:mf);
+sysf = fdimodset(rss(1,p,mf;stable = true),faults = 1:mf);
 
 
 # solve an EFDP using the nullspace based approach
@@ -22,9 +24,10 @@ sysf = fdimodset(rss(1,p,mf),faults = 1:mf);
 R = fdIFeval(Q, sysf);
 @test iszero(Rf.sys[:,Rf.faults]-R.sys[:,R.faults],atol=1.e-7) && info.S == Bool[1 1; 1 1; 1 1] && info.HDesign == [0.0 1.0 0.0; 0.0 0.0 1.0]
 
+
 ## Example without disturbance inputs
 p = 3; mf = 2; mu = 2
-sysf = fdimodset(rss(1,p,mf+mu),controls = 1:mu, faults = mu+1:mu+mf);
+sysf = fdimodset(rss(1,p,mf+mu,stable = true),controls = 1:mu, faults = mu+1:mu+mf);
 
 # solve an EFDP using the nullspace based approach
 @time Q, Rf, info = efdsyn(sysf; FDtol = 0.00001, atol = 1.e-7, minimal = false, rdim = 2); info
@@ -226,33 +229,23 @@ catch err
   @test true
 end
 
-# Example 5.3 - Solution of an EFDP using EFDSYN
+## Recursive (real-time) computations based fault identification
+# 1. Initialize the running mean and count
+running_mean = 0.0
+running_sig = 0.0
+running_var = 0.0
+count = 0
+mincount = 5 
 
-# define s as an improper transfer function
-s = rtf('s');
-# define Gu(s) and Gd(s)
-Gu = [(s+1)/(s+2); (s+2)/(s+3)];     # enter Gu(s)
-Gd = [(s-1)/(s+2); 0];               # enter Gd(s)
-p = 2; mu = 1; md = 1; mf = 2;       # set dimensions
+# 2. Process data points one-by-one
 
-# setup the synthesis model with additive faults with Gf(s) = [ Gu(s) [0;1]]
-sysf = fdimodset(dss([Gu Gd]),c =1,d = 2,f = 1,fs = 2);
-
-# call of EFDSYN with the options for stability degree -3 and the synthesis 
-# of a scalar output filter
-@time Q, Rf, info = efdsyn(sysf, smarg =-3, sdeg = -3, rdim = 1); 
-
-# normalize Q and Rf to match example
-scale = evalfr(Rf.sys[1,Rf.mu+Rf.md+1],Inf)[1,1];
-dss2rm(Q.sys/scale, atol = 1.e-7)
-dss2rm(Rf.sys/scale, atol = 1.e-7) 
-
-# check synthesis results
-R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
-@test iszero(R.sys[:,[R.controls;R.disturbances]], atol = 1.e-7) &&
-      iszero(R.sys[:,R.faults]-Rf.sys[:,Rf.faults]) && 
-      fdisspec(Rf, [0]) == Bool[1 1] 
-
+for x in commands_withd_jamming[indf:end]
+    #global running_mean, count
+    running_mean, running_sig, count = FaultDetectionTools.update_mean_var(running_mean, running_sig, count, x)
+    running_var = running_sig/count
+    println("After $count samples, mean is: $running_mean  variance is: $running_var")
+    count > mincount && running_var < 1.e-2 && break
+end
 
 # Example 5.4c - Solution of an EFDP using EFDSYN
 
@@ -283,6 +276,7 @@ R = fdIFeval(Q, sysf; minimal = true, atol = 1.e-7);
       fdisspec(Rf, [0]) == Bool[1 1] 
 
 @test iszero(gbalmr(Q; balance = true).sys-Q.sys, atol=1.e-7) 
+
 
 
 ## Test covering design matrices
